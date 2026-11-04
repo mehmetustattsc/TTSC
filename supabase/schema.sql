@@ -163,45 +163,81 @@ alter table public.fees         enable row level security;
 alter table public.bookings     enable row level security;
 alter table public.repairs      enable row level security;
 
+drop policy if exists invites_admin on public.invites;
 create policy invites_admin on public.invites for all using (public.is_admin()) with check (public.is_admin());
+-- coaches and board may invite players (adding a player = inviting their email)
+drop policy if exists invites_staff_read on public.invites;
+create policy invites_staff_read on public.invites for select using (public.is_staff());
+drop policy if exists invites_staff_add on public.invites;
+create policy invites_staff_add on public.invites for insert with check (public.is_staff() and role = 'player');
 
+drop policy if exists profiles_read on public.profiles;
 create policy profiles_read on public.profiles for select using (public.is_member() or id = auth.uid());
+drop policy if exists profiles_self on public.profiles;
 create policy profiles_self on public.profiles for update using (id = auth.uid()) with check (id = auth.uid());
+drop policy if exists profiles_admin on public.profiles;
 create policy profiles_admin on public.profiles for update using (public.is_admin());
-create policy profiles_staff_add on public.profiles for insert with check (public.is_staff());
 
+drop policy if exists avail_read on public.availability;
 create policy avail_read on public.availability for select using (public.is_member());
+drop policy if exists avail_own on public.availability;
 create policy avail_own on public.availability for all using (player_id = auth.uid() or public.is_coach()) with check (player_id = auth.uid() or public.is_coach());
 
+drop policy if exists events_read on public.events;
 create policy events_read on public.events for select using (public.is_member());
+drop policy if exists events_write on public.events;
 create policy events_write on public.events for all using (public.is_staff()) with check (public.is_staff());
 
+drop policy if exists rsvps_read on public.rsvps;
 create policy rsvps_read on public.rsvps for select using (public.is_member());
+drop policy if exists rsvps_own on public.rsvps;
 create policy rsvps_own on public.rsvps for all using (player_id = auth.uid()) with check (player_id = auth.uid() and public.is_member());
 
+drop policy if exists att_read on public.attendance;
 create policy att_read on public.attendance for select using (public.is_member());
+drop policy if exists att_coach on public.attendance;
 create policy att_coach on public.attendance for all using (public.is_coach()) with check (public.is_coach());
+drop policy if exists stats_read on public.match_stats;
 create policy stats_read on public.match_stats for select using (public.is_member());
+drop policy if exists stats_coach on public.match_stats;
 create policy stats_coach on public.match_stats for all using (public.is_coach()) with check (public.is_coach());
 
 -- notes: the board never sees them
+drop policy if exists notes_read on public.notes;
 create policy notes_read on public.notes for select using (
   (kind = 'coach'   and (to_id = auth.uid() or public.is_coach())) or
   (kind = 'toCoach' and (from_id = auth.uid() or public.is_coach())));
+drop policy if exists notes_write_coach on public.notes;
 create policy notes_write_coach on public.notes for insert with check (kind = 'coach' and from_id = auth.uid() and public.is_coach());
+drop policy if exists notes_write_player on public.notes;
 create policy notes_write_player on public.notes for insert with check (kind = 'toCoach' and from_id = auth.uid() and public.my_role() = 'player' and to_id is null);
 
+drop policy if exists self_read on public.self_ratings;
 create policy self_read on public.self_ratings for select using (player_id = auth.uid() or public.is_coach());
+drop policy if exists self_own on public.self_ratings;
 create policy self_own on public.self_ratings for all using (player_id = auth.uid()) with check (player_id = auth.uid() and public.my_role() = 'player');
 
+drop policy if exists msg_read on public.messages;
 create policy msg_read on public.messages for select using ((channel = 'team' and public.is_member()) or (channel = 'board' and public.is_board()));
+drop policy if exists msg_write on public.messages;
 create policy msg_write on public.messages for insert with check (from_id = auth.uid() and ((channel = 'team' and public.is_member()) or (channel = 'board' and public.is_board())));
+drop policy if exists msg_delete_own on public.messages;
 create policy msg_delete_own on public.messages for delete using (from_id = auth.uid() or public.is_admin());
 
+drop policy if exists members_board on public.members;
 create policy members_board on public.members for all using (public.is_board()) with check (public.is_board());
+drop policy if exists fees_board on public.fees;
 create policy fees_board on public.fees for all using (public.is_board()) with check (public.is_board());
+drop policy if exists bookings_board on public.bookings;
 create policy bookings_board on public.bookings for all using (public.is_board()) with check (public.is_board());
+drop policy if exists repairs_board on public.repairs;
 create policy repairs_board on public.repairs for all using (public.is_board()) with check (public.is_board());
 
 -- live updates for the chat and the calendar
-alter publication supabase_realtime add table public.messages, public.rsvps, public.events;
+do $$ begin
+  alter publication supabase_realtime add table public.messages, public.rsvps, public.events, public.notes;
+exception when duplicate_object then null; end $$;
+
+-- the app needs read access for signed-in users
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on all tables in schema public to authenticated;
