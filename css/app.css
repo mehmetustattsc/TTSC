@@ -233,3 +233,9 @@ small { display: block; font-size: 12.5px; color: var(--muted); }
 .composer input:focus { outline: none; border-color: var(--red); }
 .send { width: 44px; height: 44px; border-radius: 50%; background: var(--red); color: #fff; display: grid; place-items: center; }
 .send svg { width: 20px; height: 20px; fill: currentColor; }
+
+.link-btn { display: block; margin: 14px auto 0; color: var(--muted); font-weight: 600; text-decoration: underline; padding: 8px; }
+.code-in { font: 700 28px/1 'Barlow Condensed', sans-serif !important; letter-spacing: .3em; text-align: center; }
+.demo-banner { background: var(--warn-soft); color: var(--warn); font-weight: 600; font-size: 13.5px; padding: 10px 12px; border-radius: 12px; margin: 14px 0 6px; text-align: center; }
+.av-pending { background: var(--bg); color: var(--muted); border: 1.5px dashed var(--line); }
+.btn[disabled] { opacity: .6; }

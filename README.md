@@ -24,8 +24,7 @@ Geri bildirim etiketleri ve mazeretler anahtar olarak saklanır, herkes kendi di
 
 ## Prototip sınırları
 
-- Veriler şimdilik **sadece o cihazın tarayıcısında** saklanıyor (`js/store.js`). Ortak sunucu Supabase olacak: tablolar ve yetki kuralları `supabase/schema.sql` içinde hazır ve test edildi.
-- Giriş ekranında herkes herhangi bir kişiyi seçebiliyor; bu sadece rolleri denemek için.
+- Veriler Supabase'te (AB). Giriş: e-postaya gelen 6 haneli kod; sadece davet edilen adresler rol alır. Giriş ekranındaki "Önce demoyu dene" uydurma verilerle sadece o cihazda çalışır.
 - Demo verisi uydurmadır (isimler, rakipler, skorlar).
 
 ## Dosyalar
@@ -34,10 +33,12 @@ Geri bildirim etiketleri ve mazeretler anahtar olarak saklanır, herkes kendi di
 |---|---|
 | `index.html`, `css/app.css` | Sayfa ve tasarım |
 | `js/app.js` | Ekranlar ve akışlar |
-| `js/store.js` | Veri katmanı + demo verisi (sunucuya geçişte sadece bu değişir) |
+| `js/store.js` | Veri katmanı: sunucu modu + demo verisi |
+| `js/remote.js`, `js/config.js` | Supabase bağlantısı (giriş kodu, tablolar) |
 | `js/i18n.js` | Dört dil (TR/DE/EN/FR), etiketler, mazeretler |
 | `sw.js`, `manifest.webmanifest` | Ana ekrana ekleme ve internetsiz açılış |
 | `supabase/schema.sql` | Sunucu tabloları, davet listesi, rol ve gizlilik kuralları |
 | `tests/i18n.spec.mjs` | Dört dilde de aynı anahtarlar ve {yer tutucular} var mı |
+| `tests/server.spec.mjs` | Gerçek veritabanı + şema ile çok kişili uçtan uca test |
 | `tests/smoke.spec.mjs` | Tüm roller ve ana akışlar için tarayıcı testi (gizlilik kontrolleri dahil) |
 | `.github/workflows/ci.yml` | Her gönderimde test, geçerse GitHub Pages'e yayın |

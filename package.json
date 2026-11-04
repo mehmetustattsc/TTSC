@@ -2,7 +2,12 @@
   "name": "ttsc-team",
   "private": true,
   "type": "module",
-  "scripts": { "test:i18n": "node tests/i18n.spec.mjs",
-    "test:smoke": "node tests/smoke.spec.mjs" },
-  "devDependencies": { "playwright": "^1.50.0" }
+  "scripts": {
+    "test:i18n": "node tests/i18n.spec.mjs",
+    "test:smoke": "node tests/smoke.spec.mjs",
+    "test:server": "node tests/server.spec.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.50.0"
+  }
 }

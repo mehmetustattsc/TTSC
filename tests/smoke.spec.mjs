@@ -25,10 +25,12 @@ const shot = n => page.screenshot({ path: join(root, 'tests/shots', n + '.png'),
 const check = (cond, msg) => { if (!cond) errors.push('FAIL: ' + msg); };
 const go = async h => { await page.goto(url + '#/' + h); await page.waitForTimeout(80); };
 const tiles = async () => (await page.locator('.tile-m').evaluateAll(a => a.map(x => x.getAttribute('href')))).join(' ');
-const as = async id => { await go('me'); const b = page.locator('[data-act="switch"]'); if (await b.count()) await b.click(); await page.locator('details.demo summary').click(); await page.click(`[data-act="login"][data-id="${id}"]`); await page.waitForSelector('.hello'); };
+const as = async id => { await go('me'); const b = page.locator('[data-act="switch"]'); if (await b.count()) await b.click(); await page.click(`[data-act="login"][data-id="${id}"]`); await page.waitForSelector('.hello'); };
 const locked = async h => { await go(h); return (await page.locator('.view').innerText()).includes('🔒'); };
 
 await page.goto(url); await page.waitForSelector('.login'); await shot('01-login');
+check(await page.locator('#lem').count() === 1, 'server login shows the email field');
+await page.click('[data-act="demo-on"]'); await page.waitForSelector('.demo-banner');
 
 // ----- coach -----
 await as('c1');

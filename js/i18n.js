@@ -267,6 +267,99 @@ const EXTRA = {
 };
 for (const l in EXTRA) Object.assign(T[l], EXTRA[l]);
 
+
+// Texts for server login and invitations.
+const LOGIN = {
+ "tr": {
+  "login_once": "E-postana 6 haneli bir kod gelecek. Bir kez girdikten sonra telefonda açık kalırsın.",
+  "login_code_sent": "Kodu {email} adresine gönderdik. Spam klasörüne de bak.",
+  "login_code": "Giriş kodu",
+  "login_verify": "Giriş yap",
+  "login_other_email": "Başka e-posta",
+  "login_try_demo": "Önce demoyu dene",
+  "login_back_real": "Gerçek girişe dön",
+  "login_wrong": "Kod yanlış ya da süresi dolmuş.",
+  "loading": "Yükleniyor…",
+  "retry": "Tekrar dene",
+  "pending_title": "Davet bekleniyor",
+  "pending_text": "Bu e-posta henüz davet listesinde yok. Kulüp yönetimine e-posta adresini ver, seni ekledikten sonra burada \"Tekrar dene\"ye bas.",
+  "demo_banner": "Demo modu: uydurma veriler, sadece bu cihazda.",
+  "invites_pending": "Davet edildi, henüz girmedi",
+  "invite_person": "Kişi davet et",
+  "invite_hint": "Kişi bu e-posta ile ilk kez giriş yaptığında uygulamada görünür. Uygulama linkini ona sen gönder.",
+  "invite_sent": "Davet kaydedildi",
+  "email": "E-posta",
+  "in_app": "Uygulamadakiler",
+  "sync_error": "Kaydedilemedi"
+ },
+ "de": {
+  "login_once": "Du bekommst einen 6-stelligen Code per E-Mail. Danach bleibst du auf dem Handy angemeldet.",
+  "login_code_sent": "Wir haben den Code an {email} geschickt. Schau auch in den Spam-Ordner.",
+  "login_code": "Anmeldecode",
+  "login_verify": "Anmelden",
+  "login_other_email": "Andere E-Mail",
+  "login_try_demo": "Erst die Demo ausprobieren",
+  "login_back_real": "Zur echten Anmeldung",
+  "login_wrong": "Code falsch oder abgelaufen.",
+  "loading": "Lädt…",
+  "retry": "Erneut versuchen",
+  "pending_title": "Einladung fehlt noch",
+  "pending_text": "Diese E-Mail ist noch nicht eingeladen. Gib sie dem Vorstand; wenn du eingetragen bist, tippe hier auf „Erneut versuchen“.",
+  "demo_banner": "Demo-Modus: erfundene Daten, nur auf diesem Gerät.",
+  "invites_pending": "Eingeladen, noch nicht angemeldet",
+  "invite_person": "Person einladen",
+  "invite_hint": "Die Person erscheint in der App, sobald sie sich zum ersten Mal mit dieser E-Mail anmeldet. Den App-Link schickst du ihr selbst.",
+  "invite_sent": "Einladung gespeichert",
+  "email": "E-Mail",
+  "in_app": "In der App",
+  "sync_error": "Nicht gespeichert"
+ },
+ "en": {
+  "login_once": "You'll get a 6-digit code by email. After that you stay signed in on your phone.",
+  "login_code_sent": "We sent the code to {email}. Check your spam folder too.",
+  "login_code": "Login code",
+  "login_verify": "Sign in",
+  "login_other_email": "Different email",
+  "login_try_demo": "Try the demo first",
+  "login_back_real": "Back to real sign-in",
+  "login_wrong": "Wrong or expired code.",
+  "loading": "Loading…",
+  "retry": "Try again",
+  "pending_title": "Waiting for an invitation",
+  "pending_text": "This email isn't invited yet. Give it to the club board; once you're added, tap “Try again” here.",
+  "demo_banner": "Demo mode: invented data, on this device only.",
+  "invites_pending": "Invited, not signed in yet",
+  "invite_person": "Invite a person",
+  "invite_hint": "They appear in the app as soon as they sign in with this email for the first time. Send them the app link yourself.",
+  "invite_sent": "Invitation saved",
+  "email": "Email",
+  "in_app": "In the app",
+  "sync_error": "Not saved"
+ },
+ "fr": {
+  "login_once": "Tu recevras un code à 6 chiffres par e-mail. Ensuite, tu restes connecté sur ton téléphone.",
+  "login_code_sent": "Nous avons envoyé le code à {email}. Regarde aussi dans les spams.",
+  "login_code": "Code de connexion",
+  "login_verify": "Se connecter",
+  "login_other_email": "Autre e-mail",
+  "login_try_demo": "Essayer d'abord la démo",
+  "login_back_real": "Retour à la vraie connexion",
+  "login_wrong": "Code incorrect ou expiré.",
+  "loading": "Chargement…",
+  "retry": "Réessayer",
+  "pending_title": "En attente d'invitation",
+  "pending_text": "Cet e-mail n'est pas encore invité. Donne-le au comité ; une fois ajouté, appuie ici sur « Réessayer ».",
+  "demo_banner": "Mode démo : données inventées, uniquement sur cet appareil.",
+  "invites_pending": "Invités, pas encore connectés",
+  "invite_person": "Inviter une personne",
+  "invite_hint": "La personne apparaît dans l'appli dès sa première connexion avec cet e-mail. Envoie-lui toi-même le lien de l'appli.",
+  "invite_sent": "Invitation enregistrée",
+  "email": "E-mail",
+  "in_app": "Dans l'appli",
+  "sync_error": "Non enregistré"
+ }
+};
+for (const l in LOGIN) Object.assign(T[l], LOGIN[l]);
 export const TAGS = ['pass', 'touch', 'position', 'press', 'duel', 'header', 'finish', 'stamina', 'talk', 'discipline', 'attitude', 'speed', 'dribble', 'defend', 'setpiece', 'lead'];
 export const FB_TAGS = ['training', 'team', 'tired', 'role', 'time', 'motivation'];
 export const REASONS = ['work', 'school', 'sick', 'injured', 'family', 'travel', 'other'];

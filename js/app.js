@@ -81,11 +81,23 @@ const routes = { '': viewHome, cal: viewCal, ev: viewEvent, msg: viewMsg, stats:
 const MOD_OF = { cal: 'cal', ev: 'cal', msg: 'msg', stats: 'stats', p: 'stats', games: 'games', players: 'players', members: 'members', building: 'building' };
 function parse() { const [r, id] = location.hash.replace(/^#\/?/, '').split('/'); return { r: r || '', id }; }
 
+let lastRoute = null;
 export function render() {
   const u = S.me();
   setLang(u ? u.lang : (localStorage.getItem('ttsc-lang') || 'tr'));
-  if (!u) { app.innerHTML = viewLogin(); app.className = ''; return; }
+  if (!u || u.role === 'pending') {
+    // keep what is being typed on the login screen when a refresh re-renders it
+    const keepEm = $('#lem')?.value, keepCode = $('#lco')?.value;
+    app.className = ''; lastRoute = null;
+    app.innerHTML = S.isDemo() ? viewDemoLogin() : S.signedIn() ? viewWaiting(u) : viewLogin();
+    if (keepEm && $('#lem')) $('#lem').value = keepEm;
+    if (keepCode && $('#lco')) $('#lco').value = keepCode;
+    return;
+  }
   const { r, id } = parse();
+  const route = r + '/' + (id || '');
+  const draft = $('.composer #cm')?.value || '', focused = document.activeElement?.id === 'cm';
+  const sy = window.scrollY, chatList = $('.chat-list'), atBottom = !chatList || window.innerHeight + window.scrollY >= document.body.scrollHeight - 80;
   const mod = MOD_OF[r];
   const view = routes[r] || viewHome;
   const body = mod && !S.can(u, mod) ? `<div class="card empty">🔒 ${t('no_access')}</div>` : view(id, u);
@@ -98,26 +110,42 @@ export function render() {
       <a class="me-chip" href="#/me">${avatar(u, 'sm')}<span>${esc(u.name.split(' ')[0])}</span></a>
     </header>
     <main class="view">${body}</main>`;
-  if (app.className === 'chat-mode') { const l = $('.chat-list'); if (l) l.scrollTop = l.scrollHeight; window.scrollTo(0, document.body.scrollHeight); }
-  else window.scrollTo(0, 0);
+  const same = route === lastRoute; lastRoute = route;
+  if (app.className === 'chat-mode') {
+    const c = $('.composer #cm'); if (c && same) { c.value = draft; if (focused) c.focus(); }
+    if (!same || atBottom) window.scrollTo(0, document.body.scrollHeight); else window.scrollTo(0, sy);
+  } else window.scrollTo(0, same ? sy : 0);
 }
 
 // ---------- login ----------
+let loginStep = 'email', loginEmail = '', loginBusy = false;
+const langRow = () => `<div class="lang-row">${Object.entries(LANGS).map(([k, v]) => `<button class="chip ${getLang() === k ? 'on' : ''}" data-act="login-lang" data-v="${k}">${v}</button>`).join('')}</div>`;
+const loginHead = () => `<img src="assets/logo.png" alt="TTSC Buchen" class="login-logo" width="92" height="96"><h1>${t('appName')}</h1><p class="muted">${t('tagline')}</p>${langRow()}`;
 function viewLogin() {
-  return `<div class="login">
-    <img src="assets/logo.png" alt="TTSC Buchen" class="login-logo" width="92" height="96">
-    <h1>${t('appName')}</h1><p class="muted">${t('tagline')}</p>
-    <div class="lang-row">${Object.entries(LANGS).map(([k, v]) => `<button class="chip ${getLang() === k ? 'on' : ''}" data-act="login-lang" data-v="${k}">${v}</button>`).join('')}</div>
-    <section class="card login-box">
-      <label class="fld"><span>${t('login_email')}</span><input type="email" id="lem" autocomplete="email" placeholder="name@example.com"></label>
-      <button class="btn primary block" data-act="login-email">${t('login_send')}</button>
-      <small>${t('login_soon')}</small>
-    </section>
-    <details class="demo"><summary>${t('login_demo')}</summary>
+  const box = loginStep === 'email'
+    ? `<form class="card login-box" data-form="login-email">
+        <label class="fld"><span>${t('login_email')}</span><input type="email" id="lem" required autocomplete="email" inputmode="email" placeholder="name@example.com" value="${esc(loginEmail)}"></label>
+        <button class="btn primary block" ${loginBusy ? 'disabled' : ''}>${loginBusy ? '…' : t('login_send')}</button><small>${t('login_once')}</small></form>`
+    : `<form class="card login-box" data-form="login-code">
+        <p class="small">${t('login_code_sent', { email: esc(loginEmail) })}</p>
+        <label class="fld"><span>${t('login_code')}</span><input id="lco" required inputmode="numeric" autocomplete="one-time-code" maxlength="10" class="code-in" placeholder="123456"></label>
+        <button class="btn primary block" ${loginBusy ? 'disabled' : ''}>${loginBusy ? '…' : t('login_verify')}</button>
+        <button type="button" class="btn danger-ghost block" data-act="login-restart">${t('login_other_email')}</button></form>`;
+  return `<div class="login">${loginHead()}${box}<button class="link-btn" data-act="demo-on">${t('login_try_demo')}</button></div>`;
+}
+function viewWaiting(u) {
+  const busy = S.status.loading || !S.data().loaded;
+  return `<div class="login">${loginHead()}<section class="card login-box">${busy && !S.status.error
+    ? `<p class="center">${t('loading')}</p>`
+    : S.status.error ? `<p>⚠️ ${esc(S.status.error)}</p><button class="btn block" data-act="retry">${t('retry')}</button>`
+    : `<h3>${t('pending_title')}</h3><p class="small">${t('pending_text')}</p><button class="btn block" data-act="retry">${t('retry')}</button>`}
+    <button class="btn danger-ghost block" data-act="switch">${t('logout')}</button></section></div>`;
+}
+function viewDemoLogin() {
+  return `<div class="login">${loginHead()}<div class="demo-banner">${t('demo_banner')}</div>
     ${['admin', 'board', 'coach', 'player'].map(g => `<div class="sec-t">${t('role_' + g)}</div><div class="card list">${S.users().filter(u => u.role === g).map(u => `
       <button class="row" data-act="login" data-id="${u.id}">${avatar(u)}<span class="grow"><b>${esc(u.name)}</b><small>${u.role === 'player' ? t('pos_' + u.pos) : esc(u.title || '')} · ${LANGS[u.lang]}</small></span><span class="chev">›</span></button>`).join('')}</div>`).join('')}
-    </details>
-  </div>`;
+    <button class="btn block" data-act="demo-off">${t('login_back_real')}</button></div>`;
 }
 
 // ---------- home ----------
@@ -320,6 +348,7 @@ function viewPlayers(_, u) {
     <div class="sec-t">${t('coach_alerts')}</div><section class="card list">${al.length ? al.map(a => `
       <a class="row alert a-${a.level}" href="${a.eid ? '#/ev/' + a.eid : a.pid ? '#/p/' + a.pid : '#/players'}"><span class="ai">${a.level === 'warn' ? '!' : 'i'}</span><span class="grow">${esc(t(a.k, a.v))}</span><span class="chev">›</span></a>`).join('') : `<div class="row muted">${t('all_good')}</div>`}</section>
     ${S.isStaff(u) ? `<button class="btn block" data-act="add-player">+ ${t('add_player')}</button>` : ''}
+    ${invitedList()}
     ${['TW', 'AB', 'MF', 'ST'].map(pos => `<div class="sec-t">${t('pos_' + pos)}</div><section class="card list">${pl.filter(p => p.pos === pos).map(p => {
       const st = S.playerStats(p.id);
       return `<a class="row" href="#/p/${p.id}">${avatar(p)}<span class="grow"><b>${esc(p.name)}</b> ${availBadge(p.id)}<small>${LANGS[p.lang]}</small></span>
@@ -327,6 +356,7 @@ function viewPlayers(_, u) {
     }).join('')}</section>`).join('')}`;
 }
 
+const invitedList = () => { const inv = S.invites(); return inv.length ? `<div class="sec-t">${t('invites_pending')}</div><section class="card list">${inv.map(i => `<div class="row"><span class="av sm av-pending">✉</span><span class="grow"><b>${esc(i.name)}</b><small>${esc(i.email)} · ${t('role_' + i.role)}</small></span></div>`).join('')}</section>` : ''; };
 // ---------- members and fees (board) ----------
 let onlyOpen = false;
 function viewMembers(_, u) {
@@ -340,7 +370,7 @@ function viewMembers(_, u) {
       <div class="row"><span class="grow"><b>${esc(m.name)}</b>${m.userId ? ' <span class="badge b-app">' + t('app_user') + '</span>' : ''}<small>${t('m_' + m.type)} · ${S.FEES[m.type]}€ · ${t('member_since', { y: m.since })}</small></span>
         <button class="pay ${m.fees[y] ? 'paid' : ''}" data-act="fee" data-id="${m.id}">${m.fees[y] ? '✓ ' + t('mark_paid') : t('mark_open')}</button></div>`).join('') || empty()}</section>`;
   if (S.isAdmin(u)) {
-    html += `<div class="sec-t">${t('roles_title')}</div><section class="card list">${S.users().filter(x => x.role !== 'player').concat(S.players()).map(x => `
+    html += `<div class="sec-t">${t('roles_title')}</div>${S.isDemo() ? '' : `<button class="btn primary block" data-act="invite">✉ ${t('invite_person')}</button>${invitedList()}`}<div class="sec-t">${t('in_app')}</div><section class="card list">${S.users().filter(x => x.role !== 'player').concat(S.players()).map(x => `
       <div class="row">${avatar(x, 'sm')}<span class="grow">${esc(x.name)}</span><select data-act-change="role" data-id="${x.id}" ${x.id === u.id ? 'disabled' : ''}>${S.ROLES.map(r => `<option value="${r}" ${x.role === r ? 'selected' : ''}>${t('role_' + r)}</option>`).join('')}</select></div>`).join('')}</section>`;
   }
   return html;
@@ -368,9 +398,9 @@ function viewBuilding(tab, u) {
 function viewMe(_, u) {
   return `<section class="card profile-h sm">${avatar(u, 'lg')}<div><b>${esc(u.name)}</b><div class="muted small">${t('role_' + u.role)}${u.title ? ' · ' + esc(u.title) : ''}</div></div>${u.role === 'player' ? `<a class="btn sm" href="#/stats/me">${t('my_stats')}</a>` : ''}</section>
     <div class="sec-t">${t('language')}</div><section class="card"><div class="seg">${Object.entries(LANGS).map(([k, v]) => `<button class="${u.lang === k ? 'on' : ''}" data-act="lang" data-v="${k}">${v}</button>`).join('')}</div><small class="muted">${t('multi_hint')}</small></section>
-    <div class="sec-t">${t('about')}</div><section class="card small">${t('about_text')}</section>
+    ${S.isDemo() ? `<div class="demo-banner">${t('demo_banner')}</div>` : ''}
     <button class="btn block" data-act="switch">${t('logout')}</button>
-    <button class="btn danger-ghost block" data-act="reset">${t('reset_demo')}</button>`;
+    ${S.isDemo() ? `<button class="btn danger-ghost block" data-act="reset">${t('reset_demo')}</button><button class="btn danger-ghost block" data-act="demo-off">${t('login_back_real')}</button>` : ''}`;
 }
 
 // ---------- sheets ----------
@@ -490,13 +520,25 @@ function selfSheet(eid, u) {
     };
   });
 }
-function addPlayerSheet() {
-  sheet(`<h3>${t('add_player')}</h3>
+function addPlayerSheet(role = 'player', admin = false) {
+  const server = !S.isDemo();
+  sheet(`<h3>${admin ? t('invite_person') : t('add_player')}</h3>
+    ${server ? `<p class="small muted">${t('invite_hint')}</p>` : ''}
     <label class="fld"><span>${t('name')}</span><input id="pn" maxlength="40"></label>
-    <div class="two"><label class="fld"><span>${t('number')}</span><input id="pu" type="number" inputmode="numeric" min="1" max="99"></label>
+    ${server ? `<label class="fld"><span>${t('email')}</span><input id="pe" type="email" inputmode="email" autocomplete="off" maxlength="120"></label>` : ''}
+    ${admin ? `<label class="fld"><span>${t('role')}</span><select id="pr">${S.ROLES.map(r => `<option value="${r}" ${r === role ? 'selected' : ''}>${t('role_' + r)}</option>`).join('')}</select></label>` : ''}
+    <div class="two" id="pfx"><label class="fld"><span>${t('number')}</span><input id="pu" type="number" inputmode="numeric" min="1" max="99"></label>
       <label class="fld"><span>${t('position')}</span><select id="pp">${['TW', 'AB', 'MF', 'ST'].map(p => `<option value="${p}">${t('pos_' + p)}</option>`).join('')}</select></label></div>
-    <label class="fld"><span>${t('language')}</span><select id="pl">${Object.entries(LANGS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></label>${btns('pok')}`, el => {
-    $('#pok', el).onclick = () => { const name = $('#pn', el).value.trim(); if (!name) return; const p = S.addPlayer({ name, num: $('#pu', el).value, pos: $('#pp', el).value, lang: $('#pl', el).value }); closeSheet(); location.hash = '#/p/' + p.id; };
+    <label class="fld"><span>${t('language')}</span><select id="pl">${Object.entries(LANGS).map(([k, v]) => `<option value="${k}" ${k === getLang() ? 'selected' : ''}>${v}</option>`).join('')}</select></label>${btns('pok')}`, el => {
+    const pr = $('#pr', el); if (pr) { const sync = () => { $('#pfx', el).hidden = pr.value !== 'player'; }; pr.onchange = sync; sync(); }
+    $('#pok', el).onclick = () => {
+      const name = $('#pn', el).value.trim(), email = $('#pe', el)?.value.trim() || '';
+      if (!name || (server && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))) { el.querySelector(name ? '#pe' : '#pn').focus(); return; }
+      const r = pr ? pr.value : 'player';
+      const d = { name, email, num: r === 'player' ? $('#pu', el).value : '', pos: r === 'player' ? $('#pp', el).value : '', lang: $('#pl', el).value };
+      if (server) { if (r === 'player') S.addPlayer(d); else S.invite({ ...d, role: r }); closeSheet(); toast(t('invite_sent')); return; }
+      const p = S.addPlayer(d); closeSheet(); location.hash = '#/p/' + p.id;
+    };
   });
 }
 function addMemberSheet() {
@@ -535,8 +577,12 @@ document.addEventListener('click', ev => {
   switch (a) {
     case 'login': S.login(b.dataset.id); location.hash = '#/'; break;
     case 'login-lang': localStorage.setItem('ttsc-lang', b.dataset.v); render(); break;
-    case 'login-email': toast(t('login_soon').split('.')[0] + '.'); break;
-    case 'switch': S.logout(); location.hash = '#/'; break;
+    case 'login-restart': loginStep = 'email'; render(); break;
+    case 'demo-on': S.useDemo(true); break;
+    case 'demo-off': S.logout(); S.useDemo(false); location.hash = '#/'; break;
+    case 'retry': S.reload(); render(); break;
+    case 'invite': addPlayerSheet('player', true); break;
+    case 'switch': S.logout(); loginStep = 'email'; location.hash = '#/'; break;
     case 'back': if (history.length > 1 && document.referrer !== undefined && sessionStorage.getItem('ttsc-nav')) history.back(); else location.hash = '#/'; break;
     case 'lang': S.setUserLang(b.dataset.v); break;
     case 'avail': S.setAvailability(u.id, b.dataset.v); break;
@@ -574,7 +620,18 @@ document.addEventListener('change', ev => {
   const c = ev.target.closest('[data-act-change]'); if (!c) return;
   if (c.dataset.actChange === 'role') S.setRole(c.dataset.id, c.value);
 });
-document.addEventListener('submit', ev => {
+document.addEventListener('submit', async ev => {
+  const lf = ev.target.closest('[data-form]');
+  if (lf) {
+    ev.preventDefault(); if (loginBusy) return;
+    loginBusy = true;
+    try {
+      if (lf.dataset.form === 'login-email') { loginEmail = $('#lem').value.trim(); render(); await S.sendCode(loginEmail); loginStep = 'code'; }
+      else { const code = $('#lco').value; render(); await S.verifyCode(loginEmail, code); loginStep = 'email'; location.hash = '#/'; }
+    } catch (e) { toast(lf.dataset.form === 'login-code' ? t('login_wrong') : (e.message || t('sync_error'))); }
+    loginBusy = false; render(); const c = $('#lco'); if (c) c.focus();
+    return;
+  }
   const f = ev.target.closest('.composer'); if (!f) return; ev.preventDefault();
   const i = $('#cm', f), text = i.value.trim(); if (!text) return;
   S.sendMessage(f.dataset.ch, S.me().id, text);
@@ -584,6 +641,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet()
 
 S.load();
 S.onChange(render);
+S.onError(e => toast(t('sync_error') + (e?.message ? ': ' + e.message : '')));
 window.addEventListener('hashchange', () => { sessionStorage.setItem('ttsc-nav', '1'); closeSheet(); render(); });
 render();
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});

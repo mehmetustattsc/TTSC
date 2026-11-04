@@ -1,35 +1,115 @@
-// Data layer. Everything the screens need goes through these functions, so the
-// local-storage backend can later be swapped for a shared server without touching the UI.
+// Data layer. Everything the screens need goes through these functions.
+// Two backends behind the same functions:
+//   * server mode (default): Supabase; data is loaded after login, every change is written through
+//   * demo mode: invented data in this browser only (login screen → demo)
+import * as R from './remote.js';
+
 const KEY = 'ttsc-team-v2';
+const MODE_KEY = 'ttsc-mode';
 export const TODAY = () => new Date().toISOString().slice(0, 10);
 
 let db = null;
-const listeners = new Set();
+let mode = 'server';
+const listeners = new Set(), errListeners = new Set();
 export const onChange = fn => listeners.add(fn);
+export const onError = fn => errListeners.add(fn);
+export const isDemo = () => mode === 'demo';
+export const status = { loading: false, error: null };
+const emit = () => listeners.forEach(fn => fn());
 
 function persist() {
-  try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* private mode: keep in memory */ }
-  listeners.forEach(fn => fn());
+  if (mode === 'demo') { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* private mode */ } }
+  else saveSeen();
+  emit();
 }
+// run a server write after the screen already shows the change; on failure reload the truth
+function W(fn) {
+  if (mode !== 'server') return;
+  Promise.resolve().then(fn).catch(e => { errListeners.forEach(f => f(e)); reload(); });
+}
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'x' + Math.random().toString(36).slice(2) + Date.now().toString(36));
 
 export function load() {
-  try { const raw = localStorage.getItem(KEY); if (raw) db = JSON.parse(raw); } catch (e) { db = null; }
-  if (!db || db.v !== 2) db = seed();
+  try { mode = localStorage.getItem(MODE_KEY) === 'demo' || !R.configured() ? 'demo' : 'server'; } catch (e) { mode = 'demo'; }
+  if (mode === 'demo') {
+    db = null;
+    try { const raw = localStorage.getItem(KEY); if (raw) db = JSON.parse(raw); } catch (e) { db = null; }
+    if (!db || db.v !== 2 || !db.users?.length) db = seed();
+  } else {
+    db = emptyDb();
+    if (R.userId()) reload();
+  }
   return db;
+}
+export function useDemo(on) {
+  try { on ? localStorage.setItem(MODE_KEY, 'demo') : localStorage.removeItem(MODE_KEY); } catch (e) { /* ignore */ }
+  load(); emit();
 }
 export function resetDemo() { db = seed(); persist(); }
 export const data = () => db;
 
-const uid = p => p + Math.random().toString(36).slice(2, 9);
+function emptyDb() {
+  let seen = {};
+  try { seen = JSON.parse(localStorage.getItem('ttsc-seen') || '{}'); } catch (e) { seen = {}; }
+  return { v: 2, session: { userId: R.userId() }, users: [], events: [], rsvp: {}, attendance: {}, stats: {}, availability: {}, notes: [], self: [], messages: [], members: [], bookings: [], repairs: [], invites: [], seen, loaded: false };
+}
+function saveSeen() { try { localStorage.setItem('ttsc-seen', JSON.stringify(db.seen)); } catch (e) { /* ignore */ } }
+
+// ---------- server: load everything this person may see ----------
+const hm = t => (t || '').slice(0, 5);
+let loading = null;
+export function reload() {
+  if (mode !== 'server' || !R.userId()) return Promise.resolve();
+  if (loading) return loading;
+  status.loading = true;
+  const q = (t, x) => R.select(t, x).catch(e => { if (e.status === 401) throw e; return []; });
+  loading = Promise.all([
+    q('profiles', 'select=*'), q('availability'), q('events', 'select=*&order=date'), q('rsvps'), q('attendance'), q('match_stats'),
+    q('notes', 'select=*&order=created_at'), q('self_ratings'), q('messages', 'select=*&order=created_at.desc&limit=500'),
+    q('members', 'select=*'), q('fees'), q('bookings'), q('repairs'), q('invites'),
+  ]).then(([profiles, avail, events, rsvps, att, mstats, notes, selfs, msgs, members, fees, bookings, repairs, invites]) => {
+    const n = emptyDb(); n.seen = db.seen;
+    n.users = profiles.map(p => ({ id: p.id, name: p.name, role: p.role, num: p.num || 0, pos: p.pos || 'MF', lang: p.lang, title: p.title || '' }));
+    avail.forEach(a => { n.availability[a.player_id] = { s: a.status, at: a.updated_at }; });
+    n.events = events.map(e => ({ id: e.id, type: e.type, title: e.title || '', opponent: e.opponent || '', home: !!e.home, date: e.date, time: hm(e.time), place: e.place || '', note: e.note || '', result: e.result_us == null ? null : { us: e.result_us, them: e.result_them } }));
+    rsvps.forEach(r => { (n.rsvp[r.event_id] ||= {})[r.player_id] = { s: r.status, reason: r.reason || '', text: r.text || '', at: r.updated_at }; });
+    att.forEach(a => { (n.attendance[a.event_id] ||= {})[a.player_id] = a.present; });
+    mstats.forEach(m => { (n.stats[m.event_id] ||= {})[m.player_id] = { min: m.minutes, g: m.goals, a: m.assists, y: m.yellow, r: m.red }; });
+    n.notes = notes.map(x => ({ id: x.id, kind: x.kind, from: x.from_id, to: x.kind === 'toCoach' ? 'coaches' : x.to_id, eid: x.event_id, good: x.good, improve: x.improve, tags: x.kind === 'toCoach' ? x.tags : undefined, text: x.text || '', at: x.created_at }));
+    n.self = selfs.map(x => ({ id: x.player_id + x.event_id, pid: x.player_id, eid: x.event_id, rating: x.rating, good: x.good, improve: x.improve, text: x.text || '', at: x.created_at }));
+    n.messages = msgs.reverse().map(m => ({ id: m.id, ch: m.channel, from: m.from_id, text: m.text, at: m.created_at }));
+    const fee = {}; fees.forEach(f => { (fee[f.member_id] ||= {})[f.year] = f.paid_on; });
+    n.members = members.map(m => ({ id: m.id, name: m.name, type: m.type, since: m.since, userId: m.user_id, fees: fee[m.id] || {} }));
+    n.bookings = bookings.map(b => ({ id: b.id, title: b.title, date: b.date, time: hm(b.time), who: b.who || '', note: b.note || '' }));
+    n.repairs = repairs.map(r => ({ id: r.id, title: r.title, text: r.text || '', status: r.status, by: r.reported_by, at: r.created_at }));
+    n.invites = invites;
+    n.loaded = true; db = n; status.error = null;
+  }).catch(e => {
+    status.error = e.message;
+    if (e.status === 401) { R.signOut(); db = emptyDb(); }
+  }).finally(() => { status.loading = false; loading = null; emit(); });
+  return loading;
+}
+// keep data fresh: often while the app is open, and whenever it comes back to the screen
+if (typeof window !== 'undefined') {
+  setInterval(() => { if (mode === 'server' && R.userId() && document.visibilityState === 'visible') reload(); }, 15000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reload(); });
+}
 
 // ---------- session ----------
 export const me = () => db.users.find(u => u.id === db.session.userId) || null;
-export function login(id) { db.session.userId = id; persist(); }
-export function logout() { db.session.userId = null; persist(); }
-export function setUserLang(l) { const u = me(); if (u) { u.lang = l; persist(); } }
+export const signedIn = () => !!db.session.userId;          // server: logged in, maybe still loading / not invited
+export const sendCode = email => R.sendCode(email.trim().toLowerCase());
+export async function verifyCode(email, code) { const id = await R.verifyCode(email.trim().toLowerCase(), code.trim()); db.session.userId = id; emit(); await reload(); }
+export function login(id) { db.session.userId = id; persist(); }   // demo only
+export function logout() {
+  if (mode === 'server') { R.signOut(); db = emptyDb(); db.session.userId = null; emit(); }
+  else { db.session.userId = null; persist(); }
+}
+export function setUserLang(l) { const u = me(); if (u) { u.lang = l; persist(); W(() => R.update('profiles', 'id=eq.' + u.id, { lang: l })); } }
 
 // ---------- people ----------
-export const users = () => db.users;
+export const users = () => db.users.filter(u => u.role !== 'pending');
 export const user = id => db.users.find(u => u.id === id);
 export const players = () => db.users.filter(u => u.role === 'player').sort((a, b) => a.num - b.num);
 export const coaches = () => db.users.filter(u => u.role === 'coach');
@@ -49,13 +129,27 @@ export const can = (u, mod) => !!u && (PERMS[mod] || []).includes(u.role);
 export const channels = u => isBoard(u) ? ['team', 'board'] : ['team'];
 // private notes (coach <-> player) are never visible to the board
 export const seesNotes = u => !!u && (u.role === 'player' || u.role === 'coach');
-export function setRole(id, role) { const x = user(id); if (x && ROLES.includes(role)) { x.role = role; persist(); } }
-export function addPlayer({ name, num, pos, lang }) {
-  const p = { id: uid('u'), name, num: +num || 0, pos, role: 'player', lang: lang || 'de' };
+export function setRole(id, role) {
+  const x = user(id); if (!x || !ROLES.includes(role)) return;
+  x.role = role; persist(); W(() => R.update('profiles', 'id=eq.' + id, { role }));
+}
+// demo: the player exists at once; server: an invitation, the player appears after their first login
+export function addPlayer({ name, num, pos, lang, email }) {
+  if (mode === 'server') return invite({ email, name, num, pos, lang, role: 'player' });
+  const p = { id: uid(), name, num: +num || 0, pos, role: 'player', lang: lang || 'de' };
   db.users.push(p); db.availability[p.id] = { s: 'fit', at: TODAY() }; persist(); return p;
 }
+export const invites = () => (db.invites || []).filter(i => !db.users.some(u => u.name === i.name && u.role === i.role));
+export function invite({ email, name, num, pos, lang, role }) {
+  const row = { email: email.trim().toLowerCase(), name, num: +num || null, pos: pos || null, lang: lang || 'de', role };
+  (db.invites ||= []).push(row); persist(); W(() => R.upsert('invites', row, 'email'));
+  return null;
+}
 export const availability = id => db.availability[id] || { s: 'fit' };
-export function setAvailability(id, s) { db.availability[id] = { s, at: TODAY() }; persist(); }
+export function setAvailability(id, s) {
+  db.availability[id] = { s, at: TODAY() }; persist();
+  W(() => R.upsert('availability', { player_id: id, status: s, updated_at: new Date().toISOString() }, 'player_id'));
+}
 
 // ---------- events ----------
 export const events = () => db.events.slice().sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
@@ -67,20 +161,24 @@ export function addEvent(ev, weeks = 1) {
   const out = [];
   for (let i = 0; i < weeks; i++) {
     const d = new Date(ev.date + 'T12:00:00'); d.setDate(d.getDate() + 7 * i);
-    const e = { ...ev, id: uid('e'), date: d.toISOString().slice(0, 10), result: null };
+    const e = { ...ev, id: uid(), date: d.toISOString().slice(0, 10), result: null };
     db.events.push(e); out.push(e);
   }
-  persist(); return out;
+  persist();
+  W(() => R.insert('events', out.map(e => ({ id: e.id, type: e.type, title: e.title || null, opponent: e.opponent || null, home: e.type === 'match' ? !!e.home : null, date: e.date, time: e.time, place: e.place || null, note: e.note || null, created_by: db.session.userId }))));
+  return out;
 }
 export function deleteEvent(id) {
   db.events = db.events.filter(e => e.id !== id);
   delete db.rsvp[id]; delete db.attendance[id]; delete db.stats[id]; persist();
+  W(() => R.remove('events', 'id=eq.' + id));
 }
 
 // ---------- answers and attendance ----------
 export const rsvp = (eid, pid) => (db.rsvp[eid] || {})[pid] || null;
 export function setRsvp(eid, pid, s, reason = '', text = '') {
   (db.rsvp[eid] ||= {})[pid] = { s, reason, text, at: new Date().toISOString() }; persist();
+  W(() => R.upsert('rsvps', { event_id: eid, player_id: pid, status: s, reason: s === 'no' ? (reason || 'other') : null, text: text || null, updated_at: new Date().toISOString() }, 'event_id,player_id'));
 }
 export function rsvpCounts(eid) {
   const c = { yes: 0, no: 0, open: 0 };
@@ -94,7 +192,10 @@ export function attended(eid, pid) {
   const r = rsvp(eid, pid); return r ? r.s === 'yes' : false;
 }
 export const attendanceConfirmed = eid => !!db.attendance[eid];
-export function setAttendance(eid, map) { db.attendance[eid] = map; persist(); }
+export function setAttendance(eid, map) {
+  db.attendance[eid] = map; persist();
+  W(() => R.upsert('attendance', Object.entries(map).map(([pid, v]) => ({ event_id: eid, player_id: pid, present: !!v })), 'event_id,player_id'));
+}
 
 // ---------- match report ----------
 export const matchStats = eid => db.stats[eid] || {};
@@ -102,11 +203,21 @@ export function saveMatch(eid, result, stats) {
   const e = event(eid); e.result = result; db.stats[eid] = stats;
   const att = {}; players().forEach(p => { att[p.id] = !!stats[p.id] || rsvp(eid, p.id)?.s === 'yes'; });
   db.attendance[eid] = att; persist();
+  W(async () => {
+    await R.update('events', 'id=eq.' + eid, { result_us: result.us, result_them: result.them });
+    await R.remove('match_stats', 'event_id=eq.' + eid);
+    const rows = Object.entries(stats).map(([pid, s]) => ({ event_id: eid, player_id: pid, minutes: s.min, goals: s.g, assists: s.a, yellow: s.y, red: s.r }));
+    if (rows.length) await R.insert('match_stats', rows);
+    await R.upsert('attendance', Object.entries(att).map(([pid, v]) => ({ event_id: eid, player_id: pid, present: v })), 'event_id,player_id');
+  });
 }
 
 // ---------- notes and self ratings ----------
 // kind: 'coach' (coach -> player, private), 'toCoach' (player -> coaches)
-export function addNote(n) { db.notes.push({ id: uid('n'), at: new Date().toISOString(), ...n }); persist(); }
+export function addNote(n) {
+  const x = { id: uid(), at: new Date().toISOString(), ...n }; db.notes.push(x); persist();
+  W(() => R.insert('notes', { id: x.id, kind: x.kind, from_id: x.from, to_id: x.kind === 'coach' ? x.to : null, event_id: x.eid || null, good: x.good || [], improve: x.improve || [], tags: x.tags || [], text: x.text || null }));
+}
 export function notesFor(viewer, pid) {
   if (!viewer) return [];
   const canSee = n => viewer.role === 'coach' || n.from === viewer.id || n.to === viewer.id;
@@ -117,39 +228,61 @@ export function unreadNotes(viewer) {
   if (viewer.role === 'coach') return db.notes.filter(n => n.kind === 'toCoach' && n.at > seen);
   return db.notes.filter(n => n.kind === 'coach' && n.to === viewer.id && n.at > seen);
 }
-// silent save: called while a screen renders, must not trigger another render
 // ---------- chat ----------
 export const messages = ch => db.messages.filter(m => m.ch === ch).sort((a, b) => a.at.localeCompare(b.at));
-export function sendMessage(ch, from, text) { db.messages.push({ id: uid('m'), ch, from, text, at: new Date().toISOString() }); persist(); }
+export function sendMessage(ch, from, text) {
+  const m = { id: uid(), ch, from, text, at: new Date().toISOString() }; db.messages.push(m); persist();
+  W(() => R.insert('messages', { id: m.id, channel: ch, from_id: from, text }));
+}
 export const unreadChat = (u, ch) => db.messages.filter(m => m.ch === ch && m.from !== u.id && m.at > (db.seen[u.id + ':' + ch] || '')).length;
-export function markChatSeen(u, ch) { db.seen[u.id + ':' + ch] = new Date().toISOString(); try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* ignore */ } }
+// silent saves: called while a screen renders, must not trigger another render
+const quiet = () => { if (mode === 'demo') { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* ignore */ } } else saveSeen(); };
+export function markChatSeen(u, ch) { db.seen[u.id + ':' + ch] = new Date().toISOString(); quiet(); }
+export function markSeen(viewer) { db.seen[viewer.id] = new Date().toISOString(); quiet(); }
 
 // ---------- members and fees ----------
 export const FEE_YEAR = 2026;
+export const FEES = { active: 60, passive: 36, support: 120 };
 export const members = () => db.members.slice().sort((a, b) => a.name.localeCompare(b.name));
 export const member = id => db.members.find(m => m.id === id);
-export function addMember(m) { const x = { id: uid('mb'), fees: {}, ...m }; db.members.push(x); persist(); return x; }
-export function setFee(id, year, paid) { const m = member(id); if (m) { m.fees[year] = paid ? S_TODAY() : null; persist(); } }
-const S_TODAY = () => new Date().toISOString().slice(0, 10);
+export function addMember(m) {
+  const x = { id: uid(), fees: {}, ...m }; db.members.push(x); persist();
+  W(() => R.insert('members', { id: x.id, name: x.name, type: x.type, since: x.since || null, user_id: x.userId || null }));
+  return x;
+}
+export function setFee(id, year, paid) {
+  const m = member(id); if (!m) return;
+  m.fees[year] = paid ? TODAY() : null; persist();
+  W(() => R.upsert('fees', { member_id: id, year, paid_on: paid ? TODAY() : null }, 'member_id,year'));
+}
 export function memberSummary(year = FEE_YEAR) {
   const ms = db.members, paid = ms.filter(m => m.fees[year]);
   const due = ms.reduce((s, m) => s + (FEES[m.type] || 0), 0), got = paid.reduce((s, m) => s + (FEES[m.type] || 0), 0);
   return { total: ms.length, paid: paid.length, open: ms.length - paid.length, due, got };
 }
-export const FEES = { active: 60, passive: 36, support: 120 };
 
 // ---------- clubhouse: bookings and repairs ----------
 export const bookings = () => db.bookings.slice().sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
-export function addBooking(b) { db.bookings.push({ id: uid('bk'), ...b }); persist(); }
-export function deleteBooking(id) { db.bookings = db.bookings.filter(b => b.id !== id); persist(); }
-export const repairs = () => db.repairs.slice().sort((a, b) => ({ open: 0, doing: 1, done: 2 }[a.status] - { open: 0, doing: 1, done: 2 }[b.status]) || b.at.localeCompare(a.at));
-export function addRepair(r) { db.repairs.push({ id: uid('r'), status: 'open', at: new Date().toISOString(), ...r }); persist(); }
-export function setRepairStatus(id, status) { const r = db.repairs.find(x => x.id === id); if (r) { r.status = status; r.updated = new Date().toISOString(); persist(); } }
+export function addBooking(b) {
+  const x = { id: uid(), ...b }; db.bookings.push(x); persist();
+  W(() => R.insert('bookings', { id: x.id, title: x.title, date: x.date, time: x.time || null, who: x.who || null, note: x.note || null, created_by: db.session.userId }));
+}
+export function deleteBooking(id) { db.bookings = db.bookings.filter(b => b.id !== id); persist(); W(() => R.remove('bookings', 'id=eq.' + id)); }
+const ORDER = { open: 0, doing: 1, done: 2 };
+export const repairs = () => db.repairs.slice().sort((a, b) => ORDER[a.status] - ORDER[b.status] || b.at.localeCompare(a.at));
+export function addRepair(r) {
+  const x = { id: uid(), status: 'open', at: new Date().toISOString(), ...r }; db.repairs.push(x); persist();
+  W(() => R.insert('repairs', { id: x.id, title: x.title, text: x.text || null, status: 'open', reported_by: x.by }));
+}
+export function setRepairStatus(id, status) {
+  const r = db.repairs.find(x => x.id === id); if (!r) return;
+  r.status = status; persist(); W(() => R.update('repairs', 'id=eq.' + id, { status, updated_at: new Date().toISOString() }));
+}
 
-export function markSeen(viewer) { db.seen[viewer.id] = new Date().toISOString(); try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* ignore */ } }
 export function addSelf(s) {
   db.self = db.self.filter(x => !(x.pid === s.pid && x.eid === s.eid));
-  db.self.push({ id: uid('s'), at: new Date().toISOString(), ...s }); persist();
+  const x = { id: s.pid + s.eid, at: new Date().toISOString(), ...s }; db.self.push(x); persist();
+  W(() => R.upsert('self_ratings', { player_id: x.pid, event_id: x.eid, rating: x.rating, good: x.good || [], improve: x.improve || [], text: x.text || null }, 'player_id,event_id'));
 }
 export const selfFor = pid => db.self.filter(s => s.pid === pid).sort((a, b) => b.at.localeCompare(a.at));
 export const selfOf = (pid, eid) => db.self.find(s => s.pid === pid && s.eid === eid);

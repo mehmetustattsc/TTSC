@@ -30,6 +30,10 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Browser smoke test (all roles, main flows, privacy)
         run: mkdir -p tests/shots && npm run test:smoke
+      - name: Server test (real Postgres + schema + REST, several people at once)
+        run: |
+          curl -sSL https://github.com/PostgREST/postgrest/releases/download/v12.2.3/postgrest-v12.2.3-linux-static-x64.tar.xz | tar xJ
+          PG_BIN=$(ls -d /usr/lib/postgresql/*/bin | tail -1) POSTGREST=./postgrest npm run test:server
 
   deploy:
     needs: test
