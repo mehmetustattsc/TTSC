@@ -1,0 +1,17 @@
+{
+  "name": "TTSC Takım",
+  "short_name": "TTSC",
+  "description": "TTSC Buchen: Takvim, katılım, maç kaydı, istatistik ve oyuncu gelişimi.",
+  "lang": "tr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#C8102E",
+  "theme_color": "#C8102E",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "assets/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
