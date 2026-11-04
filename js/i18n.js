@@ -425,6 +425,10 @@ const APP = {
  }
 };
 for (const l in APP) Object.assign(T[l], APP[l]);
+
+// League table texts.
+const LEAGUE_T = {"tr": {"lt_title": "Lig tablosu", "lt_played": "O", "lt_goals": "Gol", "lt_pts": "P", "lt_source": "Kaynak: fussball.de · {date}", "club_fussball": "Maçlar ve tablo"}, "de": {"lt_title": "Tabelle", "lt_played": "Sp", "lt_goals": "Tore", "lt_pts": "Pkt", "lt_source": "Quelle: fussball.de · {date}", "club_fussball": "Spiele und Tabelle"}, "en": {"lt_title": "League table", "lt_played": "P", "lt_goals": "Goals", "lt_pts": "Pts", "lt_source": "Source: fussball.de · {date}", "club_fussball": "Fixtures and table"}, "fr": {"lt_title": "Classement", "lt_played": "J", "lt_goals": "Buts", "lt_pts": "Pts", "lt_source": "Source : fussball.de · {date}", "club_fussball": "Matchs et classement"}};
+for (const l in LEAGUE_T) Object.assign(T[l], LEAGUE_T[l]);
 export const TAGS = ['pass', 'touch', 'position', 'press', 'duel', 'header', 'finish', 'stamina', 'talk', 'discipline', 'attitude', 'speed', 'dribble', 'defend', 'setpiece', 'lead'];
 export const FB_TAGS = ['training', 'team', 'tired', 'role', 'time', 'motivation'];
 export const REASONS = ['work', 'school', 'sick', 'injured', 'family', 'travel', 'other'];

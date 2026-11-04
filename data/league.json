@@ -1,0 +1,22 @@
+{
+  "league": "Kreisklasse A Buchen 2026/27",
+  "source": "https://www.fussball.de/spieltagsuebersicht/bfv-kreisklasse-a-buchen-kreis-buchen-kreisklasse-a-herren-saison2627-baden/-/staffel/0312UDDI1C00000OVS5489BUVSBBVPEU-G",
+  "asOf": "2026-11-04",
+  "us": "TTSC Buchen",
+  "rows": [
+    [1, "SpG Rippberg / Wettersdorf-Glashofen", 10, 9, 0, 1, "39:9", 27],
+    [2, "VfR Gommersdorf 2", 9, 8, 1, 0, "40:5", 25],
+    [3, "SpG Osterburken 2 / Bofsheim 1", 9, 7, 1, 1, "28:15", 22],
+    [4, "SpG Oberwittstadt 2 / Berolzheim 1", 10, 6, 1, 3, "32:22", 19],
+    [4, "SpG Schloßau 2 / Donebach 2", 10, 6, 1, 3, "32:22", 19],
+    [6, "SpG Leibenstadt 1 / Sennfeld 2", 10, 4, 3, 3, "21:22", 15],
+    [7, "SpG Krautheim 2 / Westernhausen 2", 10, 4, 2, 4, "19:26", 14],
+    [8, "SpG Ahorn", 10, 4, 1, 5, "11:21", 13],
+    [9, "TTSC Buchen", 10, 3, 3, 4, "27:23", 12],
+    [10, "SV Seckach", 10, 4, 0, 6, "17:33", 12],
+    [11, "TSV Höpfingen 2", 10, 2, 3, 5, "25:23", 9],
+    [12, "SpG Waldhausen / Laudenberg", 10, 1, 2, 7, "11:26", 5],
+    [13, "SpVgg Hainstadt 2", 10, 1, 2, 7, "15:37", 5],
+    [14, "TSV Buchen 2", 10, 0, 0, 10, "6:39", 0]
+  ]
+}

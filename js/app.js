@@ -4,6 +4,9 @@ import * as S from './store.js';
 const $ = (sel, el = document) => el.querySelector(sel);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const app = $('#app');
+// league table (data/league.json, taken from fussball.de)
+let LEAGUE = null;
+fetch('data/league.json').then(r => r.json()).then(j => { LEAGUE = j; if (document.querySelector('.view')) render(); }).catch(() => {});
 let installEvt = null; // the browser's install offer (Android/desktop Chrome), shown on the home screen
 
 // The club's own games (each is its own app on GitHub Pages).
@@ -21,6 +24,7 @@ const GAMES = [
 const CLUB = [
   { k: 'club_web', url: 'https://ttscbuchen.de', label: 'ttscbuchen.de', icon: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z', c: '#C8102E' },
   { k: 'club_insta', url: 'https://www.instagram.com/ttscbuchen/', label: '@ttscbuchen', icon: 'M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4zM12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zM17.5 6.5h.01', c: '#D62976' },
+  { k: 'club_fussball', url: 'https://www.fussball.de/verein/ttsc-buchen-baden/-/id/00ES8GN9B800002IVV0AG08LVUPGND5I', label: 'fussball.de', icon: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7.5l4 3-1.5 4.8h-5L8 10.5z', c: '#16834A' },
   { k: 'club_shop', url: 'https://ttsc-buchen.fan12.de', label: 'ttsc-buchen.fan12.de', icon: 'M6 7h12l-1 13H7zM9 7a3 3 0 0 1 6 0', c: '#17181C' },
 ];
 
@@ -317,8 +321,18 @@ function viewStats(tab, u) {
     </div>
     <section class="card"><div class="card-h">${t('record')} · ${t('season')}</div><div class="match-chart">${ms.map(e => `<a href="#/ev/${e.id}" class="mc" title="${esc(e.opponent)}"><span class="mc-us" style="height:${e.result.us / maxG * 100}%"></span><span class="mc-them" style="height:${e.result.them / maxG * 100}%"></span><small>${esc(e.opponent.split(' ').pop().slice(0, 3))}</small></a>`).join('')}</div>
       <div class="legend small muted"><span class="sw us"></span>TTSC <span class="sw them"></span>${t('opponent')}</div></section>
+    ${leagueTable()}
     <section class="card form-card">${rec.form.map(f => `<span class="fm fm-${f.k}" title="${esc(f.e.opponent)}">${t({ w: 'wins', d: 'draws', l: 'losses' }[f.k])}</span>`).join('')}<span class="grow"></span><b>${t('form')}</b></section>
     ${scorers.length ? `<div class="sec-t">${t('top_scorers')}</div><section class="card list">${scorers.map((r, i) => `<a class="row" href="#/p/${r.p.id}"><span class="rank">${i + 1}</span>${avatar(r.p, 'sm')}<span class="grow">${esc(r.p.name)}</span><b>${r.s.g}</b></a>`).join('')}</section>` : ''}`;
+}
+
+function leagueTable() {
+  if (!LEAGUE) return '';
+  const d = new Date(LEAGUE.asOf + 'T12:00:00').toLocaleDateString(locale(), { day: 'numeric', month: 'short' });
+  return `<section class="card tbl-wrap league"><div class="card-h">${t('lt_title')} · ${esc(LEAGUE.league)}</div>
+    <table class="tbl"><thead><tr><th>#</th><th></th><th>${t('lt_played')}</th><th>${t('wins')}</th><th>${t('draws')}</th><th>${t('losses')}</th><th>${t('lt_goals')}</th><th>${t('lt_pts')}</th></tr></thead>
+    <tbody>${LEAGUE.rows.map(([pos, team, p, w, dr, l, g, pts]) => `<tr class="${team === LEAGUE.us ? 'us' : ''}"><td>${pos}</td><td class="tn">${esc(team)}</td><td>${p}</td><td>${w}</td><td>${dr}</td><td>${l}</td><td>${g}</td><td><b>${pts}</b></td></tr>`).join('')}</tbody></table>
+    <a class="small link src" href="${LEAGUE.source}" target="_blank" rel="noopener">${t('lt_source', { date: d })} ›</a></section>`;
 }
 
 // ---------- player profile ----------

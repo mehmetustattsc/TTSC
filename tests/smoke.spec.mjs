@@ -65,6 +65,7 @@ await go('msg/board'); check(!(await page.locator('.view').innerText()).includes
 await go('p/p11'); check(!(await page.locator('.view').innerText()).includes('Secret coach note'), 'player cannot read another player\'s notes');
 await go('stats/me'); await shot('07-my-stats-full');
 await go('games'); check(await page.locator('.tile-m.game').count() === 4, 'four games in the game corner'); await shot('07b-games');
+await go('stats/team'); await page.waitForSelector('.league'); check((await page.locator('.league tr.us').innerText()).includes('TTSC'), 'league table highlights TTSC'); await shot('07d-league-full');
 await go('club'); check((await page.locator('.view').innerText()).includes('ttscbuchen.de') && (await page.locator('.view').innerText()).includes('@ttscbuchen'), 'club links'); await shot('07c-club');
 await go(''); check(await page.locator('.card.install').count() === 1, 'install hint on home');
 await page.click('[data-act="install-hide"]'); check(await page.locator('.card.install').count() === 0, 'install hint can be hidden');

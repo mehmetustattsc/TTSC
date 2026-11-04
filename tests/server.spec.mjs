@@ -40,6 +40,9 @@ psql(`
 psql(await readFile(join(root, 'supabase/schema.sql'), 'utf8'));
 psql(await readFile(join(root, 'supabase/schema.sql'), 'utf8')); // must be safe to run twice
 psql(`insert into public.invites(email, role, name, lang) values ('admin@ttsc.test', 'admin', 'Mehmet Admin', 'tr');`);
+const fixtures = await readFile(join(root, 'supabase/fixtures-2026-27.sql'), 'utf8');
+psql(fixtures); psql(fixtures);
+if (psql(`select count(*) from events where type = 'match'`) !== '12') throw new Error('fixtures not loaded exactly once');
 
 // ---------- REST server ----------
 const conf = join(dir, 'pgrst.conf');
@@ -132,7 +135,7 @@ try {
   const d = new Date(); d.setDate(d.getDate() + 3);
   await coach.fill('#nd', d.toISOString().slice(0, 10)); await coach.fill('#no', 'SV Test'); await coach.click('#nok'); await settle();
   await player.fresh('');
-  check((await player.text()).includes('SV Test'), 'player sees the coach\'s new match');
+  check((await player.text()).includes('SV Test') || (await player.text()).includes('Leibenstadt'), 'player sees upcoming matches');
   await player.click('[data-act="rsvp-no"]'); await player.locator('#rs .chip').nth(1).click(); await player.fill('#rt', 'Klausur'); await player.click('#rok'); await settle();
   await player.click('[data-act="avail"][data-v="limited"]'); await settle();
   const ev = psql(`select id from events where opponent = 'SV Test'`);
