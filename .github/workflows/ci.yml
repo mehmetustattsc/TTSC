@@ -25,6 +25,8 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-audit --no-fund
+      - name: Translations complete (tr, de, en, fr)
+        run: npm run test:i18n
       - run: npx playwright install --with-deps chromium
       - name: Browser smoke test (all roles, main flows, privacy)
         run: mkdir -p tests/shots && npm run test:smoke

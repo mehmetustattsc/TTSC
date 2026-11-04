@@ -6,7 +6,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const app = $('#app');
 
 const GAMES = [
-  { name: 'Petek Ustası', desc: { tr: 'Arılarla renkli petek bulmacası', de: 'Waben-Farbpuzzle mit Bienen', en: 'Hexagon colour puzzle with bees' }, url: 'https://mehmetustattsc.github.io/puzzle-game/', icon: '🐝' },
+  { name: 'Petek Ustası', desc: { tr: 'Arılarla renkli petek bulmacası', de: 'Waben-Farbpuzzle mit Bienen', en: 'Hexagon colour puzzle with bees', fr: 'Puzzle de couleurs en alvéoles avec des abeilles' }, url: 'https://mehmetustattsc.github.io/puzzle-game/', icon: '🐝' },
 ];
 
 // ---------- helpers ----------
@@ -254,7 +254,7 @@ function viewMe(_, u) {
   return `<h1>${t('tab_me')}</h1>
     <section class="card profile-h sm">${avatar(u, 'lg')}<div><b>${esc(u.name)}</b><div class="muted small">${t('role_' + u.role)}</div></div>${u.role === 'player' ? `<a class="btn sm" href="#/p/${u.id}">${t('view_profile')}</a>` : ''}</section>
     <div class="sec-t">${t('language')}</div><section class="card"><div class="seg">${Object.entries(LANGS).map(([k, v]) => `<button class="${u.lang === k ? 'on' : ''}" data-act="lang" data-v="${k}">${v}</button>`).join('')}</div><small class="muted">${t('multi_hint')}</small></section>
-    <div class="sec-t">${t('games')}</div><section class="card list"><div class="row muted small">${t('games_hint')}</div>${GAMES.map(g => `<a class="row" href="${g.url}" target="_blank" rel="noopener"><span class="game-ic">${g.icon}</span><span class="grow"><b>${g.name}</b><small>${g.desc[getLang()]}</small></span><span class="btn sm primary">${t('play')}</span></a>`).join('')}</section>
+    <div class="sec-t">${t('games')}</div><section class="card list"><div class="row muted small">${t('games_hint')}</div>${GAMES.map(g => `<a class="row" href="${g.url}" target="_blank" rel="noopener"><span class="game-ic">${g.icon}</span><span class="grow"><b>${g.name}</b><small>${(g.desc[getLang()] ?? g.desc.en)}</small></span><span class="btn sm primary">${t('play')}</span></a>`).join('')}</section>
     <div class="sec-t">${t('about')}</div><section class="card small">${t('about_text')}</section>
     <button class="btn block" data-act="switch">${t('switchUser')}</button>
     <button class="btn danger-ghost block" data-act="reset">${t('reset_demo')}</button>`;

@@ -70,6 +70,17 @@ await page.goto(url + '#/me'); await page.click('[data-act="switch"]'); await pa
 await page.goto(url + '#/p/p11'); await page.waitForTimeout(100);
 check(await page.locator('.note').count() === 0, 'privacy: board does not see coach notes');
 
+// French (all four languages are selectable; no raw translation keys may leak into the UI)
+await page.goto(url + '#/me'); await page.click('[data-act="switch"]'); await page.click('[data-act="login"][data-id="c1"]');
+await page.goto(url + '#/me'); await page.click('[data-act="lang"][data-v="fr"]'); await page.waitForTimeout(100);
+check((await page.locator('.tabs').innerText()).includes('Calendrier'), 'French UI after choosing French');
+for (const r of ['', 'cal', 'team', 'stats', 'me']) {
+  await page.goto(url + '#/' + r); await page.waitForTimeout(100);
+  const txt = await page.locator('.view').innerText();
+  check(!/\b(tab|reason|tag|fb|pos|avail|role)_[a-zA-Z]+\b/.test(txt), 'no raw i18n keys in French view ' + (r || 'home'));
+}
+await shot('10-french-me');
+
 await browser.close(); server.close();
 if (errors.length) { console.error(errors.join('\n')); process.exit(1); }
 console.log('smoke ok');

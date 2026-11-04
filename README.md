@@ -15,7 +15,7 @@ TTSC Buchen için kulüp içi kayıt ve oyuncu gelişimi uygulaması (prototip).
 | Kadro / Profil | Herkes | Katılım oranı, maç, dakika, gol, asist, kart, son etkinlikler şeridi |
 | Profil (gizli bölüm) | Oyuncunun kendisi + antrenörler | Antrenör notları, öz değerlendirme (yıldız + etiket), oyuncudan antrenöre geri bildirim |
 | İstatistik | Herkes | G-B-M, gol farkı, maç grafiği, gol krallığı, sıralanabilir tablo, CSV (yönetim/antrenör) |
-| Ben | Herkes | Dil (TR/DE/EN), oyun köşesi, demo sıfırlama |
+| Ben | Herkes | Dil (TR/DE/EN/FR), oyun köşesi, demo sıfırlama |
 
 Geri bildirim etiketleri ve mazeretler anahtar olarak saklanır: Türkçe yazan antrenörün seçtiği "Pas" etiketini Alman oyuncu "Passspiel" olarak görür.
 
@@ -32,7 +32,8 @@ Geri bildirim etiketleri ve mazeretler anahtar olarak saklanır: Türkçe yazan 
 | `index.html`, `css/app.css` | Sayfa ve tasarım |
 | `js/app.js` | Ekranlar ve akışlar |
 | `js/store.js` | Veri katmanı + demo verisi (sunucuya geçişte sadece bu değişir) |
-| `js/i18n.js` | Üç dil, etiketler, mazeretler |
+| `js/i18n.js` | Dört dil (TR/DE/EN/FR), etiketler, mazeretler |
 | `sw.js`, `manifest.webmanifest` | Ana ekrana ekleme ve internetsiz açılış |
+| `tests/i18n.spec.mjs` | Dört dilde de aynı anahtarlar ve {yer tutucular} var mı |
 | `tests/smoke.spec.mjs` | Tüm roller ve ana akışlar için tarayıcı testi (gizlilik kontrolleri dahil) |
 | `.github/workflows/ci.yml` | Her gönderimde test, geçerse GitHub Pages'e yayın |

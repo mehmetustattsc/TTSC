@@ -1,8 +1,8 @@
-// UI texts in three languages. Feedback tags and absence reasons are keys, so every
+// UI texts in four languages (tr, de, en, fr). Feedback tags and absence reasons are keys, so every
 // reader sees them in their own language: a coach writing in Turkish is read in German.
-export const LANGS = { tr: 'Türkçe', de: 'Deutsch', en: 'English' };
+export const LANGS = { tr: 'Türkçe', de: 'Deutsch', en: 'English', fr: 'Français' };
 
-const T = {
+export const T = {
   tr: {
     appName: 'TTSC Takım', tagline: 'Kulübün kaydı, oyuncunun gelişimi',
     tab_home: 'Ana sayfa', tab_cal: 'Takvim', tab_team: 'Kadro', tab_stats: 'İstatistik', tab_me: 'Ben',
@@ -141,6 +141,52 @@ const T = {
     tag_dribble: 'Dribbling', tag_defend: 'Defending', tag_setpiece: 'Set pieces', tag_lead: 'Leadership',
     fb_training: 'Training content', fb_team: 'Team spirit', fb_tired: 'I\'m tired', fb_role: 'My role', fb_time: 'Training time', fb_motivation: 'Motivation',
   },
+  fr: {
+    appName: "TTSC Équipe", tagline: "Le suivi du club, la progression du joueur",
+    tab_home: "Accueil", tab_cal: "Calendrier", tab_team: "Effectif", tab_stats: "Stats", tab_me: "Moi",
+    role_player: "Joueur", role_coach: "Entraîneur", role_board: "Comité",
+    login_title: "Qui es-tu ?", login_hint: "Prototype : choisis n'importe qui pour voir les écrans de ce rôle.",
+    hello: "Salut", switchUser: "Changer de personne",
+    training: "Entraînement", match: "Match", home: "Domicile", away: "Extérieur", vs: "contre",
+    next_event: "Prochain événement", no_events: "Rien de prévu",
+    rsvp_yes: "Je viens", rsvp_no: "Je ne peux pas", rsvp_open: "Sans réponse", your_answer: "Ta réponse",
+    pick_reason: "Pourquoi tu ne peux pas venir ?", note_optional: "Remarque (facultatif)", save: "Enregistrer", cancel: "Annuler", close: "Fermer", send: "Envoyer", delete: "Supprimer",
+    reason_work: "Travail", reason_school: "École", reason_sick: "Malade", reason_injured: "Blessé", reason_family: "Famille", reason_travel: "Voyage", reason_other: "Autre",
+    avail_title: "Ton état", avail_fit: "Apte", avail_limited: "Limité", avail_injured: "Blessé",
+    coming: "présents", not_coming: "absents", open: "sans réponse",
+    alert_low_squad: "{n} joueurs ont confirmé. Il en faut au moins {min} pour le match.", alert_open: "{n} joueurs n'ont pas encore répondu.",
+    alert_missed: "{name} a manqué les {n} derniers entraînements.", alert_injured: "Blessés : {names}",
+    coach_alerts: "Alertes entraîneur", all_good: "Tout a l'air en ordre.",
+    new_notes: "Nouvelles notes pour toi", new_feedback: "Retours des joueurs",
+    to_assess: "Auto-évaluation", assess_prompt: "Comment s'est passé {event} ?",
+    upcoming: "À venir", past: "Passés", new_event: "Nouvel événement", type: "Type", date: "Date", time: "Heure", place: "Lieu", opponent: "Adversaire", note: "Remarque",
+    repeat_weekly: "Répéter chaque semaine (4 semaines)",
+    responses: "Réponses", attendance: "Présence", confirm_attendance: "Confirmer la présence", attendance_saved: "Présence enregistrée",
+    attended: "Présent", missed: "Absent", match_report: "Feuille de match", score: "Score", us: "Nous", them: "Eux",
+    minutes: "Min", goals: "Buts", assists: "Pd", yellow: "Jaune", red: "Rouge", played: "A joué",
+    report_saved: "Match enregistré", report_hint: "Coche ceux qui ont joué, puis corrige seulement ce qui diffère. 30 secondes.",
+    write_note: "Écrire une note", note_to: "Note pour {name}", private_hint: "Seuls le joueur et les entraîneurs voient cette note.",
+    went_well: "Bien passé", to_improve: "À améliorer", rating: "Ta note", feedback_coach: "Retour à l'entraîneur",
+    feedback_hint: "Entraînements, équipe, comment ça va ? Seuls les entraîneurs le voient.",
+    note_sent: "Envoyé", self_saved: "Ton évaluation est enregistrée",
+    attendance_rate: "Présence", matches: "Matchs", season: "Saison 2026/27", last_events: "Derniers événements",
+    notes_thread: "Notes", no_notes: "Pas encore de notes.", self_history: "Auto-évaluations", private_area: "Privé : seuls le joueur et les entraîneurs voient ceci.",
+    record: "Bilan", wins: "V", draws: "N", losses: "D", goals_for: "Marqués", goals_against: "Encaissés", form: "Forme", top_scorers: "Meilleurs buteurs",
+    table_players: "Stats des joueurs", export_csv: "Télécharger le CSV", sort_by: "Trier",
+    language: "Langue", games: "Coin jeux", games_hint: "Les jeux du club pour les pauses.",
+    play: "Jouer", reset_demo: "Réinitialiser les données de démo", reset_confirm: "Recharger toutes les données de démo ?",
+    about: "À propos de ce prototype", about_text: "C'est la première version. Pour l'instant, les données sont enregistrées uniquement sur cet appareil. Après vos retours, nous passerons à un serveur commun où tout le monde voit les mêmes données.",
+    from: "De", coach_note: "Note de l'entraîneur", to_coaches: "Aux entraîneurs", you: "Toi",
+    add_player: "Ajouter un joueur", name: "Nom", number: "Numéro", position: "Poste",
+    pos_TW: "Gardien", pos_AB: "Défense", pos_MF: "Milieu", pos_ST: "Attaque",
+    today: "Aujourd'hui", tomorrow: "Demain", days_left: "dans {n} jours",
+    no_access: "Tu n'as pas accès à cette section.", unread: "nouveau", view_profile: "Ouvrir le profil", all_players: "Tous les joueurs",
+    multi_hint: "Les étiquettes s'affichent pour chacun dans sa langue.", pick_tags: "Choisir des étiquettes",
+    tag_pass: "Passes", tag_touch: "Première touche", tag_position: "Placement", tag_press: "Pressing", tag_duel: "Duels", tag_header: "Jeu de tête",
+    tag_finish: "Finition", tag_stamina: "Endurance", tag_talk: "Communication", tag_discipline: "Discipline", tag_attitude: "Attitude", tag_speed: "Vitesse",
+    tag_dribble: "Dribble", tag_defend: "Défense", tag_setpiece: "Coups de pied arrêtés", tag_lead: "Leadership",
+    fb_training: "Contenu des entraînements", fb_team: "Esprit d'équipe", fb_tired: "Je suis fatigué", fb_role: "Mon rôle", fb_time: "Horaire d'entraînement", fb_motivation: "Motivation",
+  },
 };
 
 export const TAGS = ['pass', 'touch', 'position', 'press', 'duel', 'header', 'finish', 'stamina', 'talk', 'discipline', 'attitude', 'speed', 'dribble', 'defend', 'setpiece', 'lead'];
@@ -155,4 +201,4 @@ export function t(key, vars) {
   if (vars) for (const k in vars) s = s.replaceAll('{' + k + '}', vars[k]);
   return s;
 }
-export const locale = () => ({ tr: 'tr-TR', de: 'de-DE', en: 'en-GB' }[lang]);
+export const locale = () => ({ tr: 'tr-TR', de: 'de-DE', en: 'en-GB', fr: 'fr-FR' }[lang]);
