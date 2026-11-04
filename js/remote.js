@@ -27,8 +27,22 @@ async function fresh() {
   catch (e) { saveSession(null); throw e; }
 }
 
+// ---------- login with the link from the email (fallback when the email has no code) ----------
+// Supabase sends the person back to the app with #access_token=…&refresh_token=… in the address.
+export async function takeLinkLogin() {
+  const h = new URLSearchParams(location.hash.replace(/^#\/?/, ''));
+  if (h.get('error_description')) { history.replaceState(null, '', location.pathname); throw new Error(h.get('error_description')); }
+  const at = h.get('access_token'); if (!at) return false;
+  history.replaceState(null, '', location.pathname);
+  const r = await fetch(SUPABASE_URL + '/auth/v1/user', { headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + at } });
+  if (!r.ok) throw new Error('login link expired');
+  const u = await r.json();
+  keep({ access_token: at, refresh_token: h.get('refresh_token'), expires_in: +h.get('expires_in') || 3600, user: u });
+  return true;
+}
+
 // ---------- login with a one-time code ----------
-export const sendCode = email => call('/auth/v1/otp', { method: 'POST', body: { email, create_user: true }, auth: false });
+export const sendCode = email => call('/auth/v1/otp?redirect_to=' + encodeURIComponent(location.origin + location.pathname), { method: 'POST', body: { email, create_user: true }, auth: false });
 export async function verifyCode(email, token) { keep(await call('/auth/v1/verify', { method: 'POST', body: { type: 'email', email, token }, auth: false })); return userId(); }
 export async function signOut() { try { await call('/auth/v1/logout', { method: 'POST' }); } catch (e) { /* offline is fine */ } saveSession(null); }
 

@@ -271,8 +271,8 @@ for (const l in EXTRA) Object.assign(T[l], EXTRA[l]);
 // Texts for server login and invitations.
 const LOGIN = {
  "tr": {
-  "login_once": "E-postana 6 haneli bir kod gelecek. Bir kez girdikten sonra telefonda açık kalırsın.",
-  "login_code_sent": "Kodu {email} adresine gönderdik. Spam klasörüne de bak.",
+  "login_once": "E-postana bir giriş kodu ya da linki gelecek. Bir kez girdikten sonra açık kalırsın.",
+  "login_code_sent": "{email} adresine e-posta gönderdik. İçinde kod varsa buraya yaz, link varsa linke bas. Spam klasörüne de bak.",
   "login_code": "Giriş kodu",
   "login_verify": "Giriş yap",
   "login_other_email": "Başka e-posta",
@@ -293,8 +293,8 @@ const LOGIN = {
   "sync_error": "Kaydedilemedi"
  },
  "de": {
-  "login_once": "Du bekommst einen 6-stelligen Code per E-Mail. Danach bleibst du auf dem Handy angemeldet.",
-  "login_code_sent": "Wir haben den Code an {email} geschickt. Schau auch in den Spam-Ordner.",
+  "login_once": "Du bekommst einen Code oder Link per E-Mail. Danach bleibst du angemeldet.",
+  "login_code_sent": "Wir haben eine E-Mail an {email} geschickt. Code hier eingeben oder auf den Link tippen. Schau auch im Spam-Ordner.",
   "login_code": "Anmeldecode",
   "login_verify": "Anmelden",
   "login_other_email": "Andere E-Mail",
@@ -315,8 +315,8 @@ const LOGIN = {
   "sync_error": "Nicht gespeichert"
  },
  "en": {
-  "login_once": "You'll get a 6-digit code by email. After that you stay signed in on your phone.",
-  "login_code_sent": "We sent the code to {email}. Check your spam folder too.",
+  "login_once": "You'll get a code or a link by email. After that you stay signed in.",
+  "login_code_sent": "We sent an email to {email}. Enter the code here or tap the link. Check your spam folder too.",
   "login_code": "Login code",
   "login_verify": "Sign in",
   "login_other_email": "Different email",
@@ -337,8 +337,8 @@ const LOGIN = {
   "sync_error": "Not saved"
  },
  "fr": {
-  "login_once": "Tu recevras un code à 6 chiffres par e-mail. Ensuite, tu restes connecté sur ton téléphone.",
-  "login_code_sent": "Nous avons envoyé le code à {email}. Regarde aussi dans les spams.",
+  "login_once": "Tu recevras un code ou un lien par e-mail. Ensuite, tu restes connecté.",
+  "login_code_sent": "Nous avons envoyé un e-mail à {email}. Saisis le code ici ou appuie sur le lien. Regarde aussi dans les spams.",
   "login_code": "Code de connexion",
   "login_verify": "Se connecter",
   "login_other_email": "Autre e-mail",

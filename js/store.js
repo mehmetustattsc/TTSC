@@ -38,6 +38,10 @@ export function load() {
   } else {
     db = emptyDb();
     if (R.userId()) reload();
+    else if (/access_token=|error_description=/.test(location.hash)) {
+      R.takeLinkLogin().then(ok => { if (ok) { db.session.userId = R.userId(); emit(); reload(); } })
+        .catch(e => errListeners.forEach(f => f(e)));
+    }
   }
   return db;
 }

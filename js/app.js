@@ -79,7 +79,7 @@ function badges(u) {
 // ---------- router ----------
 const routes = { '': viewHome, cal: viewCal, ev: viewEvent, msg: viewMsg, stats: viewStats, p: viewPlayer, games: viewGames, players: viewPlayers, members: viewMembers, building: viewBuilding, me: viewMe };
 const MOD_OF = { cal: 'cal', ev: 'cal', msg: 'msg', stats: 'stats', p: 'stats', games: 'games', players: 'players', members: 'members', building: 'building' };
-function parse() { const [r, id] = location.hash.replace(/^#\/?/, '').split('/'); return { r: r || '', id }; }
+function parse() { if (/access_token=|error_description=/.test(location.hash)) return { r: '' }; const [r, id] = location.hash.replace(/^#\/?/, '').split('/'); return { r: r || '', id }; }
 
 let lastRoute = null;
 export function render() {

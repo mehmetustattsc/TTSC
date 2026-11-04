@@ -69,6 +69,7 @@ const app = createServer(async (req, res) => {
   }
   if (u.pathname === '/auth/v1/token') { const { refresh_token } = await body(req); const s = refresh[refresh_token]; return s ? json(200, tokenFor(s.id, s.email)) : json(400, { msg: 'bad refresh' }); }
   if (u.pathname === '/auth/v1/logout') return json(204);
+  if (u.pathname === '/auth/v1/user') { const sub = JSON.parse(Buffer.from((req.headers.authorization || '').split('.')[1] || 'e30', 'base64url')).sub; const email = psql(`select email from auth.users where id = '${sub}'`); return email ? json(200, { id: sub, email }) : json(401, {}); }
   if (u.pathname.startsWith('/rest/v1/')) {
     const p = httpRequest({ host: '127.0.0.1', port: REST_PORT, path: req.url.replace('/rest/v1', ''), method: req.method, headers: { ...req.headers, host: '127.0.0.1' } }, r => { res.writeHead(r.statusCode, r.headers); r.pipe(res); });
     req.pipe(p); return;
@@ -167,6 +168,17 @@ try {
   const promote = await fetch(url + `rest/v1/profiles?id=eq.${pid}`, { method: 'PATCH', headers: { apikey: 'x', Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'admin' }) });
   check(promote.status >= 400 && psql(`select role from profiles where id = '${pid}'`) === 'player', 'player cannot make himself admin');
 
+  // login via the link in the email (what Supabase sends while the email templates can't be edited)
+  {
+    const coachId = psql(`select id from auth.users where email = 'coach@ttsc.test'`), tk = tokenFor(coachId, 'coach@ttsc.test');
+    const ctx = await browser.newContext(); const p = await ctx.newPage(); p.on('pageerror', e => errors.push('link: ' + e.message));
+    await p.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());
+    await p.goto(url + `#access_token=${tk.access_token}&refresh_token=${tk.refresh_token}&expires_in=3600&token_type=bearer&type=magiclink`);
+    await p.waitForSelector('.hello', { timeout: 15000 }).catch(() => {});
+    check((await p.locator('#app').innerText()).includes('Murat'), 'login via email link works');
+    check(!p.url().includes('access_token'), 'token removed from the address bar');
+    await ctx.close();
+  }
   // sign out and back in keeps working
   await player.go('me'); await player.click('[data-act="switch"]'); await player.waitForSelector('#lem');
   check(true, 'signed out');
