@@ -4,9 +4,24 @@ import * as S from './store.js';
 const $ = (sel, el = document) => el.querySelector(sel);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const app = $('#app');
+let installEvt = null; // the browser's install offer (Android/desktop Chrome), shown on the home screen
 
+// The club's own games (each is its own app on GitHub Pages).
 const GAMES = [
-  { name: 'Petek Ustası', desc: { tr: 'Arılarla renkli petek bulmacası', de: 'Waben-Farbpuzzle mit Bienen', en: 'Hexagon colour puzzle with bees', fr: 'Puzzle de couleurs en alvéoles avec des abeilles' }, url: 'https://mehmetustattsc.github.io/puzzle-game/', icon: '🐝' },
+  { name: 'FootWare', url: 'https://mehmetustattsc.github.io/FootWare/', emoji: '⚽', c: '#16834A',
+    desc: { tr: 'Futbol bilgi oyunu: transfer yolu, kim bu, ortak kulüp', de: 'Fußball-Quiz: Transferweg, Wer ist das, gemeinsamer Verein', en: 'Football quiz: transfer path, who is it, shared club', fr: 'Quiz foot : parcours de transferts, qui est-ce, club commun' } },
+  { name: 'Pusula', url: 'https://mehmetustattsc.github.io/Pusula/', img: 'assets/games/pusula.png',
+    desc: { tr: 'Bil ve fethet: bilgi ve strateji', de: 'Wissen und erobern: Quiz und Strategie', en: 'Know and conquer: trivia and strategy', fr: 'Savoir et conquérir : quiz et stratégie' } },
+  { name: 'Sancak', url: 'https://mehmetustattsc.github.io/sancak/', img: 'assets/games/sancak.png',
+    desc: { tr: 'Avrupa haritasında sıra tabanlı strateji', de: 'Rundenstrategie auf der Europakarte', en: 'Turn-based strategy on the map of Europe', fr: "Stratégie au tour par tour sur la carte de l'Europe" } },
+  { name: 'Petek Ustası', url: 'https://mehmetustattsc.github.io/puzzle-game/', img: 'assets/games/petek.png',
+    desc: { tr: 'Arılarla renkli petek bulmacası', de: 'Waben-Farbpuzzle mit Bienen', en: 'Hexagon colour puzzle with bees', fr: 'Puzzle de couleurs en alvéoles avec des abeilles' } },
+];
+// Public club links (website, Instagram, fan shop).
+const CLUB = [
+  { k: 'club_web', url: 'https://ttscbuchen.de', label: 'ttscbuchen.de', icon: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z', c: '#C8102E' },
+  { k: 'club_insta', url: 'https://www.instagram.com/ttscbuchen/', label: '@ttscbuchen', icon: 'M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4zM12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zM17.5 6.5h.01', c: '#D62976' },
+  { k: 'club_shop', url: 'https://ttsc-buchen.fan12.de', label: 'ttsc-buchen.fan12.de', icon: 'M6 7h12l-1 13H7zM9 7a3 3 0 0 1 6 0', c: '#17181C' },
 ];
 
 // Module tiles on the home screen. Which ones a person sees comes from S.can().
@@ -18,9 +33,10 @@ const ICONS = {
   players: 'M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6zM9 12l2 2 4-4',
   members: 'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M16 4.3a3.5 3.5 0 0 1 0 6.6M18 14.8c1.8.7 3 2.4 3.5 5.2',
   building: 'M3 21h18M5 21V10l7-6 7 6v11M10 21v-6h4v6',
+  club: 'M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6zM12 7l1.2 2.5 2.8.3-2 1.9.5 2.8L12 13.2 9.5 14.5l.5-2.8-2-1.9 2.8-.3z',
 };
 const MODS = [
-  { k: 'cal', c: '#C8102E' }, { k: 'msg', c: '#1F6FEB' }, { k: 'stats', c: '#16834A' }, { k: 'games', c: '#E08A00' },
+  { k: 'cal', c: '#C8102E' }, { k: 'msg', c: '#1F6FEB' }, { k: 'stats', c: '#16834A' }, { k: 'games', c: '#E08A00' }, { k: 'club', c: '#9E0B23' },
   { k: 'players', c: '#17181C', staff: true }, { k: 'members', c: '#6A3FB5', staff: true }, { k: 'building', c: '#8A5A2B', staff: true },
 ];
 const svg = d => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
@@ -77,8 +93,8 @@ function badges(u) {
 }
 
 // ---------- router ----------
-const routes = { '': viewHome, cal: viewCal, ev: viewEvent, msg: viewMsg, stats: viewStats, p: viewPlayer, games: viewGames, players: viewPlayers, members: viewMembers, building: viewBuilding, me: viewMe };
-const MOD_OF = { cal: 'cal', ev: 'cal', msg: 'msg', stats: 'stats', p: 'stats', games: 'games', players: 'players', members: 'members', building: 'building' };
+const routes = { '': viewHome, cal: viewCal, ev: viewEvent, msg: viewMsg, stats: viewStats, p: viewPlayer, games: viewGames, club: viewClub, players: viewPlayers, members: viewMembers, building: viewBuilding, me: viewMe };
+const MOD_OF = { cal: 'cal', ev: 'cal', msg: 'msg', stats: 'stats', p: 'stats', games: 'games', club: 'club', players: 'players', members: 'members', building: 'building' };
 function parse() { if (/access_token=|error_description=/.test(location.hash)) return { r: '' }; const [r, id] = location.hash.replace(/^#\/?/, '').split('/'); return { r: r || '', id }; }
 
 let lastRoute = null;
@@ -158,6 +174,7 @@ function viewHome(_, u) {
       <div class="seg">${['fit', 'limited', 'injured'].map(s => `<button class="${a === s ? 'on s-' + s : ''}" data-act="avail" data-v="${s}">${t('avail_' + s)}</button>`).join('')}</div></section>`;
     S.pendingSelf(u.id).slice(0, 1).forEach(e => { html += `<button class="card notice ghost" data-act="self" data-eid="${e.id}"><span>📝</span><span class="grow"><b>${t('to_assess')}</b><small>${evIcon(e)} ${evTitle(e)} · ${fmtDate(e.date)}</small></span><span class="chev">›</span></button>`; });
   }
+  html += installCard();
   if (next) html += `<div class="sec-t">${t('next_event')}</div>${eventCard(next, u, true)}`;
   const tile = m => `<a class="tile-m" href="#/${m.k}" style="--c:${m.c}"><span class="ti">${svg(ICONS[m.k])}</span><span class="tl">${t('mod_' + m.k)}</span>${b[m.k] ? `<i class="tb">${b[m.k]}</i>` : ''}</a>`;
   const general = MODS.filter(m => !m.staff && S.can(u, m.k)), staff = MODS.filter(m => m.staff && S.can(u, m.k));
@@ -181,6 +198,16 @@ function eventCard(e, u, big = false) {
       <button class="no ${mine?.s === 'no' ? 'on' : ''}" data-act="rsvp-no" data-eid="${e.id}">✕ ${t('rsvp_no')}</button></div>
       ${mine?.s === 'no' ? `<div class="reason small muted">${t('reason_' + mine.reason)}${mine.text ? ' · ' + esc(mine.text) : ''}</div>` : ''}` : ''}
   </article>`;
+}
+
+// Shown until the app runs from the home screen: Android gets an install button, iPhone the two taps.
+const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+function installCard() {
+  if (standalone() || S.pref('install-hidden')) return '';
+  const body = installEvt ? `<button class="btn primary sm" data-act="install">${t('install_now')}</button>`
+    : isIOS() ? `<small>${t('install_ios')}</small>` : `<small>${t('install_other')}</small>`;
+  return `<section class="card install"><span class="inst-ic"><img src="assets/icon-192.png" alt="" width="44" height="44"></span><div class="grow"><b>${t('install_title')}</b>${body}</div><button class="x" data-act="install-hide" aria-label="${t('close')}">✕</button></section>`;
 }
 
 // ---------- calendar ----------
@@ -335,8 +362,16 @@ function noteRow(n, viewer, withTarget = false) {
 
 // ---------- games ----------
 function viewGames() {
-  return `<div class="grid games">${GAMES.map(g => `<a class="tile-m game" href="${g.url}" target="_blank" rel="noopener" style="--c:#E08A00"><span class="ti emoji">${g.icon}</span><span class="tl">${g.name}</span><small>${g.desc[getLang()] ?? g.desc.en}</small></a>`).join('')}</div>
+  return `<div class="grid games">${GAMES.map(g => `<a class="tile-m game" href="${g.url}" target="_blank" rel="noopener" style="--c:${g.c || '#E08A00'}">
+      ${g.img ? `<img class="gi" src="${g.img}" alt="" width="64" height="64">` : `<span class="ti emoji">${g.emoji}</span>`}<span class="tl">${g.name}</span><small>${g.desc[getLang()] ?? g.desc.en}</small></a>`).join('')}</div>
     <p class="muted small center">${t('games_soon')}</p>`;
+}
+
+// ---------- club: public links ----------
+function viewClub() {
+  return `<section class="card club-h"><img src="assets/logo.png" alt="TTSC Buchen" width="72" height="75"><div><h1>TTSC Buchen e.V.</h1><p class="muted">${t('club_since')}</p></div></section>
+    <section class="card list">${CLUB.map(l => `<a class="row" href="${l.url}" target="_blank" rel="noopener"><span class="ti sm" style="--c:${l.c}">${svg(l.icon)}</span><span class="grow"><b>${t(l.k)}</b><small>${l.label}</small></span><span class="chev">›</span></a>`).join('')}</section>
+    <button class="btn primary block" data-act="share-app">↗ ${t('share_app')}</button>`;
 }
 
 // ---------- player tracking (coach, board) ----------
@@ -582,6 +617,10 @@ document.addEventListener('click', ev => {
     case 'demo-off': S.logout(); S.useDemo(false); location.hash = '#/'; break;
     case 'retry': S.reload(); render(); break;
     case 'invite': addPlayerSheet('player', true); break;
+    case 'install': if (installEvt) { installEvt.prompt(); installEvt.userChoice.finally(() => { installEvt = null; render(); }); } break;
+    case 'install-hide': S.setPref('install-hidden', '1'); render(); break;
+    case 'share-app': { const d = { title: 'TTSC Buchen', text: t('share_text'), url: location.origin + location.pathname };
+      if (navigator.share) navigator.share(d).catch(() => {}); else navigator.clipboard?.writeText(d.url).then(() => toast(t('link_copied'))); break; }
     case 'switch': S.logout(); loginStep = 'email'; location.hash = '#/'; break;
     case 'back': if (history.length > 1 && document.referrer !== undefined && sessionStorage.getItem('ttsc-nav')) history.back(); else location.hash = '#/'; break;
     case 'lang': S.setUserLang(b.dataset.v); break;
@@ -644,4 +683,17 @@ S.onChange(render);
 S.onError(e => toast(t('sync_error') + (e?.message ? ': ' + e.message : '')));
 window.addEventListener('hashchange', () => { sessionStorage.setItem('ttsc-nav', '1'); closeSheet(); render(); });
 render();
-if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+// ---------- installable app (PWA) ----------
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; render(); });
+window.addEventListener('appinstalled', () => { installEvt = null; S.setPref('install-hidden', '1'); render(); });
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+  // a new version took over: offer a one-tap reload instead of silently running old code
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController) updateBanner(); });
+}
+function updateBanner() {
+  if ($('#upd')) return;
+  const b = document.createElement('button'); b.id = 'upd'; b.className = 'upd'; b.textContent = t('update_ready');
+  b.onclick = () => location.reload(); document.body.appendChild(b);
+}

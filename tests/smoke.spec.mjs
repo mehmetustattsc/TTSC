@@ -54,7 +54,7 @@ await go('players'); await shot('04-players-full');
 // ----- player (German) -----
 await as('p8');
 tl = await tiles();
-check(tl.includes('#/cal') && tl.includes('#/msg') && !tl.includes('#/players') && !tl.includes('#/members'), 'player tiles: ' + tl);
+check(tl.includes('#/cal') && tl.includes('#/msg') && tl.includes('#/club') && !tl.includes('#/players') && !tl.includes('#/members'), 'player tiles: ' + tl);
 check((await page.locator('.grid').first().innerText()).includes('Kalender'), 'German UI');
 await shot('05-player-home');
 for (const h of ['players', 'members', 'building']) check(await locked(h), 'player locked out of ' + h);
@@ -64,6 +64,10 @@ await shot('06-team-chat');
 await go('msg/board'); check(!(await page.locator('.view').innerText()).includes('Aidat'), 'player cannot read board chat');
 await go('p/p11'); check(!(await page.locator('.view').innerText()).includes('Secret coach note'), 'player cannot read another player\'s notes');
 await go('stats/me'); await shot('07-my-stats-full');
+await go('games'); check(await page.locator('.tile-m.game').count() === 4, 'four games in the game corner'); await shot('07b-games');
+await go('club'); check((await page.locator('.view').innerText()).includes('ttscbuchen.de') && (await page.locator('.view').innerText()).includes('@ttscbuchen'), 'club links'); await shot('07c-club');
+await go(''); check(await page.locator('.card.install').count() === 1, 'install hint on home');
+await page.click('[data-act="install-hide"]'); check(await page.locator('.card.install').count() === 0, 'install hint can be hidden');
 await go('home'); const rs = page.locator('[data-act="rsvp-no"]').first();
 if (await rs.count()) { await rs.click(); await page.locator('#rs .chip').first().click(); await page.click('#rok'); }
 
@@ -93,7 +97,7 @@ check((await tiles()).includes('#/players'), 'role change gives coach tiles');
 // French: all four languages selectable, no raw translation keys leak into any module
 await go('me'); await page.click('[data-act="lang"][data-v="fr"]'); await page.waitForTimeout(80);
 await go(''); check((await page.locator('.grid').first().innerText()).includes('Calendrier'), 'French UI after choosing French');
-for (const r of ['', 'cal', 'msg/team', 'msg/board', 'stats', 'stats/players', 'games', 'players', 'members', 'building/bookings', 'building/repairs', 'me']) {
+for (const r of ['', 'cal', 'msg/team', 'msg/board', 'stats', 'stats/players', 'games', 'club', 'players', 'members', 'building/bookings', 'building/repairs', 'me']) {
   await go(r);
   check(!/\b(tab|reason|tag|fb|pos|avail|role|mod|ch|st|m)_[a-zA-Z]+\b/.test(await page.locator('body').innerText()), 'no raw i18n keys in French view ' + (r || 'home'));
 }

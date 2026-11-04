@@ -6,6 +6,7 @@ import * as R from './remote.js';
 
 const KEY = 'ttsc-team-v2';
 const MODE_KEY = 'ttsc-mode';
+const CACHE_KEY = 'ttsc-cache';
 export const TODAY = () => new Date().toISOString().slice(0, 10);
 
 let db = null;
@@ -37,7 +38,8 @@ export function load() {
     if (!db || db.v !== 2 || !db.users?.length) db = seed();
   } else {
     db = emptyDb();
-    if (R.userId()) reload();
+    // start from the last copy on this phone, so the app opens instantly and works offline; then refresh
+    if (R.userId()) { try { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); if (c && c.session?.userId === R.userId()) db = { ...c, seen: db.seen }; } catch (e) { /* ignore */ } reload(); }
     else if (/access_token=|error_description=/.test(location.hash)) {
       R.takeLinkLogin().then(ok => { if (ok) { db.session.userId = R.userId(); emit(); reload(); } })
         .catch(e => errListeners.forEach(f => f(e)));
@@ -51,6 +53,9 @@ export function useDemo(on) {
 }
 export function resetDemo() { db = seed(); persist(); }
 export const data = () => db;
+// small per-device settings (e.g. a dismissed hint)
+export const pref = k => { try { return localStorage.getItem('ttsc-pref-' + k); } catch (e) { return null; } };
+export const setPref = (k, v) => { try { localStorage.setItem('ttsc-pref-' + k, v); } catch (e) { /* ignore */ } };
 
 function emptyDb() {
   let seen = {};
@@ -89,9 +94,10 @@ export function reload() {
     n.repairs = repairs.map(r => ({ id: r.id, title: r.title, text: r.text || '', status: r.status, by: r.reported_by, at: r.created_at }));
     n.invites = invites;
     n.loaded = true; db = n; status.error = null;
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(n)); } catch (e) { /* full or private: fine */ }
   }).catch(e => {
     status.error = e.message;
-    if (e.status === 401) { R.signOut(); db = emptyDb(); }
+    if (e.status === 401) { R.signOut(); try { localStorage.removeItem(CACHE_KEY); } catch (x) { /* ignore */ } db = emptyDb(); }
   }).finally(() => { status.loading = false; loading = null; emit(); });
   return loading;
 }
@@ -108,7 +114,7 @@ export const sendCode = email => R.sendCode(email.trim().toLowerCase());
 export async function verifyCode(email, code) { const id = await R.verifyCode(email.trim().toLowerCase(), code.trim()); db.session.userId = id; emit(); await reload(); }
 export function login(id) { db.session.userId = id; persist(); }   // demo only
 export function logout() {
-  if (mode === 'server') { R.signOut(); db = emptyDb(); db.session.userId = null; emit(); }
+  if (mode === 'server') { R.signOut(); try { localStorage.removeItem(CACHE_KEY); } catch (e) { /* ignore */ } db = emptyDb(); db.session.userId = null; emit(); }
   else { db.session.userId = null; persist(); }
 }
 export function setUserLang(l) { const u = me(); if (u) { u.lang = l; persist(); W(() => R.update('profiles', 'id=eq.' + u.id, { lang: l })); } }
@@ -126,7 +132,7 @@ export const ROLES = ['player', 'coach', 'board', 'admin'];
 
 // Who may open which module. The same rules are enforced on the server (supabase/schema.sql).
 const PERMS = {
-  cal: ROLES, msg: ROLES, stats: ROLES, games: ROLES,
+  cal: ROLES, msg: ROLES, stats: ROLES, games: ROLES, club: ROLES,
   players: ['coach', 'board', 'admin'], members: ['board', 'admin'], building: ['board', 'admin'],
 };
 export const can = (u, mod) => !!u && (PERMS[mod] || []).includes(u.role);

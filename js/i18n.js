@@ -360,6 +360,71 @@ const LOGIN = {
  }
 };
 for (const l in LOGIN) Object.assign(T[l], LOGIN[l]);
+
+// Club links and installing the app.
+const APP = {
+ "tr": {
+  "mod_club": "Kulüp",
+  "club_since": "1972'den beri Buchen'in futbol kulübü",
+  "club_web": "Web sitesi",
+  "club_insta": "Instagram",
+  "club_shop": "Fanshop",
+  "share_app": "Uygulamayı paylaş",
+  "share_text": "TTSC Buchen takım uygulaması",
+  "link_copied": "Link kopyalandı",
+  "install_title": "Uygulamayı ana ekrana ekle",
+  "install_now": "Yükle",
+  "install_ios": "Safari'de alttaki Paylaş düğmesine bas, sonra \"Ana Ekrana Ekle\".",
+  "install_other": "Tarayıcı menüsünden \"Ana ekrana ekle\" ya da \"Uygulamayı yükle\".",
+  "update_ready": "Yeni sürüm hazır, yenilemek için dokun"
+ },
+ "de": {
+  "mod_club": "Verein",
+  "club_since": "Fußball in Buchen seit 1972",
+  "club_web": "Webseite",
+  "club_insta": "Instagram",
+  "club_shop": "Fanshop",
+  "share_app": "App teilen",
+  "share_text": "Die Team-App des TTSC Buchen",
+  "link_copied": "Link kopiert",
+  "install_title": "App zum Startbildschirm hinzufügen",
+  "install_now": "Installieren",
+  "install_ios": "In Safari unten auf Teilen tippen, dann „Zum Home-Bildschirm“.",
+  "install_other": "Im Browsermenü „Zum Startbildschirm hinzufügen“ oder „App installieren“.",
+  "update_ready": "Neue Version bereit, zum Aktualisieren tippen"
+ },
+ "en": {
+  "mod_club": "Club",
+  "club_since": "Buchen's football club since 1972",
+  "club_web": "Website",
+  "club_insta": "Instagram",
+  "club_shop": "Fan shop",
+  "share_app": "Share the app",
+  "share_text": "The TTSC Buchen team app",
+  "link_copied": "Link copied",
+  "install_title": "Add the app to your home screen",
+  "install_now": "Install",
+  "install_ios": "In Safari tap Share at the bottom, then “Add to Home Screen”.",
+  "install_other": "In the browser menu: “Add to home screen” or “Install app”.",
+  "update_ready": "New version ready, tap to reload"
+ },
+ "fr": {
+  "mod_club": "Club",
+  "club_since": "Le club de foot de Buchen depuis 1972",
+  "club_web": "Site web",
+  "club_insta": "Instagram",
+  "club_shop": "Boutique",
+  "share_app": "Partager l'appli",
+  "share_text": "L'appli d'équipe du TTSC Buchen",
+  "link_copied": "Lien copié",
+  "install_title": "Ajouter l'appli à l'écran d'accueil",
+  "install_now": "Installer",
+  "install_ios": "Dans Safari, touche Partager en bas, puis « Sur l'écran d'accueil ».",
+  "install_other": "Dans le menu du navigateur : « Ajouter à l'écran d'accueil » ou « Installer l'appli ».",
+  "update_ready": "Nouvelle version prête, touche pour recharger"
+ }
+};
+for (const l in APP) Object.assign(T[l], APP[l]);
 export const TAGS = ['pass', 'touch', 'position', 'press', 'duel', 'header', 'finish', 'stamina', 'talk', 'discipline', 'attitude', 'speed', 'dribble', 'defend', 'setpiece', 'lead'];
 export const FB_TAGS = ['training', 'team', 'tired', 'role', 'time', 'motivation'];
 export const REASONS = ['work', 'school', 'sick', 'injured', 'family', 'travel', 'other'];
