@@ -1,6 +1,6 @@
 // Data layer. Everything the screens need goes through these functions, so the
 // local-storage backend can later be swapped for a shared server without touching the UI.
-const KEY = 'ttsc-team-v1';
+const KEY = 'ttsc-team-v2';
 export const TODAY = () => new Date().toISOString().slice(0, 10);
 
 let db = null;
@@ -14,7 +14,7 @@ function persist() {
 
 export function load() {
   try { const raw = localStorage.getItem(KEY); if (raw) db = JSON.parse(raw); } catch (e) { db = null; }
-  if (!db || db.v !== 1) db = seed();
+  if (!db || db.v !== 2) db = seed();
   return db;
 }
 export function resetDemo() { db = seed(); persist(); }
@@ -33,8 +33,23 @@ export const users = () => db.users;
 export const user = id => db.users.find(u => u.id === id);
 export const players = () => db.users.filter(u => u.role === 'player').sort((a, b) => a.num - b.num);
 export const coaches = () => db.users.filter(u => u.role === 'coach');
-export const isStaff = u => u && (u.role === 'coach' || u.role === 'board');
-export const isCoach = u => u && u.role === 'coach';
+export const isStaff = u => !!u && ['coach', 'board', 'admin'].includes(u.role);
+export const isCoach = u => !!u && u.role === 'coach';
+export const isBoard = u => !!u && (u.role === 'board' || u.role === 'admin');
+export const isAdmin = u => !!u && u.role === 'admin';
+export const ROLES = ['player', 'coach', 'board', 'admin'];
+
+// Who may open which module. The same rules are enforced on the server (supabase/schema.sql).
+const PERMS = {
+  cal: ROLES, msg: ROLES, stats: ROLES, games: ROLES,
+  players: ['coach', 'board', 'admin'], members: ['board', 'admin'], building: ['board', 'admin'],
+};
+export const can = (u, mod) => !!u && (PERMS[mod] || []).includes(u.role);
+// chat channels: the team chat is for everyone, the board chat only for the board
+export const channels = u => isBoard(u) ? ['team', 'board'] : ['team'];
+// private notes (coach <-> player) are never visible to the board
+export const seesNotes = u => !!u && (u.role === 'player' || u.role === 'coach');
+export function setRole(id, role) { const x = user(id); if (x && ROLES.includes(role)) { x.role = role; persist(); } }
 export function addPlayer({ name, num, pos, lang }) {
   const p = { id: uid('u'), name, num: +num || 0, pos, role: 'player', lang: lang || 'de' };
   db.users.push(p); db.availability[p.id] = { s: 'fit', at: TODAY() }; persist(); return p;
@@ -103,6 +118,34 @@ export function unreadNotes(viewer) {
   return db.notes.filter(n => n.kind === 'coach' && n.to === viewer.id && n.at > seen);
 }
 // silent save: called while a screen renders, must not trigger another render
+// ---------- chat ----------
+export const messages = ch => db.messages.filter(m => m.ch === ch).sort((a, b) => a.at.localeCompare(b.at));
+export function sendMessage(ch, from, text) { db.messages.push({ id: uid('m'), ch, from, text, at: new Date().toISOString() }); persist(); }
+export const unreadChat = (u, ch) => db.messages.filter(m => m.ch === ch && m.from !== u.id && m.at > (db.seen[u.id + ':' + ch] || '')).length;
+export function markChatSeen(u, ch) { db.seen[u.id + ':' + ch] = new Date().toISOString(); try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* ignore */ } }
+
+// ---------- members and fees ----------
+export const FEE_YEAR = 2026;
+export const members = () => db.members.slice().sort((a, b) => a.name.localeCompare(b.name));
+export const member = id => db.members.find(m => m.id === id);
+export function addMember(m) { const x = { id: uid('mb'), fees: {}, ...m }; db.members.push(x); persist(); return x; }
+export function setFee(id, year, paid) { const m = member(id); if (m) { m.fees[year] = paid ? S_TODAY() : null; persist(); } }
+const S_TODAY = () => new Date().toISOString().slice(0, 10);
+export function memberSummary(year = FEE_YEAR) {
+  const ms = db.members, paid = ms.filter(m => m.fees[year]);
+  const due = ms.reduce((s, m) => s + (FEES[m.type] || 0), 0), got = paid.reduce((s, m) => s + (FEES[m.type] || 0), 0);
+  return { total: ms.length, paid: paid.length, open: ms.length - paid.length, due, got };
+}
+export const FEES = { active: 60, passive: 36, support: 120 };
+
+// ---------- clubhouse: bookings and repairs ----------
+export const bookings = () => db.bookings.slice().sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+export function addBooking(b) { db.bookings.push({ id: uid('bk'), ...b }); persist(); }
+export function deleteBooking(id) { db.bookings = db.bookings.filter(b => b.id !== id); persist(); }
+export const repairs = () => db.repairs.slice().sort((a, b) => ({ open: 0, doing: 1, done: 2 }[a.status] - { open: 0, doing: 1, done: 2 }[b.status]) || b.at.localeCompare(a.at));
+export function addRepair(r) { db.repairs.push({ id: uid('r'), status: 'open', at: new Date().toISOString(), ...r }); persist(); }
+export function setRepairStatus(id, status) { const r = db.repairs.find(x => x.id === id); if (r) { r.status = status; r.updated = new Date().toISOString(); persist(); } }
+
 export function markSeen(viewer) { db.seen[viewer.id] = new Date().toISOString(); try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* ignore */ } }
 export function addSelf(s) {
   db.self = db.self.filter(x => !(x.pid === s.pid && x.eid === s.eid));
@@ -112,12 +155,12 @@ export const selfFor = pid => db.self.filter(s => s.pid === pid).sort((a, b) => 
 export const selfOf = (pid, eid) => db.self.find(s => s.pid === pid && s.eid === eid);
 export function pendingSelf(pid) {
   const lim = new Date(); lim.setDate(lim.getDate() - 10); const from = lim.toISOString().slice(0, 10);
-  return pastEvents().filter(e => e.date >= from && attended(e.id, pid) && !selfOf(pid, e.id));
+  return pastEvents().filter(e => e.type !== 'event' && e.date >= from && attended(e.id, pid) && !selfOf(pid, e.id));
 }
 
 // ---------- statistics ----------
 export function playerStats(pid) {
-  const past = pastEvents();
+  const past = pastEvents().filter(e => e.type !== 'event');
   const trainings = past.filter(e => e.type === 'training');
   const matches = past.filter(e => e.type === 'match' && e.result);
   const tAtt = trainings.filter(e => attended(e.id, pid)).length;
@@ -168,7 +211,8 @@ function seed() {
   const users = P.map(([name, num, pos, lang], i) => ({ id: 'p' + (i + 1), name, num, pos, role: 'player', lang }));
   users.push({ id: 'c1', name: 'Murat Çelik', role: 'coach', lang: 'tr', title: 'Trainer' });
   users.push({ id: 'c2', name: 'Stefan Braun', role: 'coach', lang: 'de', title: 'Co-Trainer' });
-  users.push({ id: 'b1', name: 'Mehmet U.', role: 'board', lang: 'tr', title: 'Vorstand' });
+  users.push({ id: 'b1', name: 'Mehmet U.', role: 'admin', lang: 'tr', title: 'Vorstand · Admin' });
+  users.push({ id: 'b2', name: 'Hasan Yıldız', role: 'board', lang: 'tr', title: 'Kassenwart' });
   const pl = users.filter(u => u.role === 'player');
   // how reliable each player is, so the stats tell a story
   const rel = {}; pl.forEach((p, i) => { rel[p.id] = [0.95, 0.9, 0.85, 0.8, 0.7, 0.92, 0.88, 0.97, 0.75, 0.6, 0.9, 0.82, 0.55, 0.78, 0.65, 0.5][i]; });
@@ -184,6 +228,9 @@ function seed() {
     if (wd === 2 || wd === 4) events.push({ id: 'e' + iso, type: 'training', date: iso, time: '19:00', place: 'Sportplatz Buchen', note: '' });
     if (wd === 0) { const home = oi % 2 === 0; events.push({ id: 'm' + iso, type: 'match', date: iso, time: '15:00', place: home ? 'Sportplatz Buchen' : '', opponent: opp[oi++ % opp.length], home, note: '', result: null }); }
   }
+  events.push({ id: 'x1', type: 'event', title: 'Mitgliederversammlung', date: '2026-11-20', time: '19:30', place: 'Vereinsheim', note: '' });
+  events.push({ id: 'x2', type: 'event', title: 'Weihnachtsfeier', date: '2026-12-12', time: '18:00', place: 'Vereinsheim', note: '' });
+  events.push({ id: 'x0', type: 'event', title: 'Saisonauftakt-Grillen', date: '2026-09-05', time: '17:00', place: 'Vereinsheim', note: '' });
   const injured = new Set(['p13']); // one injured player in the demo
   events.forEach(e => {
     const past = e.date < today, soon = !past && (new Date(e.date) - new Date(today)) / 864e5 < 8;
@@ -238,5 +285,32 @@ function seed() {
       if (attendance[e.id]?.[p.id] && R() < 0.55) self.push({ id: uid('s'), pid: p.id, eid: e.id, rating: 2 + Math.floor(R() * 4), good: [pick(['pass', 'press', 'talk', 'attitude', 'speed'])], improve: [pick(['finish', 'stamina', 'header', 'touch'])], text: '', at: e.date + 'T21:00:00.000Z' });
     });
   });
-  return { v: 1, session: { userId: null }, users, events, rsvp, attendance, stats, availability, notes, self, seen: {} };
+  const msg = (ch, from, text, h) => ({ id: uid('m'), ch, from, text, at: ago(h) });
+  const messages = [
+    msg('team', 'c1', 'Perşembe antrenman 19:00\'da, herkes zamanında gelsin. 💪', 26),
+    msg('team', 'p8', 'Wer kann Sonntag Leute mitnehmen? Ich hab noch 3 Plätze.', 20),
+    msg('team', 'p6', 'Ich bin dabei 👍', 19),
+    msg('team', 'p11', 'Ben de geliyorum, saat kaçta buluşuyoruz?', 18),
+    msg('team', 'c2', 'Treffpunkt 13:45 am Vereinsheim.', 17),
+    msg('team', 'p10', 'Can someone send me the address of the away pitch?', 4),
+    msg('board', 'b2', 'Aidat hatırlatmasını bu hafta gönderelim mi? Hâlâ ödemeyenler var.', 30),
+    msg('board', 'b1', 'Olur. Bir de duş arızası için tesisatçıya yazdım.', 29),
+  ];
+  const first = ['Ahmet', 'Klaus', 'Fatma', 'Peter', 'Elif', 'Thomas', 'Hüseyin', 'Sabine', 'Osman', 'Uwe', 'Zeynep', 'Frank', 'Ramazan', 'Monika'];
+  const last = ['Kılıç', 'Müller', 'Doğan', 'Fischer', 'Çetin', 'Wagner', 'Polat', 'Koch', 'Aksoy', 'Richter', 'Güneş', 'Wolf', 'Erdem', 'Klein'];
+  const members = [
+    ...pl.map((p, i) => ({ id: 'mb' + p.id, name: p.name, type: 'active', userId: p.id, since: 2019 + (i % 7), fees: { 2026: i % 5 === 3 ? null : '2026-0' + (2 + i % 6) + '-15' } })),
+    ...first.map((f, i) => ({ id: 'mbx' + i, name: f + ' ' + last[(i * 5) % last.length], type: i % 4 === 0 ? 'support' : 'passive', since: 2008 + i, fees: { 2026: i % 3 === 1 ? null : '2026-03-0' + (1 + i % 8) } })),
+  ];
+  const bookings = [
+    { id: 'bk1', title: 'Mitgliederversammlung', date: '2026-11-20', time: '19:30', who: 'Vorstand', note: '' },
+    { id: 'bk2', title: 'Geburtstag (Vermietung)', date: '2026-11-28', time: '16:00', who: 'Familie Kılıç', note: 'Kaution 100 € erhalten' },
+    { id: 'bk3', title: 'Weihnachtsfeier', date: '2026-12-12', time: '18:00', who: 'Vorstand', note: '' },
+  ];
+  const repairs = [
+    { id: 'r1', title: 'Dusche: kein Warmwasser', text: 'Kabine 2 bleibt kalt.', by: 'c2', status: 'open', at: ago(50) },
+    { id: 'r2', title: 'Flutlicht Mast 2 flackert', text: '', by: 'c1', status: 'doing', at: ago(120) },
+    { id: 'r3', title: 'Kühlschrank Küche', text: 'Tür schließt nicht richtig.', by: 'b2', status: 'done', at: ago(300) },
+  ];
+  return { v: 2, session: { userId: null }, users, events, rsvp, attendance, stats, availability, notes, self, messages, members, bookings, repairs, seen: {} };
 }
