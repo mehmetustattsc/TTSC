@@ -99,6 +99,13 @@ function badges(u) {
 // ---------- router ----------
 const routes = { '': viewHome, cal: viewCal, ev: viewEvent, msg: viewMsg, stats: viewStats, p: viewPlayer, games: viewGames, club: viewClub, players: viewPlayers, members: viewMembers, building: viewBuilding, me: viewMe };
 const MOD_OF = { cal: 'cal', ev: 'cal', msg: 'msg', stats: 'stats', p: 'stats', games: 'games', club: 'club', players: 'players', members: 'members', building: 'building' };
+// The back arrow goes one level up, not to the previous screen: a match → calendar,
+// a player → player tracking (staff) or player stats, any module (and its tabs) → home.
+function parentOf({ r }, u) {
+  if (r === 'ev') return 'cal';
+  if (r === 'p') return S.can(u, 'players') ? 'players' : 'stats/players';
+  return '';
+}
 function parse() { if (/access_token=|error_description=/.test(location.hash)) return { r: '' }; const [r, id] = location.hash.replace(/^#\/?/, '').split('/'); return { r: r || '', id }; }
 
 let lastRoute = null;
@@ -636,7 +643,7 @@ document.addEventListener('click', ev => {
     case 'share-app': { const d = { title: 'TTSC Buchen', text: t('share_text'), url: location.origin + location.pathname };
       if (navigator.share) navigator.share(d).catch(() => {}); else navigator.clipboard?.writeText(d.url).then(() => toast(t('link_copied'))); break; }
     case 'switch': S.logout(); loginStep = 'email'; location.hash = '#/'; break;
-    case 'back': if (history.length > 1 && document.referrer !== undefined && sessionStorage.getItem('ttsc-nav')) history.back(); else location.hash = '#/'; break;
+    case 'back': location.hash = '#/' + parentOf(parse(), u); break;
     case 'lang': S.setUserLang(b.dataset.v); break;
     case 'avail': S.setAvailability(u.id, b.dataset.v); break;
     case 'rsvp-yes': S.setRsvp(b.dataset.eid, u.id, 'yes'); break;

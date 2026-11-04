@@ -64,6 +64,11 @@ await shot('06-team-chat');
 await go('msg/board'); check(!(await page.locator('.view').innerText()).includes('Aidat'), 'player cannot read board chat');
 await go('p/p11'); check(!(await page.locator('.view').innerText()).includes('Secret coach note'), 'player cannot read another player\'s notes');
 await go('stats/me'); await shot('07-my-stats-full');
+await go('msg/team'); await go('msg/notes'); await page.click('[data-act="back"]'); await page.waitForTimeout(80);
+check(await page.locator('.hello').count() === 1, 'back from a module tab goes to home, not the previous tab');
+await go('ev/' + await page.evaluate(() => location.hash) + 'x'); // unknown event still has a back arrow
+await go('cal'); await page.locator('a.ev-main').first().click(); await page.waitForTimeout(80); await page.click('[data-act="back"]'); await page.waitForTimeout(80);
+check(page.url().endsWith('#/cal'), 'back from a match goes to the calendar');
 await go('games'); check(await page.locator('.tile-m.game').count() === 4, 'four games in the game corner'); await shot('07b-games');
 await go('stats/team'); await page.waitForSelector('.league'); check((await page.locator('.league tr.us').innerText()).includes('TTSC'), 'league table highlights TTSC'); await shot('07d-league-full');
 await go('club'); check((await page.locator('.view').innerText()).includes('ttscbuchen.de') && (await page.locator('.view').innerText()).includes('@ttscbuchen'), 'club links'); await shot('07c-club');
