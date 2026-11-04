@@ -62,7 +62,8 @@ export function reload() {
   if (mode !== 'server' || !R.userId()) return Promise.resolve();
   if (loading) return loading;
   status.loading = true;
-  const q = (t, x) => R.select(t, x).catch(e => { if (e.status === 401) throw e; return []; });
+  // a table the person may not see comes back empty (not an error), so any error is real: show it, don't guess
+  const q = (t, x) => R.select(t, x);
   loading = Promise.all([
     q('profiles', 'select=*'), q('availability'), q('events', 'select=*&order=date'), q('rsvps'), q('attendance'), q('match_stats'),
     q('notes', 'select=*&order=created_at'), q('self_ratings'), q('messages', 'select=*&order=created_at.desc&limit=500'),

@@ -45,7 +45,7 @@ psql(`insert into public.invites(email, role, name, lang) values ('admin@ttsc.te
 const conf = join(dir, 'pgrst.conf');
 await import('fs').then(fs => fs.writeFileSync(conf, `db-uri = "postgres://authenticator@/app?host=${dir}&port=${PORT}"\ndb-schemas = "public"\ndb-anon-role = "anon"\njwt-secret = "${SECRET}"\nserver-port = ${REST_PORT}\nserver-host = "127.0.0.1"\n`));
 const rest = spawn(PGREST, [conf], { stdio: 'ignore' });
-for (let i = 0; i < 50; i++) { try { await fetch(`http://127.0.0.1:${REST_PORT}/`); break; } catch { await new Promise(r => setTimeout(r, 200)); } }
+for (let i = 0; i < 100; i++) { try { if ((await fetch(`http://127.0.0.1:${REST_PORT}/events?select=id`)).ok) break; } catch { /* not up yet */ } await new Promise(r => setTimeout(r, 200)); }
 
 // ---------- email-code login (stand-in for Supabase Auth) ----------
 const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url');
@@ -91,7 +91,7 @@ async function person(email) {
   await page.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());
   await page.goto(url); await page.fill('#lem', email); await page.click('[data-form="login-email"] button');
   await page.waitForSelector('#lco'); await page.fill('#lco', '123456'); await page.click('[data-form="login-code"] button.primary');
-  await page.waitForSelector('.hello, .login-box h3', { timeout: 10000 });
+  await page.waitForSelector('.hello, .login-box h3', { timeout: 15000 });
   page.go = async h => { await page.goto(url + '#/' + h); await page.waitForTimeout(150); };
   page.fresh = async h => { await page.goto(url + '#/' + h); await page.reload({ waitUntil: 'networkidle' }); await page.waitForSelector('.view'); await page.waitForTimeout(200); };
   page.text = async () => page.locator('#app').innerText();
@@ -103,7 +103,7 @@ const settle = () => new Promise(r => setTimeout(r, 500));
 try {
   // admin: first login comes from the bootstrap invitation
   const admin = await person('admin@ttsc.test');
-  check((await admin.text()).includes('Mehmet'), 'admin greeted by invited name');
+  check((await admin.text()).includes('Mehmet'), 'admin greeted by invited name: ' + (await admin.text()).slice(0, 200));
   check((await tiles(admin)).includes('#/members'), 'admin sees members tile');
   await admin.screenshot({ path: join(root, 'tests/shots/s1-admin-home.png') });
 
