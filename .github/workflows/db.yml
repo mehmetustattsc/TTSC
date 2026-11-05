@@ -18,6 +18,10 @@ on:
         description: 'Optional: season stats as base64 JSON (kind season_stats). Not stored in the repository.'
         required: false
         default: ''
+      check_push:
+        description: 'Call the notify function once (reminders) and show its answer'
+        type: boolean
+        default: false
 
 concurrency:
   group: database
@@ -41,6 +45,7 @@ jobs:
           TOKEN: ${{ secrets.SUPABASE_TOKEN }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_TOKEN }}
           SEASON_DATA: ${{ github.event.inputs.season_data }}
+          CHECK_PUSH: ${{ github.event.inputs.check_push }}
           DB: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           set -euo pipefail
@@ -87,6 +92,11 @@ jobs:
             fi
             sql_api supabase/push.sql >/dev/null
             supabase functions deploy notify --remote="$PROJECT_REF" --no-verify-jwt --use-api --yes
+            if [ "${CHECK_PUSH:-false}" = "true" ]; then
+              echo "select public.notify_reminders();" > /tmp/q.sql; sql_api /tmp/q.sql >/dev/null; sleep 8
+              echo "select status_code, left(content::text, 200) as content, error_msg from net._http_response order by created desc limit 1;" > /tmp/q.sql
+              echo "Push check: $(sql_api /tmp/q.sql)"
+            fi
             { echo "### Database updated"; sql_api /tmp/summary.sql | jq -r '.[0] | to_entries[] | "- \(.key): \(.value)"'; } >> "$GITHUB_STEP_SUMMARY"
             cat "$GITHUB_STEP_SUMMARY"
             exit 0
