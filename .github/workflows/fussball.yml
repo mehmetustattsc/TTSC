@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'probe = only look at the page structure, import = store the data'
+        description: 'probe = page structure, dry = read and count only, import = store the data'
         default: import
 
 concurrency:
@@ -24,3 +24,10 @@ jobs:
       - name: Probe
         if: github.event.inputs.mode == 'probe'
         run: pip install -q fonttools && python3 tools/fussball_probe.py
+      - name: Import
+        if: github.event.inputs.mode != 'probe'
+        env:
+          SUPABASE_TOKEN: ${{ secrets.SUPABASE_TOKEN }}
+        run: |
+          pip install -q fonttools
+          if [ "${{ github.event.inputs.mode }}" = "dry" ]; then python3 tools/fussball_import.py --dry; else python3 tools/fussball_import.py; fi

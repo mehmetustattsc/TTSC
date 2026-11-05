@@ -349,6 +349,7 @@ export async function disablePush() {
   await R.remove('push_subs', 'endpoint=eq.' + encodeURIComponent(sub.endpoint)).catch(() => {}); await sub.unsubscribe();
 }
 export const seasonStats = () => db.season || [];
+export const league = () => { try { return db.config && db.config.league ? JSON.parse(db.config.league) : null; } catch (e) { return null; } };
 export async function importSeason({ season, source, rows }) {
   await R.upsert('season_stats', rows.map(([name, apps, minutes, goals]) => ({ season, name, apps, minutes, goals, source, updated_on: TODAY() })), 'season,name');
   await reload();

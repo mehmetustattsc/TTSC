@@ -12,7 +12,9 @@ begin
   select value into url from private.app_secrets where key = 'function_url';
   select value into secret from private.app_secrets where key = 'hook';
   if url is null or secret is null then return null; end if;
-  select coalesce(jsonb_agg(to_jsonb(r)), '[]'::jsonb) into rows from new_rows r;
+  -- past matches added by the fussball.de import are history, not news
+  select coalesce(jsonb_agg(to_jsonb(r)), '[]'::jsonb) into rows from new_rows r
+  where tg_table_name <> 'events' or (to_jsonb(r) ->> 'date')::date >= current_date;
   if jsonb_array_length(rows) = 0 then return null; end if;
   perform net.http_post(url := url, body := jsonb_build_object('type', tg_table_name, 'rows', rows),
     headers := jsonb_build_object('Content-Type', 'application/json', 'x-hook-secret', secret));

@@ -75,6 +75,7 @@ create table if not exists public.events (
   result_us int, result_them int,
   created_by uuid references public.profiles, created_at timestamptz not null default now()
 );
+alter table public.events add column if not exists fb_id text unique;  -- match id on fussball.de (filled by the daily import)
 create table if not exists public.rsvps (
   event_id uuid references public.events on delete cascade,
   player_id uuid references public.profiles on delete cascade,

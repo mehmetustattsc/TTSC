@@ -5,8 +5,8 @@ const $ = (sel, el = document) => el.querySelector(sel);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const app = $('#app');
 // league table (data/league.json, taken from fussball.de)
-let LEAGUE = null;
-fetch('data/league.json').then(r => r.json()).then(j => { LEAGUE = j; if (document.querySelector('.view')) render(); }).catch(() => {});
+let STATIC_LEAGUE = null; // fallback until the daily import has stored the table
+fetch('data/league.json').then(r => r.json()).then(j => { STATIC_LEAGUE = j; if (document.querySelector('.view')) render(); }).catch(() => {});
 let installEvt = null; // the browser's install offer (Android/desktop Chrome), shown on the home screen
 
 // The club's own games (each is its own app on GitHub Pages).
@@ -354,6 +354,7 @@ function seasonTable() {
     <a class="small link src" href="${esc(rows[0].source || 'https://www.fussball.de')}" target="_blank" rel="noopener">${t('lt_source', { date: d })} ›</a></section>`;
 }
 function leagueTable() {
+  const LEAGUE = S.league() || STATIC_LEAGUE;
   if (!LEAGUE) return '';
   const d = new Date(LEAGUE.asOf + 'T12:00:00').toLocaleDateString(locale(), { day: 'numeric', month: 'short' });
   return `<section class="card tbl-wrap league"><div class="card-h">${t('lt_title')} · ${esc(LEAGUE.league)}</div>
