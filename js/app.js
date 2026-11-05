@@ -92,7 +92,7 @@ function badges(u) {
   if (S.isPlaying(u)) b.cal = S.upcoming().filter(e => relDay(e.date) && !S.rsvp(e.id, u.id)).length;
   if (S.can(u, 'players')) b.players = S.coachAlerts().filter(a => a.level === 'warn').length;
   if (S.can(u, 'building')) b.building = S.repairs().filter(r => r.status === 'open').length;
-  if (S.can(u, 'members')) b.members = S.memberSummary().open;
+  if (S.can(u, 'members')) b.members = S.memberSummary().open + (S.isAdmin(u) ? S.pendingUsers().length : 0);
   return b;
 }
 
@@ -168,7 +168,12 @@ function viewWaiting(u) {
   return `<div class="login">${loginHead()}<section class="card login-box">${busy && !S.status.error
     ? `<p class="center">${t('loading')}</p>`
     : S.status.error ? `<p>⚠️ ${esc(S.status.error)}</p><button class="btn block" data-act="retry">${t('retry')}</button>`
-    : `<h3>${t('pending_title')}</h3><p class="small">${t('pending_text')}</p><button class="btn block" data-act="retry">${t('retry')}</button>`}
+    : !u ? `<p class="center">${t('loading')}</p>`
+    : S.pref('intro-' + u.id) ? `<h3>${t('wait_title')}</h3><p class="small">${t('wait_text', { name: esc(u.name) })}</p><button class="btn block" data-act="retry">${t('retry')}</button><button class="link-btn" data-act="intro-edit">${t('wait_edit')}</button>`
+    : `<h3>${t('intro_title')}</h3><p class="small">${t('intro_text')}</p>
+       <form data-form="intro"><label class="fld"><span>${t('name')}</span><input id="inm" required maxlength="50" autocomplete="name" placeholder="Vorname Nachname"></label>
+       <label class="fld"><span>${t('number')} (${t('note_optional').replace(/^[^(]*\(|\)$/g, '')})</span><input id="inu" type="number" inputmode="numeric" min="1" max="99"></label>
+       <button class="btn primary block">${t('send')}</button></form>`}
     <button class="btn danger-ghost block" data-act="switch">${t('logout')}</button></section></div>`;
 }
 function viewDemoLogin() {
@@ -189,6 +194,7 @@ function viewHome(_, u) {
     S.pendingSelf(u.id).slice(0, 1).forEach(e => { html += `<button class="card notice ghost" data-act="self" data-eid="${e.id}"><span>📝</span><span class="grow"><b>${t('to_assess')}</b><small>${evIcon(e)} ${evTitle(e)} · ${fmtDate(e.date)}</small></span><span class="chev">›</span></button>`; });
   }
   html += installCard();
+  if (S.isAdmin(u) && S.pendingUsers().length) html += `<a class="card notice" href="#/members"><span class="dot"></span><b>${t('pending_n', { n: S.pendingUsers().length })}</b><span class="chev">›</span></a>`;
   if (next) html += `<div class="sec-t">${t('next_event')}</div>${eventCard(next, u, true)}`;
   const tile = m => `<a class="tile-m" href="#/${m.k}" style="--c:${m.c}"><span class="ti">${svg(ICONS[m.k])}</span><span class="tl">${t('mod_' + m.k)}</span>${b[m.k] ? `<i class="tb">${b[m.k]}</i>` : ''}</a>`;
   const general = MODS.filter(m => !m.staff && S.can(u, m.k)), staff = MODS.filter(m => m.staff && S.can(u, m.k));
@@ -407,6 +413,7 @@ function viewClub() {
   return `<section class="card club-h"><img src="assets/logo.png" alt="TTSC Buchen" width="72" height="75"><div><h1>TTSC Buchen e.V.</h1><p class="muted">${t('club_since')}</p></div></section>
     <section class="card list">${CLUB.map(l => `<a class="row" href="${l.url}" target="_blank" rel="noopener"><span class="ti sm" style="--c:${l.c}">${svg(l.icon)}</span><span class="grow"><b>${t(l.k)}</b><small>${l.label}</small></span><span class="chev">›</span></a>`).join('')}</section>
     <button class="btn primary block" data-act="share-app">↗ ${t('share_app')}</button>
+    ${S.isStaff(S.me()) ? `<button class="btn block" data-act="show-qr">▦ ${t('join_qr')}</button>` : ''}
     <a class="link-btn" href="datenschutz.html">${t('privacy')}</a>`;
 }
 
@@ -427,6 +434,7 @@ function viewPlayers(_, u) {
     }).join('')}</section>`).join('')}`;
 }
 
+const pendingList = () => { const p = S.pendingUsers(); return p.length ? `<div class="sec-t">${t('pending_list')} · ${p.length}</div><section class="card list">${p.map(x => `<div class="row">${avatar(x, 'sm')}<span class="grow"><b>${esc(x.name)}</b>${x.num ? `<small>#${x.num}</small>` : ''}</span><button class="btn sm primary" data-act="approve" data-id="${x.id}">${t('approve')}</button></div>`).join('')}</section>` : ''; };
 const invitedList = () => { const inv = S.invites(); return inv.length ? `<div class="sec-t">${t('invites_pending')}</div><section class="card list">${inv.map(i => `<div class="row"><span class="av sm av-pending">✉</span><span class="grow"><b>${esc(i.name)}</b><small>${esc(i.email)} · ${t('role_' + i.role)}${i.plays ? ' · ' + t('also_plays') : ''}</small></span></div>`).join('')}</section>` : ''; };
 // ---------- members and fees (board) ----------
 let onlyOpen = false;
@@ -441,6 +449,7 @@ function viewMembers(_, u) {
       <div class="row"><span class="grow"><b>${esc(m.name)}</b>${m.userId ? ' <span class="badge b-app">' + t('app_user') + '</span>' : ''}<small>${t('m_' + m.type)} · ${S.FEES[m.type]}€ · ${t('member_since', { y: m.since })}</small></span>
         <button class="pay ${m.fees[y] ? 'paid' : ''}" data-act="fee" data-id="${m.id}">${m.fees[y] ? '✓ ' + t('mark_paid') : t('mark_open')}</button></div>`).join('') || empty()}</section>`;
   if (S.isAdmin(u)) {
+    html += pendingList() + `<button class="btn block" data-act="show-qr">▦ ${t('join_qr')}</button>`;
     html += `<div class="sec-t">${t('roles_title')}</div>${S.isDemo() ? '' : `<button class="btn primary block" data-act="invite">✉ ${t('invite_person')}</button>${invitedList()}`}<div class="sec-t">${t('in_app')}</div><section class="card list">${S.users().filter(x => !S.isPlaying(x) || x.role !== 'player').concat(S.players().filter(x => x.role === 'player')).map(x => `
       <div class="row">${avatar(x, 'sm')}<span class="grow">${esc(x.name)}</span><select data-act-change="role" data-id="${x.id}" ${x.id === u.id ? 'disabled' : ''}>${S.ROLES.map(r => `<option value="${r}" ${x.role === r ? 'selected' : ''}>${t('role_' + r)}</option>`).join('')}</select>
         ${x.role !== 'player' ? `<label class="plays"><input type="checkbox" data-act-change="plays" data-id="${x.id}" ${x.plays ? 'checked' : ''}> ${t('also_plays')}</label>` : ''}</div>`).join('')}</section>`;
@@ -642,6 +651,37 @@ function addPlayerSheet(role = 'player', admin = false) {
     };
   });
 }
+function qrSheet() {
+  sheet(`<h3>${t('join_qr')}</h3><p class="small muted">${t('join_qr_hint')}</p>
+    <img class="qr" src="assets/join-qr.svg" alt="QR" width="280" height="280">
+    <p class="center small"><b>mehmetustattsc.github.io/TTSC</b></p>
+    <a class="btn block" href="afis.html" target="_blank" rel="noopener">🖨 ${t('join_poster')}</a>
+    <div class="sheet-btns"><button class="btn" data-act="close-sheet">${t('close')}</button></div>`);
+}
+function approveSheet(id) {
+  const x = S.user(id); if (!x) return;
+  const taken = new Set(S.users().map(u => u.name));
+  const fb = S.seasonStats().filter(r => !taken.has(r.name) || r.name === x.name);
+  const guess = fb.find(r => r.name.toLowerCase() === x.name.toLowerCase()) || fb.find(r => r.name.toLowerCase().split(' ').some(w => w.length > 2 && x.name.toLowerCase().includes(w)));
+  sheet(`<h3>${t('approve')}: ${esc(x.name)}</h3>
+    ${fb.length ? `<label class="fld"><span>${t('fb_name')}</span><select id="afb"><option value="">${t('fb_none')}</option>${fb.map(r => `<option ${guess === r ? 'selected' : ''}>${esc(r.name)}</option>`).join('')}</select></label>` : ''}
+    <label class="fld"><span>${t('name')}</span><input id="anm" maxlength="50" value="${esc(guess ? guess.name : x.name)}"></label>
+    <label class="fld"><span>${t('role')}</span><select id="arl">${S.ROLES.map(r => `<option value="${r}" ${r === 'player' ? 'selected' : ''}>${t('role_' + r)}</option>`).join('')}</select></label>
+    <label class="check" id="apw" hidden><input type="checkbox" id="apl"> ${t('also_plays')}</label>
+    <div class="two" id="afx"><label class="fld"><span>${t('number')}</span><input id="anu" type="number" inputmode="numeric" min="1" max="99" value="${x.num || ''}"></label>
+      <label class="fld"><span>${t('position')}</span><select id="aps">${['TW', 'AB', 'MF', 'ST'].map(p => `<option value="${p}" ${p === 'MF' ? 'selected' : ''}>${t('pos_' + p)}</option>`).join('')}</select></label></div>${btns('aok')}`, el => {
+    const rl = $('#arl', el), pl = $('#apl', el);
+    const sync = () => { const p = rl.value === 'player'; $('#apw', el).hidden = p; $('#afx', el).hidden = !p && !pl.checked; };
+    rl.onchange = sync; pl.onchange = sync; sync();
+    const f = $('#afb', el); if (f) f.onchange = () => { if (f.value) $('#anm', el).value = f.value; };
+    $('#aok', el).textContent = t('approve');
+    $('#aok', el).onclick = () => {
+      const name = $('#anm', el).value.trim(); if (!name) return;
+      S.approve(id, { role: rl.value, plays: pl.checked, name, num: $('#anu', el).value, pos: $('#aps', el).value });
+      closeSheet(); toast(t('approved', { name }));
+    };
+  });
+}
 function addMemberSheet() {
   sheet(`<h3>${t('add_member')}</h3><label class="fld"><span>${t('name')}</span><input id="mn" maxlength="50"></label>
     <div class="two"><label class="fld"><span>${t('member_type')}</span><select id="mt">${['active', 'passive', 'support'].map(k => `<option value="${k}">${t('m_' + k)} (${S.FEES[k]}€)</option>`).join('')}</select></label>
@@ -679,6 +719,9 @@ document.addEventListener('click', ev => {
     case 'login': S.login(b.dataset.id); location.hash = '#/'; break;
     case 'login-lang': localStorage.setItem('ttsc-lang', b.dataset.v); render(); break;
     case 'login-restart': loginStep = 'email'; render(); break;
+    case 'intro-edit': { const me = S.me(); if (me) S.setPref('intro-' + me.id, ''); render(); break; }
+    case 'approve': approveSheet(b.dataset.id); break;
+    case 'show-qr': qrSheet(); break;
     case 'demo-on': S.useDemo(true); break;
     case 'demo-off': S.logout(); S.useDemo(false); location.hash = '#/'; break;
     case 'retry': S.reload(); render(); break;
@@ -730,6 +773,8 @@ document.addEventListener('change', ev => {
   if (c.dataset.actChange === 'plays') S.setPlays(c.dataset.id, c.checked);
 });
 document.addEventListener('submit', async ev => {
+  const intro = ev.target.closest('[data-form="intro"]');
+  if (intro) { ev.preventDefault(); const name = $('#inm').value.trim(); if (name.length < 3) return; S.setMyIntro({ name, num: $('#inu').value }); return; }
   const lf = ev.target.closest('[data-form]');
   if (lf) {
     ev.preventDefault(); if (loginBusy) return;

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TTSC Team · Aushang</title>
+<link rel="stylesheet" href="css/app.css">
+<style>
+  @page { size: A4; margin: 0; }
+  body { background: #fff; color: #17181C; }
+  .poster { width: 210mm; min-height: 297mm; margin: 0 auto; display: flex; flex-direction: column; background: #fff; }
+  .band { background: #C8102E; color: #fff; padding: 16mm 14mm 12mm; display: flex; align-items: center; gap: 8mm; }
+  .band img { width: 30mm; height: auto; filter: drop-shadow(0 1mm 2mm rgba(0,0,0,.3)); }
+  .band h1 { margin: 0; font: 700 21mm/0.95 'Barlow Condensed', sans-serif; text-transform: uppercase; letter-spacing: .01em; }
+  .band p { margin: 3mm 0 0; font: 600 6mm/1.2 Barlow, sans-serif; opacity: .95; }
+  .stripes { height: 6mm; background: repeating-linear-gradient(90deg, #C8102E 0 14mm, #fff 14mm 20mm); border-bottom: 1px solid #eee; }
+  .mid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; padding: 12mm 14mm 6mm; align-items: center; }
+  .qr { width: 82mm; height: 82mm; border: 2mm solid #17181C; border-radius: 6mm; padding: 2mm; }
+  .url { font: 700 5.2mm Barlow, sans-serif; margin-top: 3mm; text-align: center; }
+  ol { margin: 0; padding: 0; list-style: none; counter-reset: s; }
+  li { counter-increment: s; position: relative; padding-left: 14mm; margin: 0 0 7mm; font: 500 4.6mm/1.35 Barlow, sans-serif; }
+  li::before { content: counter(s); position: absolute; left: 0; top: -1mm; width: 10mm; height: 10mm; border-radius: 50%; background: #C8102E; color: #fff; font: 700 6mm/10mm 'Barlow Condensed', sans-serif; text-align: center; }
+  li b { display: block; font: 700 5.6mm/1.2 'Barlow Condensed', sans-serif; text-transform: uppercase; }
+  li i { display: block; font-style: normal; color: #6B6F78; font-size: 4mm; }
+  .feat { display: flex; flex-wrap: wrap; gap: 3mm; padding: 0 14mm 10mm; }
+  .feat span { border: 0.6mm solid #E6E2DC; border-radius: 99px; padding: 2mm 4.5mm; font: 600 4mm Barlow, sans-serif; }
+  .foot { background: #17181C; color: #fff; padding: 6mm 14mm; display: flex; justify-content: space-between; font: 600 4mm Barlow, sans-serif; }
+  .print { position: fixed; right: 16px; bottom: 16px; } @media print { .print { display: none; } }
+  @media screen and (max-width: 700px) { .poster { width: 100%; min-height: 0; } .mid { grid-template-columns: 1fr; justify-items: center; } .band h1 { font-size: 13vw; } .qr { width: 70vw; height: 70vw; } }
+</style>
+</head>
+<body>
+<div class="poster">
+  <div class="band"><img src="assets/logo.png" alt="TTSC Buchen"><div><h1>Die TTSC App</h1><p>Takvim, katılım, sohbet, istatistik · Kalender, Zusagen, Chat, Statistik</p></div></div>
+  <div class="stripes"></div>
+  <div class="mid">
+    <div><img class="qr" src="assets/join-qr.svg" alt="QR-Code"><div class="url">mehmetustattsc.github.io/TTSC</div></div>
+    <ol>
+      <li><b>Scannen · Okut</b>QR-Code mit der Handykamera scannen.<i>Telefon kamerasıyla QR kodu okut.</i></li>
+      <li><b>Anmelden · Giriş</b>E-Mail eingeben, Code aus der Mail eintippen.<i>E-postanı yaz, gelen kodu gir.</i></li>
+      <li><b>Name · Adın</b>Namen eintragen, der Vorstand schaltet dich frei.<i>Adını yaz, yönetim seni onaylar.</i></li>
+      <li><b>Startbildschirm · Ana ekran</b>iPhone: Teilen → „Zum Home-Bildschirm“. Android: Menü → „App installieren“.<i>Paylaş → „Ana Ekrana Ekle“.</i></li>
+    </ol>
+  </div>
+  <div class="feat"><span>📅 Training & Spiele</span><span>✓ Zu- und Absagen</span><span>💬 Team-Chat</span><span>📊 Statistik</span><span>🎮 Spiele</span><span>🇹🇷 🇩🇪 🇬🇧 🇫🇷</span></div>
+  <div class="foot"><span>TTSC Buchen e.V. · seit 1972</span><span>ttscbuchen.de · @ttscbuchen</span></div>
+</div>
+<button class="btn primary print" onclick="print()">🖨 Drucken / Yazdır</button>
+</body>
+</html>

@@ -160,6 +160,20 @@ export function addPlayer({ name, num, pos, lang, email }) {
   const p = { id: uid(), name, num: +num || 0, pos, role: 'player', lang: lang || 'de' };
   db.users.push(p); db.availability[p.id] = { s: 'fit', at: TODAY() }; persist(); return p;
 }
+// people who signed in on their own (QR code / link) and wait for the admin
+export const pendingUsers = () => db.users.filter(u => u.role === 'pending');
+export function setMyIntro({ name, num }) {
+  const u = me(); if (!u) return;
+  u.name = name; if (num) u.num = +num; setPref('intro-' + u.id, '1'); persist();
+  W(() => R.update('profiles', 'id=eq.' + u.id, { name, num: +num || null }));
+}
+// admin: give a waiting person a role, name (e.g. as on fussball.de), number and position
+export function approve(id, { role, plays, name, num, pos }) {
+  const x = user(id); if (!x || !ROLES.includes(role)) return;
+  Object.assign(x, { role, plays: role !== 'player' && !!plays, name, num: +num || 0, pos: pos || x.pos });
+  persist();
+  W(() => R.update('profiles', 'id=eq.' + id, { role, plays: x.plays, name, num: +num || null, pos: (role === 'player' || x.plays) ? pos : null }));
+}
 export const invites = () => (db.invites || []).filter(i => !db.users.some(u => u.name === i.name && u.role === i.role));
 export function invite({ email, name, num, pos, lang, role, plays }) {
   const row = { email: email.trim().toLowerCase(), name, num: +num || null, pos: pos || null, lang: lang || 'de', role, plays: role !== 'player' && !!plays };

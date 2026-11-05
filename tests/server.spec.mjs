@@ -123,8 +123,19 @@ try {
 
   // someone not invited gets the waiting screen and no data
   const stranger = await person('stranger@ttsc.test');
-  check((await stranger.text()).match(/Davet bekleniyor|Einladung|invitation/i), 'stranger waits for invitation');
+  check(await stranger.locator('#inm').count() === 1, 'stranger is asked for his name');
   check(psql(`select role from profiles where name = 'stranger'`) === 'pending', 'stranger is pending');
+
+  // joining by QR: the stranger introduces himself, the admin approves him as a player with his fussball.de name
+  await stranger.fill('#inm', 'Yeni Oyuncu'); await stranger.fill('#inu', '23'); await stranger.click('[data-form="intro"] button'); await settle();
+  check((await stranger.text()).match(/Onay bekleniyor|Freischaltung|approval/), 'stranger sees waiting screen after intro');
+  check(psql(`select name || num from profiles where name = 'Yeni Oyuncu'`) === 'Yeni Oyuncu23', 'intro stored');
+  check(psql(`select role from profiles where name = 'Yeni Oyuncu'`) === 'pending', 'still pending after intro');
+  await admin.fresh(''); check((await admin.text()).match(/onay bekliyor|Freischaltung|approval/i), 'admin sees waiting notice');
+  await admin.fresh('members'); await admin.click('[data-act="approve"]'); await admin.waitForSelector('#aok');
+  await admin.fill('#anm', 'Yeni Oyuncu Tam'); await admin.selectOption('#aps', 'AB'); await admin.click('#aok'); await settle();
+  check(psql(`select role || ':' || name || ':' || pos from profiles where num = 23`) === 'player:Yeni Oyuncu Tam:AB', 'admin approved as player');
+  await stranger.fresh(''); check((await stranger.locator('.tile-m').count()) > 0, 'approved person gets into the app');
 
   const coach = await person('coach@ttsc.test');
   const player = await person('player@ttsc.test');
@@ -167,7 +178,8 @@ try {
   psql(`insert into season_stats (season, name, apps, minutes, goals, source) values ('2026/27', 'Can Player', 10, 900, 8, 'https://www.fussball.de')`);
   await player.fresh('stats/players'); check((await player.text()).includes('900'), 'member sees season stats');
   await player.fresh('stats/me'); check((await player.text()).includes('fussball.de'), 'player profile shows his fussball.de line');
-  const stTok = await stranger.evaluate(() => JSON.parse(localStorage.getItem('ttsc-session')).access_token);
+  const outsider = await person('outsider@ttsc.test'); // signed in, never approved
+  const stTok = await outsider.evaluate(() => JSON.parse(localStorage.getItem('ttsc-session')).access_token);
   const st = await (await fetch(url + 'rest/v1/season_stats?select=name', { headers: { apikey: 'x', Authorization: 'Bearer ' + stTok } })).json();
   check(Array.isArray(st) && st.length === 0, 'stranger cannot read season stats');
 

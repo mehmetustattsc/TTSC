@@ -36,6 +36,8 @@ Geri bildirim etiketleri ve mazeretler anahtar olarak saklanır, herkes kendi di
 | `js/store.js` | Veri katmanı: sunucu modu + demo verisi |
 | `js/remote.js`, `js/config.js` | Supabase bağlantısı (giriş kodu, tablolar) |
 | `js/i18n.js` | Dört dil (TR/DE/EN/FR), etiketler, mazeretler |
+| `afis.html` | Yazdırılabilir katılma afişi (A4, QR kod) |
+| `assets/join-qr.svg` | Uygulama adresinin QR kodu (nayuki QR-Code-generator ile üretildi, MIT) |
 | `datenschutz.html` | Datenschutzhinweise (DE, TR) – Entwurf, gelbe Stellen vom Vorstand ergänzen |
 | `assets/fonts/` | Barlow-Schriften, lokal (kein Google-Aufruf), SIL OFL |
 | `sw.js`, `manifest.webmanifest` | Ana ekrana ekleme ve internetsiz açılış |
