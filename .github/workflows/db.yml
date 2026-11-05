@@ -13,6 +13,11 @@ on:
     branches: [main]
     paths: ['supabase/**', '.github/workflows/db.yml']
   workflow_dispatch:
+    inputs:
+      season_data:
+        description: 'Optional: season stats as base64 JSON (kind season_stats). Not stored in the repository.'
+        required: false
+        default: ''
 
 concurrency:
   group: database
@@ -31,6 +36,7 @@ jobs:
       - name: Apply schema and fixtures
         env:
           TOKEN: ${{ secrets.SUPABASE_TOKEN }}
+          SEASON_DATA: ${{ github.event.inputs.season_data }}
           DB: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           set -euo pipefail
@@ -49,6 +55,21 @@ jobs:
             echo "Using the Supabase access token"
             sql_api supabase/schema.sql >/dev/null
             sql_api supabase/fixtures-2026-27.sql >/dev/null
+            if [ -n "$SEASON_DATA" ]; then
+              # build an upsert from the input; names are never printed
+              python3 - <<'PY' > /tmp/season.sql
+          import os, json, base64
+          raw = os.environ['SEASON_DATA'].strip(); raw += '=' * (-len(raw) % 4)
+          d = json.loads(base64.urlsafe_b64decode(raw))
+          assert d.get('kind') == 'season_stats'
+          q = lambda v: "'" + str(v).replace("'", "''") + "'"
+          vals = ",\n".join(f"({q(d['season'])}, {q(n)}, {int(a)}, {int(m)}, {int(g)}, {q(d.get('source', ''))})" for n, a, m, g in d['rows'])
+          print("insert into public.season_stats (season, name, apps, minutes, goals, source) values\n" + vals +
+                "\non conflict (season, name) do update set apps = excluded.apps, minutes = excluded.minutes, goals = excluded.goals, source = excluded.source, updated_on = current_date;")
+          PY
+              sql_api /tmp/season.sql >/dev/null
+              echo "Season stats loaded: $(python3 -c "import os,json,base64;r=os.environ['SEASON_DATA'].strip();r+='='*(-len(r)%4);print(len(json.loads(base64.urlsafe_b64decode(r))['rows']))") rows"
+            fi
             { echo "### Database updated"; sql_api /tmp/summary.sql | jq -r '.[0] | to_entries[] | "- \(.key): \(.value)"'; } >> "$GITHUB_STEP_SUMMARY"
             cat "$GITHUB_STEP_SUMMARY"
             exit 0
