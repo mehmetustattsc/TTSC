@@ -12,4 +12,6 @@
 - The real coach is Muhammet; never invent names of real club people.
 - Demo names, opponents and results are invented; keep them invented.
 - Push: rules in `supabase/functions/notify/logic.js` (tested by `npm run test:notify`), sender `index.ts`, triggers and daily reminder in `supabase/push.sql`; `.github/workflows/db.yml` creates the keys once and deploys. Notifications never contain the text of private notes.
+- Instagram graphics: `js/share.js` (canvas, club style: red/black, Barlow Condensed caps, torn edges, MATCHDAY / ENDSTAND, German texts). Photos stay on the device. Opponent logos are not used (cross-origin); a lettered badge stands in.
+- fussball.de: `tools/fussball_import.py` via `.github/workflows/fussball.yml` (daily). It decodes the obfuscation font by glyph names. Logs must show counts only, never player names.
 - Before pushing: `npm run test:smoke`, then look at the screenshots in `tests/shots/`.

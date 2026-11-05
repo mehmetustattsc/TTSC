@@ -262,6 +262,7 @@ function viewEvent(id, u) {
       ? `<button class="btn primary block" data-act="match-report" data-eid="${e.id}">⚽ ${t('match_report')}${e.result ? ' ✓' : ''}</button>`
       : `<button class="btn primary block" data-act="attendance" data-eid="${e.id}">✓ ${t('confirm_attendance')}${S.attendanceConfirmed(e.id) ? ' ✓' : ''}</button>`;
   }
+  if (e.type === 'match' && S.isStaff(u)) html += `<button class="btn block share-btn" data-act="graphic" data-eid="${e.id}">📸 ${t('graphic')}</button>`;
   if (past && e.type === 'match' && e.result) {
     const st = S.matchStats(e.id);
     const rows = Object.entries(st).map(([pid, s]) => ({ p: S.user(pid), s })).filter(x => x.p).sort((a, b) => b.s.min - a.s.min || a.p.num - b.p.num);
@@ -668,6 +669,36 @@ function addPlayerSheet(role = 'player', admin = false) {
     };
   });
 }
+// Instagram graphics (js/share.js), loaded only when needed
+let gfx = { kind: null, format: 'story', photo: null };
+async function graphicSheet(eid) {
+  const e = S.event(eid); if (!e) return;
+  const G = await import('./share.js'); await G.ready();
+  gfx.kind = e.result ? 'end' : 'pre';
+  sheet(`<h3>📸 ${t('graphic')}</h3>
+    <div class="seg" id="gk"><button data-v="pre">${t('gfx_pre')}</button><button data-v="end" ${e.result ? '' : 'disabled'}>${t('gfx_end')}</button></div>
+    <div class="seg" id="gf"><button data-v="story">Story 9:16</button><button data-v="post">Post 4:5</button></div>
+    <div class="gfx-wrap"><canvas id="gc"></canvas></div>
+    <label class="btn block"><input type="file" accept="image/*" id="gp" hidden>🖼 ${t('gfx_photo')}</label>
+    <p class="small muted">${t('gfx_hint')}</p>
+    <div class="sheet-btns"><button class="btn" id="gd">⬇ ${t('gfx_save')}</button><button class="btn primary" id="gs">↗ ${t('gfx_share')}</button></div>`, el => {
+    const cv = $('#gc', el);
+    const scorers = () => Object.entries(S.matchStats(e.id)).filter(([, s]) => s.g).map(([pid, s]) => ({ name: S.user(pid)?.name || '', g: s.g })).sort((a, b) => b.g - a.g);
+    const draw = () => {
+      el.querySelectorAll('#gk button').forEach(b => b.classList.toggle('on', b.dataset.v === gfx.kind));
+      el.querySelectorAll('#gf button').forEach(b => b.classList.toggle('on', b.dataset.v === gfx.format));
+      if (gfx.kind === 'end' && e.result) G.endstand(cv, e, { format: gfx.format, photo: gfx.photo, scorers: scorers() });
+      else G.matchday(cv, e, { format: gfx.format, photo: gfx.photo });
+    };
+    $('#gk', el).onclick = ev => { const b = ev.target.closest('button'); if (b && !b.disabled) { gfx.kind = b.dataset.v; draw(); } };
+    $('#gf', el).onclick = ev => { const b = ev.target.closest('button'); if (b) { gfx.format = b.dataset.v; draw(); } };
+    $('#gp', el).onchange = ev => { const f = ev.target.files[0]; if (!f) return; const i = new Image(); i.onload = () => { gfx.photo = i; draw(); }; i.src = URL.createObjectURL(f); };
+    const name = () => `ttsc-${gfx.kind === 'end' ? 'endstand' : 'matchday'}-${e.date}-${gfx.format}.png`;
+    $('#gs', el).onclick = () => G.shareCanvas(cv, name()).catch(() => {});
+    $('#gd', el).onclick = () => { cv.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name(); a.click(); }); };
+    draw();
+  });
+}
 function qrSheet() {
   sheet(`<h3>${t('join_qr')}</h3><p class="small muted">${t('join_qr_hint')}</p>
     <img class="qr" src="assets/join-qr.svg" alt="QR" width="280" height="280">
@@ -739,6 +770,7 @@ document.addEventListener('click', ev => {
     case 'intro-edit': { const me = S.me(); if (me) S.setPref('intro-' + me.id, ''); render(); break; }
     case 'approve': approveSheet(b.dataset.id); break;
     case 'show-qr': qrSheet(); break;
+    case 'graphic': graphicSheet(b.dataset.eid); break;
     case 'demo-on': S.useDemo(true); break;
     case 'demo-off': S.logout(); S.useDemo(false); location.hash = '#/'; break;
     case 'retry': S.reload(); render(); break;
