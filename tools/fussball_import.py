@@ -11,7 +11,7 @@ private-use code point, and the font maps it to a glyph whose name is the real c
 Needs SUPABASE_TOKEN (Management API). Prints counts only, never names.
 Run with --dry to parse everything and print the counts without writing.
 """
-import html, io, json, os, re, sys, urllib.request
+import base64, html, io, json, os, re, sys, urllib.request
 from datetime import date
 from fontTools.ttLib import TTFont
 from fontTools import agl
@@ -113,6 +113,19 @@ def squad():
     return rows
 
 
+# ---------- club logos ----------
+def logo_ids():
+    """team name -> fussball.de logo id, from the league table and the match lists"""
+    out = {}
+    h = get(TEAM_URL).decode('utf-8', 'replace')
+    for lid, alt in re.findall(r'getLogo/format/\d+/id/([0-9A-Z]+)[^"]*" alt="([^"]+)"', h): out.setdefault(html.unescape(alt), lid)
+    for url in GAMES_URLS:
+        g = get(url).decode('utf-8', 'replace')
+        for alt, lid in re.findall(r'data-alt="([^"]+)" data-responsive-image="//www\.fussball\.de/export\.media/-/action/getLogo/format/\d+/id/([0-9A-Z]+)', g): out.setdefault(html.unescape(alt), lid)
+    out.pop(US, None)
+    return out
+
+
 # ---------- database ----------
 q = lambda v: 'null' if v is None else ("'" + str(v).replace("'", "''") + "'")
 
@@ -169,6 +182,17 @@ select (select count(*) from linked) as linked, (select count(*) from upd) as up
         report.append(f'matches: {len(gs)} found, {played} with result' + (f', db: {res[0]}' if res else ''))
     else:
         report.append('matches: none recognised')
+
+    ids = logo_ids()
+    have = {r['name'] for r in (sql("select name from public.club_logos;") or [])} if not DRY else set()
+    new = {n: i for n, i in ids.items() if n not in have}
+    rows = []
+    for n, i in new.items():
+        try: rows.append((n, 'data:image/png;base64,' + base64.b64encode(get(f'https://www.fussball.de/export.media/-/action/getLogo/format/2/id/{i}')).decode()))
+        except Exception as e: print('logo download failed:', type(e).__name__)
+    if rows:
+        sql('insert into public.club_logos (name, png) values ' + ',\n'.join(f'({q(n)}, {q(p)})' for n, p in rows) + ' on conflict (name) do update set png = excluded.png, updated_on = current_date;')
+    report.append(f'logos: {len(ids)} clubs, {len(rows)} new')
 
     sq = squad()
     if sq and sum(1 for r in sq if re.search(r'[A-Za-zÀ-ÿ]', r[0])) == len(sq):

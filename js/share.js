@@ -35,19 +35,20 @@ function fitText(ctx, text, maxW, size, weight = 700) {
   return s + 2;
 }
 const initials = name => name.replace(/^(SpG|SV|TSV|FC|VfR|SpVgg|TSG|FV|SC|VfB|SG)\s+/i, '').split(/[\s/-]+/).filter(w => /^\p{L}/u.test(w)).slice(0, 2).map(w => w[0]).join('').toUpperCase();
-function badge(ctx, x, y, r, name, us) {
+function badge(ctx, x, y, r, name, us, img = null) {
   ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
   ctx.lineWidth = 6; ctx.strokeStyle = us ? RED : '#2a2a2e'; ctx.stroke();
-  if (us && logo) { const h = r * 1.55, w = h * logo.width / logo.height; ctx.drawImage(logo, x - w / 2, y - h / 2, w, h); }
+  if (!us && img) { const s = r * 1.45, k = Math.min(s / img.width, s / img.height), w = img.width * k, h = img.height * k; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(img, x - w / 2, y - h / 2, w, h); }
+  else if (us && logo) { const h = r * 1.55, w = h * logo.width / logo.height; ctx.drawImage(logo, x - w / 2, y - h / 2, w, h); }
   else { ctx.fillStyle = '#2a2a2e'; ctx.font = `700 ${r * 0.8}px ${COND}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(initials(name), x, y + r * 0.05); }
   ctx.restore();
 }
-function ribbon(ctx, W, y, h, text, color, name, us) {
+function ribbon(ctx, W, y, h, text, color, name, us, img = null) {
   ctx.save();
   ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(W * 0.18, y); ctx.lineTo(W - 70, y); ctx.lineTo(W - 70, y + h); ctx.lineTo(W * 0.18 - 40, y + h); ctx.closePath(); ctx.fill();
   ctx.fillStyle = '#fff'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
   fitText(ctx, text, W * 0.56, h * 0.72); ctx.fillText(text, W - 70 - h * 1.25, y + h / 2 + 3);
-  badge(ctx, W - 70 - h * 0.35, y + h / 2, h * 0.78, name, us);
+  badge(ctx, W - 70 - h * 0.35, y + h / 2, h * 0.78, name, us, img);
   ctx.restore();
 }
 function background(ctx, W, H, photo, R) {
@@ -66,7 +67,7 @@ function background(ctx, W, H, photo, R) {
 const homeAway = (e, us = 'TTSC BUCHEN') => (e.home ? [us, e.opponent.toUpperCase()] : [e.opponent.toUpperCase(), us]);
 
 // ---------- MATCHDAY ----------
-export function matchday(canvas, e, { format = 'story', photo = null } = {}) {
+export function matchday(canvas, e, { format = 'story', photo = null, opp = null } = {}) {
   const W = 1080, H = format === 'story' ? 1920 : 1350, ctx = canvas.getContext('2d'), R = rng(e.id);
   canvas.width = W; canvas.height = H;
   background(ctx, W, H, photo, R);
@@ -100,13 +101,13 @@ export function matchday(canvas, e, { format = 'story', photo = null } = {}) {
   const botY = H - (format === 'story' ? 470 : 380);
   tornBand(ctx, W, botY, H, 'top', 'rgba(11,11,13,.82)', R);
   const story = format === 'story', [a, b] = homeAway(e), rh = story ? 118 : 92, gap = story ? 46 : 28, y0 = botY + (story ? 110 : 70);
-  ribbon(ctx, W, y0, rh, a, a === 'TTSC BUCHEN' ? RED : '#2a2a2e', a, a === 'TTSC BUCHEN');
-  ribbon(ctx, W, y0 + rh + gap, rh, b, b === 'TTSC BUCHEN' ? RED : '#2a2a2e', b, b === 'TTSC BUCHEN');
+  ribbon(ctx, W, y0, rh, a, a === 'TTSC BUCHEN' ? RED : '#2a2a2e', a, a === 'TTSC BUCHEN', opp);
+  ribbon(ctx, W, y0 + rh + gap, rh, b, b === 'TTSC BUCHEN' ? RED : '#2a2a2e', b, b === 'TTSC BUCHEN', opp);
   if (story) { ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.font = `600 34px ${COND}`; ctx.textAlign = 'left'; ctx.fillText('TTSC BUCHEN E.V. · SEIT 1972', pad, H - 54); }
 }
 
 // ---------- ENDSTAND ----------
-export function endstand(canvas, e, { format = 'story', photo = null, scorers = [] } = {}) {
+export function endstand(canvas, e, { format = 'story', photo = null, scorers = [], opp = null } = {}) {
   const W = 1080, H = format === 'story' ? 1920 : 1350, ctx = canvas.getContext('2d'), R = rng(e.id + 'x');
   canvas.width = W; canvas.height = H;
   // frame: red and black brush strokes with the shield as watermark
@@ -137,6 +138,9 @@ export function endstand(canvas, e, { format = 'story', photo = null, scorers = 
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   const pw = 520, ph = 128; ctx.fillStyle = 'rgba(126,7,24,.92)'; ctx.beginPath(); ctx.roundRect(W / 2 - pw / 2, cy - ph / 2, pw, ph, ph / 2); ctx.fill();
   ctx.fillStyle = '#fff'; ctx.font = `700 112px ${COND}`; ctx.fillText('ENDSTAND', W / 2, cy + 6);
+  // both clubs' badges next to the pill, home on the left
+  badge(ctx, W / 2 - 375, cy, 62, a, a === 'TTSC BUCHEN', opp); badge(ctx, W / 2 + 375, cy, 62, b, b === 'TTSC BUCHEN', opp);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff';
   const sy = cy + (format === 'story' ? 250 : 215), sf = format === 'story' ? 300 : 250;
   ctx.font = `700 ${sf}px ${COND}`; ctx.fillText(String(la), W / 2 - 210, sy); ctx.fillText(String(lb), W / 2 + 210, sy); ctx.fillText(':', W / 2, sy - 12);
   ctx.font = `700 56px ${COND}`;

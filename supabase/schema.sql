@@ -160,6 +160,9 @@ create table if not exists public.season_stats (
   primary key (season, name)
 );
 
+-- ---------- club logos (copied from fussball.de by the daily import, used in match graphics) ----------
+create table if not exists public.club_logos (name text primary key, png text not null, updated_on date not null default current_date);
+
 -- ---------- push notifications ----------
 -- one row per phone/browser that allowed notifications
 create table if not exists public.push_subs (
@@ -192,6 +195,7 @@ alter table public.bookings     enable row level security;
 alter table public.repairs      enable row level security;
 alter table public.season_stats enable row level security;
 alter table public.push_subs    enable row level security;
+alter table public.club_logos   enable row level security;
 alter table public.app_config   enable row level security;
 
 drop policy if exists invites_admin on public.invites;
@@ -261,6 +265,8 @@ drop policy if exists fees_board on public.fees;
 create policy fees_board on public.fees for all using (public.is_board()) with check (public.is_board());
 drop policy if exists bookings_board on public.bookings;
 create policy bookings_board on public.bookings for all using (public.is_board()) with check (public.is_board());
+drop policy if exists logos_read on public.club_logos;
+create policy logos_read on public.club_logos for select using (public.is_member());
 drop policy if exists push_own on public.push_subs;
 create policy push_own on public.push_subs for all using (user_id = auth.uid()) with check (user_id = auth.uid() and public.is_member());
 drop policy if exists config_read on public.app_config;

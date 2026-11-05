@@ -349,6 +349,13 @@ export async function disablePush() {
   await R.remove('push_subs', 'endpoint=eq.' + encodeURIComponent(sub.endpoint)).catch(() => {}); await sub.unsubscribe();
 }
 export const seasonStats = () => db.season || [];
+// opponent logo as a data URL (null in demo mode or when unknown); loaded only when a graphic is made
+const logoCache = {};
+export async function clubLogo(name) {
+  if (mode !== 'server' || !name) return null;
+  if (!(name in logoCache)) logoCache[name] = R.select('club_logos', 'select=png&name=eq.' + encodeURIComponent(name)).then(r => (r[0] ? r[0].png : null)).catch(() => null);
+  return logoCache[name];
+}
 export const league = () => { try { return db.config && db.config.league ? JSON.parse(db.config.league) : null; } catch (e) { return null; } };
 export async function importSeason({ season, source, rows }) {
   await R.upsert('season_stats', rows.map(([name, apps, minutes, goals]) => ({ season, name, apps, minutes, goals, source, updated_on: TODAY() })), 'season,name');

@@ -675,6 +675,7 @@ async function graphicSheet(eid) {
   const e = S.event(eid); if (!e) return;
   const G = await import('./share.js'); await G.ready();
   gfx.kind = e.result ? 'end' : 'pre';
+  const logoUrl = await S.clubLogo(e.opponent); gfx.opp = logoUrl ? await new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = logoUrl; }) : null;
   sheet(`<h3>📸 ${t('graphic')}</h3>
     <div class="seg" id="gk"><button data-v="pre">${t('gfx_pre')}</button><button data-v="end" ${e.result ? '' : 'disabled'}>${t('gfx_end')}</button></div>
     <div class="seg" id="gf"><button data-v="story">Story 9:16</button><button data-v="post">Post 4:5</button></div>
@@ -688,8 +689,8 @@ async function graphicSheet(eid) {
     const draw = () => {
       el.querySelectorAll('#gk button').forEach(b => b.classList.toggle('on', b.dataset.v === gfx.kind));
       el.querySelectorAll('#gf button').forEach(b => b.classList.toggle('on', b.dataset.v === gfx.format));
-      if (gfx.kind === 'end' && e.result) G.endstand(cv, e, { format: gfx.format, photo: gfx.photo, scorers: scorers() });
-      else G.matchday(cv, e, { format: gfx.format, photo: gfx.photo });
+      if (gfx.kind === 'end' && e.result) G.endstand(cv, e, { format: gfx.format, photo: gfx.photo, scorers: scorers(), opp: gfx.opp });
+      else G.matchday(cv, e, { format: gfx.format, photo: gfx.photo, opp: gfx.opp });
     };
     $('#gk', el).onclick = ev => { const b = ev.target.closest('button'); if (b && !b.disabled) { gfx.kind = b.dataset.v; draw(); } };
     $('#gf', el).onclick = ev => { const b = ev.target.closest('button'); if (b) { gfx.format = b.dataset.v; draw(); } };
