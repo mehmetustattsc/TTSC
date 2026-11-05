@@ -460,6 +460,9 @@ for (const l in PUSH) Object.assign(T[l], PUSH[l]);
 // Match graphics.
 const GFX = {"tr": {"graphic": "Paylaşım görseli", "gfx_pre": "Maç öncesi", "gfx_end": "Maç sonu", "gfx_photo": "Fotoğraf seç", "gfx_hint": "Fotoğraf sadece bu telefonda kalır, hiçbir yere yüklenmez.", "gfx_save": "Kaydet", "gfx_share": "Paylaş"}, "de": {"graphic": "Grafik zum Teilen", "gfx_pre": "Vor dem Spiel", "gfx_end": "Nach dem Spiel", "gfx_photo": "Foto wählen", "gfx_hint": "Das Foto bleibt auf diesem Handy und wird nirgends hochgeladen.", "gfx_save": "Speichern", "gfx_share": "Teilen"}, "en": {"graphic": "Share graphic", "gfx_pre": "Before the match", "gfx_end": "After the match", "gfx_photo": "Choose a photo", "gfx_hint": "The photo stays on this phone and is not uploaded anywhere.", "gfx_save": "Save", "gfx_share": "Share"}, "fr": {"graphic": "Visuel à partager", "gfx_pre": "Avant le match", "gfx_end": "Après le match", "gfx_photo": "Choisir une photo", "gfx_hint": "La photo reste sur ce téléphone et n'est envoyée nulle part.", "gfx_save": "Enregistrer", "gfx_share": "Partager"}};
 for (const l in GFX) Object.assign(T[l], GFX[l]);
+
+const GFX2 = {"tr": {"gfx_save_hint": "Açılan menüde \"Görüntüyü Kaydet\"e bas, Fotoğraflar'a kaydedilir."}, "de": {"gfx_save_hint": "Im Menü „Bild sichern“ wählen, dann landet es in den Fotos."}, "en": {"gfx_save_hint": "Choose “Save Image” in the menu to put it in your Photos."}, "fr": {"gfx_save_hint": "Choisis « Enregistrer l’image » dans le menu pour l’ajouter à tes Photos."}};
+for (const l in GFX2) Object.assign(T[l], GFX2[l]);
 export const TAGS = ['pass', 'touch', 'position', 'press', 'duel', 'header', 'finish', 'stamina', 'talk', 'discipline', 'attitude', 'speed', 'dribble', 'defend', 'setpiece', 'lead'];
 export const FB_TAGS = ['training', 'team', 'tired', 'role', 'time', 'motivation'];
 export const REASONS = ['work', 'school', 'sick', 'injured', 'family', 'travel', 'other'];

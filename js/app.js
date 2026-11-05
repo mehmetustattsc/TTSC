@@ -77,7 +77,7 @@ function toast(msg) {
 function sheet(html, onMount) {
   closeSheet();
   const wrap = document.createElement('div'); wrap.className = 'sheet-wrap'; wrap.id = 'sheet';
-  wrap.innerHTML = `<div class="sheet-bg" data-act="close-sheet"></div><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div><button class="sheet-x" data-act="close-sheet" aria-label="${t('close')}">✕</button>${html}</div>`;
+  wrap.innerHTML = `<div class="sheet-bg" data-act="close-sheet"></div><div class="sheet" role="dialog" aria-modal="true"><div class="sheet-top"><div class="grab"></div><button class="sheet-x" data-act="close-sheet" aria-label="${t('close')}">✕</button></div>${html}</div>`;
   document.body.appendChild(wrap); requestAnimationFrame(() => wrap.classList.add('open'));
   onMount && onMount($('.sheet', wrap));
 }
@@ -696,7 +696,8 @@ async function graphicSheet(eid) {
     $('#gp', el).onchange = ev => { const f = ev.target.files[0]; if (!f) return; const i = new Image(); i.onload = () => { gfx.photo = i; draw(); }; i.src = URL.createObjectURL(f); };
     const name = () => `ttsc-${gfx.kind === 'end' ? 'endstand' : 'matchday'}-${e.date}-${gfx.format}.png`;
     $('#gs', el).onclick = () => G.shareCanvas(cv, name()).catch(() => {});
-    $('#gd', el).onclick = () => { cv.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name(); a.click(); }); };
+    // phones: the share menu has 'Save Image' (goes to Photos); computers: download the file
+    $('#gd', el).onclick = () => { toast(t('gfx_save_hint')); G.shareCanvas(cv, name()).catch(() => {}); };
     draw();
   });
 }
