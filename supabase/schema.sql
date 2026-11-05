@@ -258,3 +258,6 @@ exception when duplicate_object then null; end $$;
 -- the app needs read access for signed-in users
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
+
+-- tell the API layer about new tables and columns right away
+notify pgrst, 'reload schema';

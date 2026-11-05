@@ -317,6 +317,7 @@ function viewStats(tab, u) {
   if (tab === 'players') {
     const rows = S.players().map(p => ({ p, s: S.playerStats(p.id) })).sort((a, b) => b.s[sortKey] - a.s[sortKey] || a.p.num - b.p.num);
     const cols = [['rate', t('attendance_rate')], ['m', t('matches')], ['min', t('minutes')], ['g', t('goals')], ['a', t('assists')], ['y', t('yellow')]];
+    if (!rows.length) return `${nav}<div class="card empty">${t('no_app_players')}</div>${seasonTable()}`;
     return `${nav}${S.isStaff(u) ? `<button class="btn block" data-act="csv">⬇ ${t('export_csv')}</button>` : ''}
       <section class="card tbl-wrap"><table class="tbl"><thead><tr><th></th>${cols.map(([k, l]) => `<th><button data-act="sort" data-v="${k}" class="${sortKey === k ? 'on' : ''}">${l}</button></th>`).join('')}</tr></thead>
       <tbody>${rows.map(({ p, s }) => `<tr><td><a href="#/p/${p.id}">${esc(p.name.split(' ')[0])} ${esc((p.name.split(' ')[1] || '')[0] || '')}.</a></td><td>${s.rate}%</td><td>${s.m}</td><td>${s.min}</td><td>${s.g}</td><td>${s.a}</td><td>${s.y}</td></tr>`).join('')}</tbody></table></section>
