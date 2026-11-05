@@ -23,4 +23,4 @@ jobs:
       - uses: actions/checkout@v4
       - name: Probe
         if: github.event.inputs.mode == 'probe'
-        run: python3 tools/fussball_probe.py
+        run: pip install -q fonttools && python3 tools/fussball_probe.py
