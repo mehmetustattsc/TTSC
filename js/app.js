@@ -77,7 +77,7 @@ function toast(msg) {
 function sheet(html, onMount) {
   closeSheet();
   const wrap = document.createElement('div'); wrap.className = 'sheet-wrap'; wrap.id = 'sheet';
-  wrap.innerHTML = `<div class="sheet-bg" data-act="close-sheet"></div><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div>`;
+  wrap.innerHTML = `<div class="sheet-bg" data-act="close-sheet"></div><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div><button class="sheet-x" data-act="close-sheet" aria-label="${t('close')}">✕</button>${html}</div>`;
   document.body.appendChild(wrap); requestAnimationFrame(() => wrap.classList.add('open'));
   onMount && onMount($('.sheet', wrap));
 }
@@ -681,7 +681,8 @@ async function graphicSheet(eid) {
     <div class="gfx-wrap"><canvas id="gc"></canvas></div>
     <label class="btn block"><input type="file" accept="image/*" id="gp" hidden>🖼 ${t('gfx_photo')}</label>
     <p class="small muted">${t('gfx_hint')}</p>
-    <div class="sheet-btns"><button class="btn" id="gd">⬇ ${t('gfx_save')}</button><button class="btn primary" id="gs">↗ ${t('gfx_share')}</button></div>`, el => {
+    <div class="sheet-btns"><button class="btn" id="gd">⬇ ${t('gfx_save')}</button><button class="btn primary" id="gs">↗ ${t('gfx_share')}</button></div>
+    <button class="btn danger-ghost block" data-act="close-sheet">${t('cancel')}</button>`, el => {
     const cv = $('#gc', el);
     const scorers = () => Object.entries(S.matchStats(e.id)).filter(([, s]) => s.g).map(([pid, s]) => ({ name: S.user(pid)?.name || '', g: s.g })).sort((a, b) => b.g - a.g);
     const draw = () => {

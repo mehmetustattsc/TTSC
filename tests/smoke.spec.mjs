@@ -48,7 +48,7 @@ await page.locator('.ev-match a.ev-main').first().click();
 await page.click('[data-act="graphic"]'); await page.waitForFunction(() => document.querySelector('#gc')?.width === 1080);
 check(await page.evaluate(() => document.querySelector('#gc').height) === 1920, 'match graphic: story size');
 await page.click('#gf [data-v="post"]'); check(await page.evaluate(() => document.querySelector('#gc').height) === 1350, 'match graphic: post size');
-await shot('03b-graphic'); await page.keyboard.press('Escape');
+await shot('03b-graphic'); await page.click('.sheet .btn.danger-ghost[data-act="close-sheet"]'); check(await page.locator('#sheet').count() === 0, 'graphic sheet has a cancel button');
 await page.click('[data-act="match-report"]'); await page.waitForSelector('.rep'); await shot('03-match-report');
 await page.click('[data-sc="us"][data-d="1"]'); await page.click('#mok');
 await go('cal'); await page.click('[data-act="cal-tab"][data-v="up"]'); await page.click('[data-act="new-event"]');
