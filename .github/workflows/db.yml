@@ -30,6 +30,17 @@ jobs:
             exit 0
           fi
           sudo apt-get install -y -qq postgresql-client >/dev/null
+          # Show the shape of the connection address without revealing the password.
+          python3 - <<'PY'
+          import os, urllib.parse as u
+          raw = os.environ['DB'].strip(); x = u.urlsplit(raw); pw = x.password or ''
+          print('scheme:', x.scheme, '| user:', x.username, '| host:', x.hostname, '| port:', x.port, '| db:', x.path)
+          print('password length:', len(pw), '| brackets left:', '[' in pw or ']' in pw or 'YOUR-PASSWORD' in raw,
+                '| special characters:', sorted(set(c for c in pw if not c.isalnum())) and 'yes' or 'no',
+                '| spaces/newlines around:', raw != os.environ['DB'])
+          PY
+          DB=$(printf '%s' "$DB" | tr -d '\r\n' | sed 's/^ *//;s/ *$//')
+          for i in 1 2 3 4; do psql "$DB" -tAc 'select 1' >/dev/null 2>&1 && break; echo "connection attempt $i failed, waiting…"; sleep 20; done
           psql "$DB" -v ON_ERROR_STOP=1 -q -f supabase/schema.sql
           psql "$DB" -v ON_ERROR_STOP=1 -q -f supabase/fixtures-2026-27.sql
           echo "### Database updated" >> "$GITHUB_STEP_SUMMARY"
