@@ -147,6 +147,15 @@ create table if not exists public.repairs (
   reported_by uuid references public.profiles, created_at timestamptz not null default now(), updated_at timestamptz
 );
 
+-- ---------- season statistics taken from fussball.de (per player name) ----------
+-- Filled by the board (SQL editor); visible only to signed-in team members, never public.
+create table if not exists public.season_stats (
+  season text not null, name text not null,
+  apps int not null default 0, minutes int not null default 0, goals int not null default 0,
+  source text, updated_on date not null default current_date,
+  primary key (season, name)
+);
+
 -- ---------- access rules ----------
 alter table public.invites      enable row level security;
 alter table public.profiles     enable row level security;
@@ -162,6 +171,7 @@ alter table public.members      enable row level security;
 alter table public.fees         enable row level security;
 alter table public.bookings     enable row level security;
 alter table public.repairs      enable row level security;
+alter table public.season_stats enable row level security;
 
 drop policy if exists invites_admin on public.invites;
 create policy invites_admin on public.invites for all using (public.is_admin()) with check (public.is_admin());
@@ -230,6 +240,10 @@ drop policy if exists fees_board on public.fees;
 create policy fees_board on public.fees for all using (public.is_board()) with check (public.is_board());
 drop policy if exists bookings_board on public.bookings;
 create policy bookings_board on public.bookings for all using (public.is_board()) with check (public.is_board());
+drop policy if exists season_read on public.season_stats;
+create policy season_read on public.season_stats for select using (public.is_member());
+drop policy if exists season_board on public.season_stats;
+create policy season_board on public.season_stats for all using (public.is_board()) with check (public.is_board());
 drop policy if exists repairs_board on public.repairs;
 create policy repairs_board on public.repairs for all using (public.is_board()) with check (public.is_board());
 

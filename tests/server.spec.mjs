@@ -136,12 +136,13 @@ try {
   await coach.fill('#nd', d.toISOString().slice(0, 10)); await coach.fill('#no', 'SV Test'); await coach.click('#nok'); await settle();
   await player.fresh('');
   check((await player.text()).includes('SV Test') || (await player.text()).includes('Leibenstadt'), 'player sees upcoming matches');
-  await player.click('[data-act="rsvp-no"]'); await player.locator('#rs .chip').nth(1).click(); await player.fill('#rt', 'Klausur'); await player.click('#rok'); await settle();
-  await player.click('[data-act="avail"][data-v="limited"]'); await settle();
   const ev = psql(`select id from events where opponent = 'SV Test'`);
+  await player.fresh('ev/' + ev); check((await player.text()).includes('SV Test'), 'player opens the coach\'s new match');
+  await player.click('[data-act="rsvp-no"]'); await player.locator('#rs .chip').nth(1).click(); await player.fill('#rt', 'Klausur'); await player.click('#rok'); await settle();
+  await player.go(''); await player.click('[data-act="avail"][data-v="limited"]'); await settle();
   await coach.fresh('ev/' + ev);
   check((await coach.text()).includes('Klausur'), 'coach sees the reason');
-  check(psql(`select status||':'||reason from rsvps`) === 'no:school', 'rsvp stored');
+  check(psql(`select status||':'||reason from rsvps where event_id = '${ev}'`) === 'no:school', 'rsvp stored');
 
   // team chat between people; board chat stays with the board
   await player.go('msg/team'); await player.fill('#cm', 'Merhaba takım'); await player.press('#cm', 'Enter'); await settle();
@@ -155,6 +156,14 @@ try {
   await coach.go('p/' + pid); await coach.click('[data-act="coach-note"]'); await coach.locator('#cg .chip').first().click(); await coach.fill('#ct', 'Gizli not'); await coach.click('#cok'); await settle();
   await player.fresh('msg/notes'); check((await player.text()).includes('Gizli not'), 'player reads his coach note');
   await admin.fresh('p/' + pid); check(!(await admin.text()).includes('Gizli not'), 'admin cannot read coach note');
+
+  // season stats from fussball.de: members see them, a stranger does not
+  psql(`insert into season_stats (season, name, apps, minutes, goals, source) values ('2026/27', 'Can Player', 10, 900, 8, 'https://www.fussball.de')`);
+  await player.fresh('stats/players'); check((await player.text()).includes('900'), 'member sees season stats');
+  await player.fresh('stats/me'); check((await player.text()).includes('fussball.de'), 'player profile shows his fussball.de line');
+  const stTok = await stranger.evaluate(() => JSON.parse(localStorage.getItem('ttsc-session')).access_token);
+  const st = await (await fetch(url + 'rest/v1/season_stats?select=name', { headers: { apikey: 'x', Authorization: 'Bearer ' + stTok } })).json();
+  check(Array.isArray(st) && st.length === 0, 'stranger cannot read season stats');
 
   // members, fees and clubhouse
   await admin.go('members'); await admin.click('[data-act="add-member"]'); await admin.fill('#mn', 'Klaus Testmann'); await admin.click('#mok'); await settle();

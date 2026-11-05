@@ -433,6 +433,10 @@ for (const l in LEAGUE_T) Object.assign(T[l], LEAGUE_T[l]);
 // Privacy link.
 const PRIV = {"tr": {"privacy": "Veri koruma (Datenschutz)"}, "de": {"privacy": "Datenschutz"}, "en": {"privacy": "Privacy"}, "fr": {"privacy": "Confidentialité"}};
 for (const l in PRIV) Object.assign(T[l], PRIV[l]);
+
+// Season stats from fussball.de.
+const SEASON = {"tr": {"ss_title": "Sezon istatistiği (fussball.de)", "ss_apps": "Maç"}, "de": {"ss_title": "Saisonstatistik (fussball.de)", "ss_apps": "Einsätze"}, "en": {"ss_title": "Season stats (fussball.de)", "ss_apps": "Apps"}, "fr": {"ss_title": "Stats de la saison (fussball.de)", "ss_apps": "Matchs"}};
+for (const l in SEASON) Object.assign(T[l], SEASON[l]);
 export const TAGS = ['pass', 'touch', 'position', 'press', 'duel', 'header', 'finish', 'stamina', 'talk', 'discipline', 'attitude', 'speed', 'dribble', 'defend', 'setpiece', 'lead'];
 export const FB_TAGS = ['training', 'team', 'tired', 'role', 'time', 'motivation'];
 export const REASONS = ['work', 'school', 'sick', 'injured', 'family', 'travel', 'other'];

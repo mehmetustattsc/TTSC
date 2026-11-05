@@ -316,7 +316,8 @@ function viewStats(tab, u) {
     const cols = [['rate', t('attendance_rate')], ['m', t('matches')], ['min', t('minutes')], ['g', t('goals')], ['a', t('assists')], ['y', t('yellow')]];
     return `${nav}${S.isStaff(u) ? `<button class="btn block" data-act="csv">⬇ ${t('export_csv')}</button>` : ''}
       <section class="card tbl-wrap"><table class="tbl"><thead><tr><th></th>${cols.map(([k, l]) => `<th><button data-act="sort" data-v="${k}" class="${sortKey === k ? 'on' : ''}">${l}</button></th>`).join('')}</tr></thead>
-      <tbody>${rows.map(({ p, s }) => `<tr><td><a href="#/p/${p.id}">${esc(p.name.split(' ')[0])} ${esc((p.name.split(' ')[1] || '')[0] || '')}.</a></td><td>${s.rate}%</td><td>${s.m}</td><td>${s.min}</td><td>${s.g}</td><td>${s.a}</td><td>${s.y}</td></tr>`).join('')}</tbody></table></section>`;
+      <tbody>${rows.map(({ p, s }) => `<tr><td><a href="#/p/${p.id}">${esc(p.name.split(' ')[0])} ${esc((p.name.split(' ')[1] || '')[0] || '')}.</a></td><td>${s.rate}%</td><td>${s.m}</td><td>${s.min}</td><td>${s.g}</td><td>${s.a}</td><td>${s.y}</td></tr>`).join('')}</tbody></table></section>
+      ${seasonTable()}`;
   }
   const rec = S.teamRecord();
   const ms = S.pastEvents().filter(e => e.type === 'match' && e.result).reverse();
@@ -333,6 +334,14 @@ function viewStats(tab, u) {
     ${scorers.length ? `<div class="sec-t">${t('top_scorers')}</div><section class="card list">${scorers.map((r, i) => `<a class="row" href="#/p/${r.p.id}"><span class="rank">${i + 1}</span>${avatar(r.p, 'sm')}<span class="grow">${esc(r.p.name)}</span><b>${r.s.g}</b></a>`).join('')}</section>` : ''}`;
 }
 
+function seasonTable() {
+  const rows = S.seasonStats(); if (!rows.length) return '';
+  const d = new Date((rows[0].updated_on || S.TODAY()) + 'T12:00:00').toLocaleDateString(locale(), { day: 'numeric', month: 'short' });
+  return `<section class="card tbl-wrap league"><div class="card-h">${t('ss_title')}</div>
+    <table class="tbl"><thead><tr><th></th><th>${t('ss_apps')}</th><th>${t('minutes')}</th><th>${t('goals')}</th></tr></thead>
+    <tbody>${rows.map(r => `<tr><td class="tn">${esc(r.name)}</td><td>${r.apps}</td><td>${r.minutes}</td><td>${r.goals ? '<b>' + r.goals + '</b>' : 0}</td></tr>`).join('')}</tbody></table>
+    <a class="small link src" href="${esc(rows[0].source || 'https://www.fussball.de')}" target="_blank" rel="noopener">${t('lt_source', { date: d })} ›</a></section>`;
+}
 function leagueTable() {
   if (!LEAGUE) return '';
   const d = new Date(LEAGUE.asOf + 'T12:00:00').toLocaleDateString(locale(), { day: 'numeric', month: 'short' });
@@ -357,6 +366,7 @@ function playerBody(id, u) {
       <div class="tile"><b>${st.a}</b><small>${t('assists')}</small></div>
       <div class="tile"><b>${st.y}<span class="yc"></span> ${st.r}<span class="rc"></span></b><small>${t('yellow')} / ${t('red')}</small></div>
     </div>
+    ${(() => { const f = S.seasonOf(p.name); return f ? `<div class="small muted fb-line">fussball.de · ${t('season')}: ${f.apps} ${t('ss_apps')} · ${f.minutes}' · ${f.goals} ${t('goals')}</div>` : ''; })()}
     <div class="sec-t">${t('last_events')}</div>
     <section class="card"><div class="strip">${recent.map(e => `<a href="#/ev/${e.id}" class="sq ${S.attended(e.id, id) ? 'in' : 'out'}" title="${fmtDate(e.date)} · ${evTitle(e)}">${e.type === 'match' ? '⚽' : ''}</a>`).join('')}</div>
       <div class="legend small muted"><span class="sq in"></span>${t('attended')} <span class="sq out"></span>${t('missed')} · ⚽ ${t('match')}</div></section>`;

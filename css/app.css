@@ -261,3 +261,5 @@ small { display: block; font-size: 12.5px; color: var(--muted); }
 .league .card-h { padding: 10px 14px 0; } .league .tbl { font-size: 13px; } .league .tbl th, .league .tbl td { padding: 7px 5px; }
 .league td.tn { text-align: left; white-space: normal; max-width: 150px; line-height: 1.2; } .league tr.us td { background: var(--red-soft); font-weight: 700; color: var(--red); }
 .league .src { display: block; padding: 8px 14px 6px; }
+
+.fb-line { margin: 8px 4px 0; }

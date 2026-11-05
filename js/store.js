@@ -73,11 +73,13 @@ export function reload() {
   status.loading = true;
   // a table the person may not see comes back empty (not an error), so any error is real: show it, don't guess
   const q = (t, x) => R.select(t, x);
+  // tables added later: an older database without them must not break the app
+  const qNew = (t, x) => R.select(t, x).catch(e => (e.status === 404 || /does not exist|schema cache/i.test(e.message) ? [] : Promise.reject(e)));
   loading = Promise.all([
     q('profiles', 'select=*'), q('availability'), q('events', 'select=*&order=date'), q('rsvps'), q('attendance'), q('match_stats'),
     q('notes', 'select=*&order=created_at'), q('self_ratings'), q('messages', 'select=*&order=created_at.desc&limit=500'),
-    q('members', 'select=*'), q('fees'), q('bookings'), q('repairs'), q('invites'),
-  ]).then(([profiles, avail, events, rsvps, att, mstats, notes, selfs, msgs, members, fees, bookings, repairs, invites]) => {
+    q('members', 'select=*'), q('fees'), q('bookings'), q('repairs'), q('invites'), qNew('season_stats', 'select=*&order=apps.desc,minutes.desc'),
+  ]).then(([profiles, avail, events, rsvps, att, mstats, notes, selfs, msgs, members, fees, bookings, repairs, invites, season]) => {
     const n = emptyDb(); n.seen = db.seen;
     n.users = profiles.map(p => ({ id: p.id, name: p.name, role: p.role, num: p.num || 0, pos: p.pos || 'MF', lang: p.lang, title: p.title || '' }));
     avail.forEach(a => { n.availability[a.player_id] = { s: a.status, at: a.updated_at }; });
@@ -93,6 +95,7 @@ export function reload() {
     n.bookings = bookings.map(b => ({ id: b.id, title: b.title, date: b.date, time: hm(b.time), who: b.who || '', note: b.note || '' }));
     n.repairs = repairs.map(r => ({ id: r.id, title: r.title, text: r.text || '', status: r.status, by: r.reported_by, at: r.created_at }));
     n.invites = invites;
+    n.season = season;
     n.loaded = true; db = n; status.error = null;
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(n)); } catch (e) { /* full or private: fine */ }
   }).catch(e => {
@@ -295,6 +298,10 @@ export function addSelf(s) {
   const x = { id: s.pid + s.eid, at: new Date().toISOString(), ...s }; db.self.push(x); persist();
   W(() => R.upsert('self_ratings', { player_id: x.pid, event_id: x.eid, rating: x.rating, good: x.good || [], improve: x.improve || [], text: x.text || null }, 'player_id,event_id'));
 }
+// season statistics from fussball.de (Einsätze, Minuten, Tore), matched to app players by name
+export const seasonStats = () => db.season || [];
+const norm = s => (s || '').toLocaleLowerCase('de').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ı/g, 'i').replace(/\s+/g, ' ').trim();
+export const seasonOf = name => seasonStats().find(r => norm(r.name) === norm(name)) || null;
 export const selfFor = pid => db.self.filter(s => s.pid === pid).sort((a, b) => b.at.localeCompare(a.at));
 export const selfOf = (pid, eid) => db.self.find(s => s.pid === pid && s.eid === eid);
 export function pendingSelf(pid) {
