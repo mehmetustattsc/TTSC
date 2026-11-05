@@ -46,5 +46,8 @@ r = plan({ type: 'reminders', today: '2026-11-05', profiles: P,
 check(to(r) === 'c,p1', 'reminder recipients (player-coach included, answered skipped): ' + to(r));
 check(r.every(x => x.url === '#/ev/t1'), 'only events within two days, no club events');
 
+r = plan({ type: 'test', profiles: P });
+check(to(r) === 'a' && r[0].body === 'Bildirimler çalışıyor!', 'test goes to admins only');
+
 if (errors.length) { console.error(errors.join('\n')); process.exit(1); }
 console.log('notify ok');

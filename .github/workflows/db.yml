@@ -19,7 +19,7 @@ on:
         required: false
         default: ''
       check_push:
-        description: 'Call the notify function once (reminders) and show its answer'
+        description: 'Send a test notification to the admins and show the answer'
         type: boolean
         default: false
 
@@ -93,7 +93,11 @@ jobs:
             sql_api supabase/push.sql >/dev/null
             supabase functions deploy notify --remote="$PROJECT_REF" --no-verify-jwt --use-api --yes
             if [ "${CHECK_PUSH:-false}" = "true" ]; then
-              echo "select public.notify_reminders();" > /tmp/q.sql; sql_api /tmp/q.sql >/dev/null; sleep 8
+              cat > /tmp/q.sql <<'SQL'
+          select net.http_post(url := (select value from private.app_secrets where key = 'function_url'), body := '{"type": "test"}'::jsonb,
+            headers := jsonb_build_object('Content-Type', 'application/json', 'x-hook-secret', (select value from private.app_secrets where key = 'hook')));
+          SQL
+              sql_api /tmp/q.sql >/dev/null; sleep 8
               echo "select status_code, left(content::text, 200) as content, error_msg from net._http_response order by created desc limit 1;" > /tmp/q.sql
               echo "Push check: $(sql_api /tmp/q.sql)"
             fi

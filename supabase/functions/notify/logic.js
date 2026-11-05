@@ -92,6 +92,10 @@ export function plan({ type, rows = [], profiles, events = [], rsvps = [], today
     }
   }
 
+  // test from the database workflow: only the admins
+  if (type === 'test') for (const p of profiles.filter(x => x.role === 'admin'))
+    push(p, 'TTSC 🔔', ({ tr: 'Bildirimler çalışıyor!', de: 'Benachrichtigungen funktionieren!', en: 'Notifications work!', fr: 'Les notifications marchent !' })[p.lang] || 'Benachrichtigungen funktionieren!', '#/me', 'test');
+
   if (type === 'reminders') {
     const end = new Date(today + 'T12:00:00Z'); end.setUTCDate(end.getUTCDate() + 2);
     const last = end.toISOString().slice(0, 10);

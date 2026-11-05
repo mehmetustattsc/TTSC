@@ -139,7 +139,8 @@ def main():
     if gs:
         values = ',\n'.join(f"({q(g['fb_id'])}, {q(g['date'])}::date, {q(g['time'])}::time, {q(g['opponent'])}, {str(g['home']).lower()}, {q(g['competition'])}, "
                             f"{g['result'][0] if g['result'] else 'null'}, {g['result'][1] if g['result'] else 'null'})" for g in gs)
-        res = sql(f"""
+        global MATCH_SQL
+        MATCH_SQL = f"""
 with src(fb_id, date, time, opponent, home, competition, us, them) as (values {values}),
 -- first time: attach fussball.de ids to matches that were added by hand or from the fixture list
 linked as (
@@ -160,7 +161,10 @@ ins as (
   where not exists (select 1 from public.events e where e.fb_id = s.fb_id)
     and not exists (select 1 from public.events e where e.fb_id is null and e.type = 'match' and e.opponent = s.opponent and e.home = s.home and abs(e.date - s.date) <= 7)
   returning id)
-select (select count(*) from linked) as linked, (select count(*) from upd) as updated, (select count(*) from ins) as added;""")
+select (select count(*) from linked) as linked, (select count(*) from upd) as updated, (select count(*) from ins) as added;"""
+        res = sql(MATCH_SQL)
+        res2 = sql(MATCH_SQL)  # second pass: matches linked just now get their results and times too
+        if res and res2: res[0]['updated'] = int(res[0]['updated']) + int(res2[0]['updated'])
         played = sum(1 for g in gs if g['result'])
         report.append(f'matches: {len(gs)} found, {played} with result' + (f', db: {res[0]}' if res else ''))
     else:
