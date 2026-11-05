@@ -307,6 +307,10 @@ export function addSelf(s) {
 }
 // season statistics from fussball.de (Einsätze, Minuten, Tore), matched to app players by name
 export const seasonStats = () => db.season || [];
+export async function importSeason({ season, source, rows }) {
+  await R.upsert('season_stats', rows.map(([name, apps, minutes, goals]) => ({ season, name, apps, minutes, goals, source, updated_on: TODAY() })), 'season,name');
+  await reload();
+}
 const norm = s => (s || '').toLocaleLowerCase('de').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ı/g, 'i').replace(/\s+/g, ' ').trim();
 export const seasonOf = name => seasonStats().find(r => norm(r.name) === norm(name)) || null;
 export const selfFor = pid => db.self.filter(s => s.pid === pid).sort((a, b) => b.at.localeCompare(a.at));

@@ -97,8 +97,8 @@ function badges(u) {
 }
 
 // ---------- router ----------
-const routes = { '': viewHome, cal: viewCal, ev: viewEvent, msg: viewMsg, stats: viewStats, p: viewPlayer, games: viewGames, club: viewClub, players: viewPlayers, members: viewMembers, building: viewBuilding, me: viewMe };
-const MOD_OF = { cal: 'cal', ev: 'cal', msg: 'msg', stats: 'stats', p: 'stats', games: 'games', club: 'club', players: 'players', members: 'members', building: 'building' };
+const routes = { import: viewImport, '': viewHome, cal: viewCal, ev: viewEvent, msg: viewMsg, stats: viewStats, p: viewPlayer, games: viewGames, club: viewClub, players: viewPlayers, members: viewMembers, building: viewBuilding, me: viewMe };
+const MOD_OF = { import: 'members', cal: 'cal', ev: 'cal', msg: 'msg', stats: 'stats', p: 'stats', games: 'games', club: 'club', players: 'players', members: 'members', building: 'building' };
 // The back arrow goes one level up, not to the previous screen: a match → calendar,
 // a player → player tracking (staff) or player stats, any module (and its tabs) → home.
 function parentOf({ r }, u) {
@@ -112,6 +112,9 @@ let lastRoute = null;
 export function render() {
   const u = S.me();
   setLang(u ? u.lang : (localStorage.getItem('ttsc-lang') || 'tr'));
+  // an import link opened before signing in: keep it for after the login
+  if (!u && location.hash.startsWith('#/import/')) { try { sessionStorage.setItem('ttsc-import', location.hash); } catch (e) { /* ignore */ } }
+  if (u && u.role !== 'pending') { let k = null; try { k = sessionStorage.getItem('ttsc-import'); sessionStorage.removeItem('ttsc-import'); } catch (e) { /* ignore */ } if (k) { location.hash = k; return; } }
   if (!u || u.role === 'pending') {
     // keep what is being typed on the login screen when a refresh re-renders it
     const keepEm = $('#lem')?.value, keepCode = $('#lco')?.value;
@@ -444,6 +447,32 @@ function viewMembers(_, u) {
   return html;
 }
 
+// ---------- import link (board): #/import/<base64url JSON> ----------
+// Data travels in the part of the link after '#', which the browser never sends to any server,
+// so names in it don't end up in the public repository or in server logs.
+let pendingImport = null;
+function readImport(id) {
+  if (!id) return null;
+  try {
+    const bin = atob(id.replace(/-/g, '+').replace(/_/g, '/'));
+    const d = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0))));
+    if (d.kind !== 'season_stats' || !Array.isArray(d.rows)) return null;
+    return d;
+  } catch (e) { return null; }
+}
+function viewImport(id) {
+  if (id) { pendingImport = readImport(id) || pendingImport; history.replaceState(null, '', location.pathname + '#/import'); }
+  const d = pendingImport;
+  if (!d) return `<div class="card empty">${t('import_bad')}</div>`;
+  if (S.isDemo()) return `<div class="card empty">${t('import_demo')}</div>`;
+  const goals = d.rows.reduce((s, r) => s + (r[3] || 0), 0);
+  return `<section class="card"><div class="card-h">${t('ss_title')} · ${esc(d.season)}</div>
+      <p class="small">${t('import_what', { n: d.rows.length, g: goals })}</p>
+      <button class="btn primary block" data-act="import-go">${t('import_go')}</button></section>
+    <section class="card tbl-wrap league"><table class="tbl"><thead><tr><th></th><th>${t('ss_apps')}</th><th>${t('minutes')}</th><th>${t('goals')}</th></tr></thead>
+      <tbody>${d.rows.map(r => `<tr><td class="tn">${esc(r[0])}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('')}</tbody></table></section>`;
+}
+
 // ---------- clubhouse: bookings and repairs (board) ----------
 function viewBuilding(tab, u) {
   if (!['bookings', 'repairs'].includes(tab)) tab = 'bookings';
@@ -654,6 +683,9 @@ document.addEventListener('click', ev => {
     case 'retry': S.reload(); render(); break;
     case 'invite': addPlayerSheet('player', true); break;
     case 'install': if (installEvt) { installEvt.prompt(); installEvt.userChoice.finally(() => { installEvt = null; render(); }); } break;
+    case 'import-go': { const d = pendingImport; if (!d) break; b.disabled = true;
+      S.importSeason(d).then(() => { pendingImport = null; toast(t('import_done', { n: d.rows.length })); location.hash = '#/stats/players'; })
+        .catch(e => { b.disabled = false; toast(t('sync_error') + ': ' + e.message); }); break; }
     case 'install-hide': S.setPref('install-hidden', '1'); render(); break;
     case 'share-app': { const d = { title: 'TTSC Buchen', text: t('share_text'), url: location.origin + location.pathname };
       if (navigator.share) navigator.share(d).catch(() => {}); else navigator.clipboard?.writeText(d.url).then(() => toast(t('link_copied'))); break; }

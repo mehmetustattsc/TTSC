@@ -1,0 +1,38 @@
+name: Update database
+
+# Applies supabase/schema.sql and the season fixtures to the Supabase database,
+# so nobody has to paste SQL by hand. Both files are safe to run again and again.
+# Needs the repository secret SUPABASE_DB_URL (Supabase → Connect → Session pooler URI,
+# with the database password filled in). Without it the job only prints a notice.
+
+on:
+  push:
+    branches: [main]
+    paths: ['supabase/**', '.github/workflows/db.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: database
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply schema and fixtures
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$DB" ]; then
+            echo "::notice::SUPABASE_DB_URL is not set yet – nothing applied."
+            exit 0
+          fi
+          sudo apt-get install -y -qq postgresql-client >/dev/null
+          psql "$DB" -v ON_ERROR_STOP=1 -q -f supabase/schema.sql
+          psql "$DB" -v ON_ERROR_STOP=1 -q -f supabase/fixtures-2026-27.sql
+          echo "### Database updated" >> "$GITHUB_STEP_SUMMARY"
+          psql "$DB" -tA -c "select 'tables: ' || count(*) from information_schema.tables where table_schema = 'public'" >> "$GITHUB_STEP_SUMMARY"
+          psql "$DB" -tA -c "select 'matches: ' || count(*) from public.events where type = 'match'" >> "$GITHUB_STEP_SUMMARY"
+          psql "$DB" -tA -c "select 'people in the app: ' || count(*) from public.profiles" >> "$GITHUB_STEP_SUMMARY"

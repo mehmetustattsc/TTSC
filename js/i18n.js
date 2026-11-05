@@ -441,6 +441,10 @@ for (const l in SEASON) Object.assign(T[l], SEASON[l]);
 // Player-coach.
 const PC = {"tr": {"also_plays": "Oyuncu da"}, "de": {"also_plays": "Spielt auch"}, "en": {"also_plays": "Also plays"}, "fr": {"also_plays": "Joue aussi"}};
 for (const l in PC) Object.assign(T[l], PC[l]);
+
+// Import link.
+const IMP = {"tr": {"import_bad": "Bu link bozuk ya da eksik.", "import_demo": "İçe aktarma sadece gerçek girişte çalışır.", "import_what": "{n} oyuncu, toplam {g} gol. Uygulamaya yüklensin mi? Daha önce yüklenenler güncellenir.", "import_go": "Yükle", "import_done": "{n} oyuncu yüklendi"}, "de": {"import_bad": "Dieser Link ist ungültig oder unvollständig.", "import_demo": "Import funktioniert nur mit echter Anmeldung.", "import_what": "{n} Spieler, zusammen {g} Tore. In die App übernehmen? Vorhandene Einträge werden aktualisiert.", "import_go": "Übernehmen", "import_done": "{n} Spieler übernommen"}, "en": {"import_bad": "This link is broken or incomplete.", "import_demo": "Import only works with a real sign-in.", "import_what": "{n} players, {g} goals in total. Load them into the app? Existing entries are updated.", "import_go": "Load", "import_done": "{n} players loaded"}, "fr": {"import_bad": "Ce lien est invalide ou incomplet.", "import_demo": "L'import ne fonctionne qu'avec une vraie connexion.", "import_what": "{n} joueurs, {g} buts au total. Les charger dans l'appli ? Les entrées existantes sont mises à jour.", "import_go": "Charger", "import_done": "{n} joueurs chargés"}};
+for (const l in IMP) Object.assign(T[l], IMP[l]);
 export const TAGS = ['pass', 'touch', 'position', 'press', 'duel', 'header', 'finish', 'stamina', 'talk', 'discipline', 'attitude', 'speed', 'dribble', 'defend', 'setpiece', 'lead'];
 export const FB_TAGS = ['training', 'team', 'tired', 'role', 'time', 'motivation'];
 export const REASONS = ['work', 'school', 'sick', 'injured', 'family', 'travel', 'other'];

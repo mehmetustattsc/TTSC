@@ -171,6 +171,17 @@ try {
   const st = await (await fetch(url + 'rest/v1/season_stats?select=name', { headers: { apikey: 'x', Authorization: 'Bearer ' + stTok } })).json();
   check(Array.isArray(st) && st.length === 0, 'stranger cannot read season stats');
 
+  // import link (board): loads season stats; a player is refused
+  {
+    const payload = Buffer.from(JSON.stringify({ kind: 'season_stats', season: '2026/27', source: 'https://www.fussball.de', rows: [['Link Spieler', 3, 210, 1], ['Zweiter Spieler', 1, 45, 0]] })).toString('base64url');
+    await player.goto(url + '#/import/' + payload); await player.waitForTimeout(300);
+    check((await player.text()).includes('🔒'), 'player cannot open the import link');
+    await admin.goto(url + '#/import/' + payload); await admin.waitForSelector('[data-act="import-go"]');
+    check(!admin.url().includes(payload), 'import data removed from the address bar');
+    await admin.click('[data-act="import-go"]'); await admin.waitForTimeout(800);
+    check(psql(`select count(*) from season_stats where name in ('Link Spieler', 'Zweiter Spieler')`) === '2', 'import link wrote the rows');
+  }
+
   // members, fees and clubhouse
   await admin.go('members'); await admin.click('[data-act="add-member"]'); await admin.fill('#mn', 'Klaus Testmann'); await admin.click('#mok'); await settle();
   await admin.fresh('members'); await admin.locator('.pay:not(.paid)').first().click(); await settle();
