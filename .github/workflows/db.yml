@@ -2,8 +2,11 @@ name: Update database
 
 # Applies supabase/schema.sql and the season fixtures to the Supabase database,
 # so nobody has to paste SQL by hand. Both files are safe to run again and again.
-# Needs the repository secret SUPABASE_DB_URL (Supabase → Connect → Session pooler URI,
-# with the database password filled in). Without it the job only prints a notice.
+#
+# Uses one of two repository secrets:
+#   SUPABASE_TOKEN   – a Supabase access token (supabase.com/dashboard/account/tokens); preferred
+#   SUPABASE_DB_URL  – the Session pooler connection address with the database password
+# Without either, the job only prints a notice.
 
 on:
   push:
@@ -15,43 +18,58 @@ concurrency:
   group: database
   cancel-in-progress: false
 
+env:
+  PROJECT_REF: cmzukfpfzgugjatawwwj
+
 jobs:
   apply:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+
       - name: Apply schema and fixtures
         env:
+          TOKEN: ${{ secrets.SUPABASE_TOKEN }}
           DB: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          if [ -z "$DB" ]; then
-            echo "::notice::SUPABASE_DB_URL is not set yet – nothing applied."
+          set -euo pipefail
+          sql_api() {   # run SQL through the Supabase Management API, print the JSON result
+            local body code
+            body=$(jq -Rs '{query: .}' "$1")
+            code=$(curl -sS -o /tmp/out.json -w '%{http_code}' -X POST \
+              "https://api.supabase.com/v1/projects/$PROJECT_REF/database/query" \
+              -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' --data "$body")
+            if [ "$code" -ge 300 ]; then echo "::error::Supabase answered $code: $(head -c 500 /tmp/out.json)"; exit 1; fi
+            cat /tmp/out.json
+          }
+          printf "select (select count(*) from information_schema.tables where table_schema = 'public') as tables,\n (select count(*) from public.events where type = 'match') as matches,\n (select count(*) from public.profiles) as people,\n (select count(*) from public.season_stats) as season_rows;\n" > /tmp/summary.sql
+
+          if [ -n "$TOKEN" ]; then
+            echo "Using the Supabase access token"
+            sql_api supabase/schema.sql >/dev/null
+            sql_api supabase/fixtures-2026-27.sql >/dev/null
+            { echo "### Database updated"; sql_api /tmp/summary.sql | jq -r '.[0] | to_entries[] | "- \(.key): \(.value)"'; } >> "$GITHUB_STEP_SUMMARY"
+            cat "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+
+          if [ -z "$DB" ]; then echo "::notice::No SUPABASE_TOKEN or SUPABASE_DB_URL secret yet – nothing applied."; exit 0; fi
           sudo apt-get install -y -qq postgresql-client >/dev/null
-          # Split the address by hand (first ':' after the user, last '@' before the host), so a password
-          # with characters like @ # / ? % works without URL-encoding. The password goes in PGPASSWORD.
+          # Split the address by hand so a password with @ # / ? % works without URL-encoding.
           eval "$(python3 - <<'PY'
           import os, shlex
-          raw = os.environ['DB'].strip()
-          rest = raw.split('://', 1)[1]
+          rest = os.environ['DB'].strip().split('://', 1)[1]
           cred, hostpart = rest.rsplit('@', 1)
           user, pw = cred.split(':', 1)
           hp, _, db = hostpart.partition('/')
           host, _, port = hp.partition(':')
-          db = db.split('?', 1)[0] or 'postgres'
-          for k, v in dict(PGUSER=user, PGPASSWORD=pw, PGHOST=host, PGPORT=port or '5432', PGDATABASE=db, PGSSLMODE='require').items():
+          for k, v in dict(PGUSER=user, PGPASSWORD=pw, PGHOST=host, PGPORT=port or '5432', PGDATABASE=(db.split('?')[0] or 'postgres'), PGSSLMODE='require').items():
               print(f'export {k}={shlex.quote(v)}')
           PY
           )"
-          echo "user: $PGUSER | host: $PGHOST | port: $PGPORT | db: $PGDATABASE | password length: ${#PGPASSWORD}"
           echo "::add-mask::$PGPASSWORD"
-          DB=""
-          for i in 1 2 3; do psql -tAc 'select 1' >/dev/null 2>&1 && break; echo "connection attempt $i failed, waiting…"; sleep 15; done
+          echo "Using the connection address: user $PGUSER, host $PGHOST"
           psql -v ON_ERROR_STOP=1 -q -f supabase/schema.sql
           psql -v ON_ERROR_STOP=1 -q -f supabase/fixtures-2026-27.sql
-          echo "### Database updated" >> "$GITHUB_STEP_SUMMARY"
-          psql -tA -c "select 'tables: ' || count(*) from information_schema.tables where table_schema = 'public'" >> "$GITHUB_STEP_SUMMARY"
-          psql -tA -c "select 'matches: ' || count(*) from public.events where type = 'match'" >> "$GITHUB_STEP_SUMMARY"
-          psql -tA -c "select 'people in the app: ' || count(*) from public.profiles" >> "$GITHUB_STEP_SUMMARY"
+          { echo "### Database updated"; psql -tA -F ': ' -f /tmp/summary.sql; } >> "$GITHUB_STEP_SUMMARY"
