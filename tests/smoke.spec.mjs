@@ -6,7 +6,7 @@ import { readFile, mkdir } from 'fs/promises';
 import { extname, join } from 'path';
 
 const root = new URL('..', import.meta.url).pathname;
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.webp': 'image/webp', '.webmanifest': 'application/manifest+json' };
+const types = { '.woff': 'font/woff', '.json': 'application/json', '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.webp': 'image/webp', '.webmanifest': 'application/manifest+json' };
 const server = createServer(async (req, res) => {
   const p = join(root, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
   try { res.writeHead(200, { 'content-type': types[extname(p)] || 'application/octet-stream' }); res.end(await readFile(p)); } catch { res.writeHead(404); res.end(); }
@@ -28,7 +28,12 @@ const tiles = async () => (await page.locator('.tile-m').evaluateAll(a => a.map(
 const as = async id => { await go('me'); const b = page.locator('[data-act="switch"]'); if (await b.count()) await b.click(); await page.click(`[data-act="login"][data-id="${id}"]`); await page.waitForSelector('.hello'); };
 const locked = async h => { await go(h); return (await page.locator('.view').innerText()).includes('🔒'); };
 
+const foreign = []; page.on('request', r => { const h = new URL(r.url()).hostname; if (h !== 'localhost' && !/supabase\.co$/.test(h)) foreign.push(h); });
 await page.goto(url); await page.waitForSelector('.login'); await shot('01-login');
+check(!foreign.length, 'no requests to other sites on load: ' + [...new Set(foreign)].join(', '));
+check(await page.evaluate(() => document.fonts.check('600 16px Barlow')), 'Barlow font loads from the app');
+await page.goto(url + 'datenschutz.html'); check((await page.locator('#de h1').innerText()).includes('Datenschutz') && (await page.locator('#tr h1').count()) === 1, 'privacy page in DE and TR'); await shot('00-datenschutz-full');
+await page.goto(url); await page.waitForSelector('.login');
 check(await page.locator('#lem').count() === 1, 'server login shows the email field');
 await page.click('[data-act="demo-on"]'); await page.waitForSelector('.demo-banner');
 

@@ -1,3 +1,10 @@
+/* Fonts are served from the app itself (no request to Google). Barlow, SIL Open Font License: assets/fonts/OFL.txt */
+@font-face { font-family: 'Barlow'; font-weight: 400; font-style: normal; font-display: swap; src: url(../assets/fonts/Barlow-Regular.woff) format('woff'); }
+@font-face { font-family: 'Barlow'; font-weight: 500; font-style: normal; font-display: swap; src: url(../assets/fonts/Barlow-Medium.woff) format('woff'); }
+@font-face { font-family: 'Barlow'; font-weight: 600; font-style: normal; font-display: swap; src: url(../assets/fonts/Barlow-SemiBold.woff) format('woff'); }
+@font-face { font-family: 'Barlow'; font-weight: 700; font-style: normal; font-display: swap; src: url(../assets/fonts/Barlow-Bold.woff) format('woff'); }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 600; font-style: normal; font-display: swap; src: url(../assets/fonts/BarlowCondensed-SemiBold.woff) format('woff'); }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 700; font-style: normal; font-display: swap; src: url(../assets/fonts/BarlowCondensed-Bold.woff) format('woff'); }
 :root {
   --red: #C8102E; --red-d: #9E0B23; --red-soft: #FCE8EB;
   --bg: #F3F1EE; --card: #FFFFFF; --ink: #17181C; --muted: #6B6F78; --line: #E6E2DC;

@@ -158,7 +158,7 @@ function viewLogin() {
         <label class="fld"><span>${t('login_code')}</span><input id="lco" required inputmode="numeric" autocomplete="one-time-code" maxlength="10" class="code-in" placeholder="123456"></label>
         <button class="btn primary block" ${loginBusy ? 'disabled' : ''}>${loginBusy ? '…' : t('login_verify')}</button>
         <button type="button" class="btn danger-ghost block" data-act="login-restart">${t('login_other_email')}</button></form>`;
-  return `<div class="login">${loginHead()}${box}<button class="link-btn" data-act="demo-on">${t('login_try_demo')}</button></div>`;
+  return `<div class="login">${loginHead()}${box}<button class="link-btn" data-act="demo-on">${t('login_try_demo')}</button><a class="link-btn" href="datenschutz.html">${t('privacy')}</a></div>`;
 }
 function viewWaiting(u) {
   const busy = S.status.loading || !S.data().loaded;
@@ -392,7 +392,8 @@ function viewGames() {
 function viewClub() {
   return `<section class="card club-h"><img src="assets/logo.png" alt="TTSC Buchen" width="72" height="75"><div><h1>TTSC Buchen e.V.</h1><p class="muted">${t('club_since')}</p></div></section>
     <section class="card list">${CLUB.map(l => `<a class="row" href="${l.url}" target="_blank" rel="noopener"><span class="ti sm" style="--c:${l.c}">${svg(l.icon)}</span><span class="grow"><b>${t(l.k)}</b><small>${l.label}</small></span><span class="chev">›</span></a>`).join('')}</section>
-    <button class="btn primary block" data-act="share-app">↗ ${t('share_app')}</button>`;
+    <button class="btn primary block" data-act="share-app">↗ ${t('share_app')}</button>
+    <a class="link-btn" href="datenschutz.html">${t('privacy')}</a>`;
 }
 
 // ---------- player tracking (coach, board) ----------
@@ -455,6 +456,7 @@ function viewMe(_, u) {
   return `<section class="card profile-h sm">${avatar(u, 'lg')}<div><b>${esc(u.name)}</b><div class="muted small">${t('role_' + u.role)}${u.title ? ' · ' + esc(u.title) : ''}</div></div>${u.role === 'player' ? `<a class="btn sm" href="#/stats/me">${t('my_stats')}</a>` : ''}</section>
     <div class="sec-t">${t('language')}</div><section class="card"><div class="seg">${Object.entries(LANGS).map(([k, v]) => `<button class="${u.lang === k ? 'on' : ''}" data-act="lang" data-v="${k}">${v}</button>`).join('')}</div><small class="muted">${t('multi_hint')}</small></section>
     ${S.isDemo() ? `<div class="demo-banner">${t('demo_banner')}</div>` : ''}
+    <a class="btn block" href="datenschutz.html">🔒 ${t('privacy')}</a>
     <button class="btn block" data-act="switch">${t('logout')}</button>
     ${S.isDemo() ? `<button class="btn danger-ghost block" data-act="reset">${t('reset_demo')}</button><button class="btn danger-ghost block" data-act="demo-off">${t('login_back_real')}</button>` : ''}`;
 }

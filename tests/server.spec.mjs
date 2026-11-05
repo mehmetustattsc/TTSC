@@ -56,7 +56,7 @@ const jwt = p => { const h = b64({ alg: 'HS256', typ: 'JWT' }), b = b64(p); retu
 const codes = {}, refresh = {};
 const tokenFor = (id, email) => { const r = randomUUID(); refresh[r] = { id, email }; return { access_token: jwt({ sub: id, role: 'authenticated', email, exp: Math.floor(Date.now() / 1000) + 3600 }), refresh_token: r, expires_in: 3600, user: { id, email } }; };
 const body = req => new Promise(r => { let d = ''; req.on('data', c => d += c); req.on('end', () => r(d ? JSON.parse(d) : {})); });
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
+const types = { '.woff': 'font/woff', '.json': 'application/json', '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
 const app = createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x');
   const json = (code, o) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(o === undefined ? '' : JSON.stringify(o)); };

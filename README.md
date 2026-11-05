@@ -36,6 +36,8 @@ Geri bildirim etiketleri ve mazeretler anahtar olarak saklanır, herkes kendi di
 | `js/store.js` | Veri katmanı: sunucu modu + demo verisi |
 | `js/remote.js`, `js/config.js` | Supabase bağlantısı (giriş kodu, tablolar) |
 | `js/i18n.js` | Dört dil (TR/DE/EN/FR), etiketler, mazeretler |
+| `datenschutz.html` | Datenschutzhinweise (DE, TR) – Entwurf, gelbe Stellen vom Vorstand ergänzen |
+| `assets/fonts/` | Barlow-Schriften, lokal (kein Google-Aufruf), SIL OFL |
 | `sw.js`, `manifest.webmanifest` | Ana ekrana ekleme ve internetsiz açılış |
 | `supabase/schema.sql` | Sunucu tabloları, davet listesi, rol ve gizlilik kuralları |
 | `tests/i18n.spec.mjs` | Dört dilde de aynı anahtarlar ve {yer tutucular} var mı |
