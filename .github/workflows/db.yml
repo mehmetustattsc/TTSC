@@ -30,20 +30,28 @@ jobs:
             exit 0
           fi
           sudo apt-get install -y -qq postgresql-client >/dev/null
-          # Show the shape of the connection address without revealing the password.
-          python3 - <<'PY'
-          import os, urllib.parse as u
-          raw = os.environ['DB'].strip(); x = u.urlsplit(raw); pw = x.password or ''
-          print('scheme:', x.scheme, '| user:', x.username, '| host:', x.hostname, '| port:', x.port, '| db:', x.path)
-          print('password length:', len(pw), '| brackets left:', '[' in pw or ']' in pw or 'YOUR-PASSWORD' in raw,
-                '| special characters:', sorted(set(c for c in pw if not c.isalnum())) and 'yes' or 'no',
-                '| spaces/newlines around:', raw != os.environ['DB'])
+          # Split the address by hand (first ':' after the user, last '@' before the host), so a password
+          # with characters like @ # / ? % works without URL-encoding. The password goes in PGPASSWORD.
+          eval "$(python3 - <<'PY'
+          import os, shlex
+          raw = os.environ['DB'].strip()
+          rest = raw.split('://', 1)[1]
+          cred, hostpart = rest.rsplit('@', 1)
+          user, pw = cred.split(':', 1)
+          hp, _, db = hostpart.partition('/')
+          host, _, port = hp.partition(':')
+          db = db.split('?', 1)[0] or 'postgres'
+          for k, v in dict(PGUSER=user, PGPASSWORD=pw, PGHOST=host, PGPORT=port or '5432', PGDATABASE=db, PGSSLMODE='require').items():
+              print(f'export {k}={shlex.quote(v)}')
           PY
-          DB=$(printf '%s' "$DB" | tr -d '\r\n' | sed 's/^ *//;s/ *$//')
-          for i in 1 2 3 4; do psql "$DB" -tAc 'select 1' >/dev/null 2>&1 && break; echo "connection attempt $i failed, waiting…"; sleep 20; done
-          psql "$DB" -v ON_ERROR_STOP=1 -q -f supabase/schema.sql
-          psql "$DB" -v ON_ERROR_STOP=1 -q -f supabase/fixtures-2026-27.sql
+          )"
+          echo "user: $PGUSER | host: $PGHOST | port: $PGPORT | db: $PGDATABASE | password length: ${#PGPASSWORD}"
+          echo "::add-mask::$PGPASSWORD"
+          DB=""
+          for i in 1 2 3; do psql -tAc 'select 1' >/dev/null 2>&1 && break; echo "connection attempt $i failed, waiting…"; sleep 15; done
+          psql -v ON_ERROR_STOP=1 -q -f supabase/schema.sql
+          psql -v ON_ERROR_STOP=1 -q -f supabase/fixtures-2026-27.sql
           echo "### Database updated" >> "$GITHUB_STEP_SUMMARY"
-          psql "$DB" -tA -c "select 'tables: ' || count(*) from information_schema.tables where table_schema = 'public'" >> "$GITHUB_STEP_SUMMARY"
-          psql "$DB" -tA -c "select 'matches: ' || count(*) from public.events where type = 'match'" >> "$GITHUB_STEP_SUMMARY"
-          psql "$DB" -tA -c "select 'people in the app: ' || count(*) from public.profiles" >> "$GITHUB_STEP_SUMMARY"
+          psql -tA -c "select 'tables: ' || count(*) from information_schema.tables where table_schema = 'public'" >> "$GITHUB_STEP_SUMMARY"
+          psql -tA -c "select 'matches: ' || count(*) from public.events where type = 'match'" >> "$GITHUB_STEP_SUMMARY"
+          psql -tA -c "select 'people in the app: ' || count(*) from public.profiles" >> "$GITHUB_STEP_SUMMARY"
