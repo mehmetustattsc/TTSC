@@ -1,0 +1,26 @@
+name: fussball.de import
+
+# Reads the TTSC pages on fussball.de (league table, results, squad statistics) and stores them
+# in the Supabase database. Runs every morning; can also be started by hand.
+on:
+  schedule:
+    - cron: '17 4 * * *'      # every day 05:17 / 06:17 in Buchen
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'probe = only look at the page structure, import = store the data'
+        default: import
+
+concurrency:
+  group: fussball
+  cancel-in-progress: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe
+        if: github.event.inputs.mode == 'probe'
+        run: python3 tools/fussball_probe.py
