@@ -80,13 +80,13 @@ jobs:
               keys=$(npx -y web-push@3.6.7 generate-vapid-keys --json)
               pub=$(jq -r .publicKey <<<"$keys"); priv=$(jq -r .privateKey <<<"$keys"); hook=$(openssl rand -hex 24)
               echo "::add-mask::$priv"; echo "::add-mask::$hook"
-              supabase secrets set --project-ref "$PROJECT_REF" VAPID_PUBLIC="$pub" VAPID_PRIVATE="$priv" HOOK_SECRET="$hook" VAPID_SUBJECT="mailto:info@ttscbuchen.de" >/dev/null
+              supabase secrets set --remote="$PROJECT_REF" --yes VAPID_PUBLIC="$pub" VAPID_PRIVATE="$priv" HOOK_SECRET="$hook" VAPID_SUBJECT="mailto:info@ttscbuchen.de" >/dev/null
               printf "insert into private.app_secrets values ('hook', '%s'), ('function_url', 'https://%s.supabase.co/functions/v1/notify') on conflict (key) do update set value = excluded.value;\ninsert into public.app_config values ('vapid_public', '%s') on conflict (key) do update set value = excluded.value;\n" "$hook" "$PROJECT_REF" "$pub" > /tmp/keys.sql
               sql_api /tmp/keys.sql >/dev/null; rm -f /tmp/keys.sql
               echo "Push keys created"
             fi
             sql_api supabase/push.sql >/dev/null
-            supabase functions deploy notify --project-ref "$PROJECT_REF" --no-verify-jwt --use-api
+            supabase functions deploy notify --remote="$PROJECT_REF" --no-verify-jwt --use-api --yes
             { echo "### Database updated"; sql_api /tmp/summary.sql | jq -r '.[0] | to_entries[] | "- \(.key): \(.value)"'; } >> "$GITHUB_STEP_SUMMARY"
             cat "$GITHUB_STEP_SUMMARY"
             exit 0
