@@ -11,4 +11,5 @@
 - No requests to other sites on load (fonts are local; the smoke test checks it). When adding a new kind of personal data or a new service, update `datenschutz.html` (DE + TR).
 - The real coach is Muhammet; never invent names of real club people.
 - Demo names, opponents and results are invented; keep them invented.
+- Push: rules in `supabase/functions/notify/logic.js` (tested by `npm run test:notify`), sender `index.ts`, triggers and daily reminder in `supabase/push.sql`; `.github/workflows/db.yml` creates the keys once and deploys. Notifications never contain the text of private notes.
 - Before pushing: `npm run test:smoke`, then look at the screenshots in `tests/shots/`.

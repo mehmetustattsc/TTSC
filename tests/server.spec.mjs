@@ -40,6 +40,17 @@ psql(`
 psql(await readFile(join(root, 'supabase/schema.sql'), 'utf8'));
 psql(await readFile(join(root, 'supabase/schema.sql'), 'utf8')); // must be safe to run twice
 psql(`insert into public.invites(email, role, name, lang) values ('admin@ttsc.test', 'admin', 'Mehmet Admin', 'tr');`);
+// push: stand-in for pg_net that records the calls the triggers make
+psql(`create schema if not exists net; create table if not exists net.calls (id serial, url text, body jsonb, headers jsonb);
+  create or replace function net.http_post(url text, body jsonb default '{}', params jsonb default '{}', headers jsonb default '{}', timeout_milliseconds int default 1000)
+  returns bigint language sql as $$ insert into net.calls (url, body, headers) values (url, body, headers) returning id $$;`);
+psql(await readFile(join(root, 'supabase/push.sql'), 'utf8')); psql(await readFile(join(root, 'supabase/push.sql'), 'utf8'));
+psql(`insert into private.app_secrets values ('function_url', 'https://example.test/notify'), ('hook', 's3cret') on conflict do nothing;
+  insert into public.app_config values ('vapid_public', 'BElocalTestKeyOnly') on conflict do nothing;`);
+{ const fx = await readFile(join(root, 'supabase/fixtures-2026-27.sql'), 'utf8');
+  psql(fx); if (psql(`select count(*) from net.calls`) !== '1') throw new Error('12 fixtures must make exactly one notifier call');
+  psql(fx); if (psql(`select count(*) from net.calls`) !== '1') throw new Error('re-running the fixtures must not notify again');
+  psql(`truncate net.calls`); }
 const fixtures = await readFile(join(root, 'supabase/fixtures-2026-27.sql'), 'utf8');
 psql(fixtures); psql(fixtures);
 if (psql(`select count(*) from events where type = 'match'`) !== '12') throw new Error('fixtures not loaded exactly once');
@@ -165,6 +176,17 @@ try {
   await player.go('msg/team'); await player.fill('#cm', 'Merhaba takım'); await player.press('#cm', 'Enter'); await settle();
   await admin.go('msg/board'); await admin.fill('#cm', 'Nur für den Vorstand'); await admin.press('#cm', 'Enter'); await settle();
   await coach.fresh('msg/team'); check((await coach.text()).includes('Merhaba takım'), 'coach reads player\'s chat message');
+  check(psql(`select count(*) from net.calls where body->>'type' = 'messages' and body->'rows'->0->>'text' = 'Merhaba takım' and headers->>'x-hook-secret' = 's3cret'`) === '1', 'chat message calls the notifier once');
+  check(psql(`select count(*) from net.calls where body->>'type' = 'events' and body->'rows'->0->>'opponent' = 'SV Test'`) === '1', 'new match calls the notifier');
+  // a phone subscription: own row only
+  const pTok = await player.evaluate(() => JSON.parse(localStorage.getItem('ttsc-session')).access_token);
+  const H = t => ({ apikey: 'x', Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' });
+  const pid0 = psql(`select id from profiles where name = 'Can Player'`);
+  check((await fetch(url + 'rest/v1/push_subs', { method: 'POST', headers: H(pTok), body: JSON.stringify({ endpoint: 'https://push.test/1', user_id: pid0, p256dh: 'k', auth: 'a' }) })).status < 300, 'player saves his phone subscription');
+  check((await fetch(url + 'rest/v1/push_subs', { method: 'POST', headers: H(pTok), body: JSON.stringify({ endpoint: 'https://push.test/2', user_id: psql(`select id from profiles where name = 'Murat Coach'`), p256dh: 'k', auth: 'a' }) })).status >= 400, 'player cannot subscribe someone else');
+  const cTok = await coach.evaluate(() => JSON.parse(localStorage.getItem('ttsc-session')).access_token);
+  check((await (await fetch(url + 'rest/v1/push_subs?select=endpoint', { headers: H(cTok) })).json()).length === 0, 'others cannot see a phone subscription');
+  check((await (await fetch(url + 'rest/v1/app_config?select=value&key=eq.vapid_public', { headers: H(pTok) })).json())[0]?.value === 'BElocalTestKeyOnly', 'app reads the public push key');
   await player.fresh('msg/board'); check(!(await player.text()).includes('Nur für den Vorstand'), 'player cannot read board chat');
   await player.screenshot({ path: join(root, 'tests/shots/s2-player-chat.png') });
 

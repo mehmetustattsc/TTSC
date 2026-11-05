@@ -265,3 +265,4 @@ small { display: block; font-size: 12.5px; color: var(--muted); }
 .fb-line { margin: 8px 4px 0; }
 .plays { display: flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 600; white-space: nowrap; } .plays input { accent-color: var(--red); }
 .qr { display: block; width: min(280px, 80vw); height: auto; margin: 10px auto 4px; border-radius: 12px; }
+.push .inst-ic { font-size: 30px; width: 44px; text-align: center; } .push { background: var(--info-soft); }

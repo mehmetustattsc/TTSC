@@ -194,6 +194,7 @@ function viewHome(_, u) {
     S.pendingSelf(u.id).slice(0, 1).forEach(e => { html += `<button class="card notice ghost" data-act="self" data-eid="${e.id}"><span>📝</span><span class="grow"><b>${t('to_assess')}</b><small>${evIcon(e)} ${evTitle(e)} · ${fmtDate(e.date)}</small></span><span class="chev">›</span></button>`; });
   }
   html += installCard();
+  html += pushCard(true);
   if (S.isAdmin(u) && S.pendingUsers().length) html += `<a class="card notice" href="#/members"><span class="dot"></span><b>${t('pending_n', { n: S.pendingUsers().length })}</b><span class="chev">›</span></a>`;
   if (next) html += `<div class="sec-t">${t('next_event')}</div>${eventCard(next, u, true)}`;
   const tile = m => `<a class="tile-m" href="#/${m.k}" style="--c:${m.c}"><span class="ti">${svg(ICONS[m.k])}</span><span class="tl">${t('mod_' + m.k)}</span>${b[m.k] ? `<i class="tb">${b[m.k]}</i>` : ''}</a>`;
@@ -502,8 +503,23 @@ function viewBuilding(tab, u) {
 }
 
 // ---------- me ----------
+// notifications card (profile page; also on home until switched on or dismissed)
+let pushOn = null;
+function pushCard(home = false) {
+  if (!S.pushReady()) return '';
+  const sup = S.pushSupport();
+  if (pushOn === null) S.pushState().then(v => { pushOn = v === 'on'; render(); });
+  if (home && (pushOn !== false || S.pref('push-hidden') || sup === 'no')) return '';
+  const body = sup === 'ios-install' ? `<small>${t('push_ios')}</small>`
+    : sup === 'denied' ? `<small>${t('push_denied')}</small>`
+    : sup === 'no' ? `<small>${t('push_no')}</small>`
+    : pushOn ? `<small>✓ ${t('push_on')}</small><button class="btn sm" data-act="push-off">${t('push_turn_off')}</button>`
+    : `<small>${t('push_why')}</small><button class="btn primary sm" data-act="push-on">${t('push_turn_on')}</button>`;
+  return `<section class="card install push"><span class="inst-ic">🔔</span><div class="grow"><b>${t('push_title')}</b>${body}</div>${home ? `<button class="x" data-act="push-hide" aria-label="${t('close')}">✕</button>` : ''}</section>`;
+}
 function viewMe(_, u) {
   return `<section class="card profile-h sm">${avatar(u, 'lg')}<div><b>${esc(u.name)}</b><div class="muted small">${t('role_' + u.role)}${u.plays ? ' · ' + t('also_plays') : ''}${u.title ? ' · ' + esc(u.title) : ''}</div></div>${S.isPlaying(u) ? `<a class="btn sm" href="#/stats/me">${t('my_stats')}</a>` : ''}</section>
+    ${pushCard()}
     <div class="sec-t">${t('language')}</div><section class="card"><div class="seg">${Object.entries(LANGS).map(([k, v]) => `<button class="${u.lang === k ? 'on' : ''}" data-act="lang" data-v="${k}">${v}</button>`).join('')}</div><small class="muted">${t('multi_hint')}</small></section>
     ${S.isDemo() ? `<div class="demo-banner">${t('demo_banner')}</div>` : ''}
     <a class="btn block" href="datenschutz.html">🔒 ${t('privacy')}</a>
@@ -730,6 +746,10 @@ document.addEventListener('click', ev => {
     case 'import-go': { const d = pendingImport; if (!d) break; b.disabled = true;
       S.importSeason(d).then(() => { pendingImport = null; toast(t('import_done', { n: d.rows.length })); location.hash = '#/stats/players'; })
         .catch(e => { b.disabled = false; toast(t('sync_error') + ': ' + e.message); }); break; }
+    case 'push-on': b.disabled = true; S.enablePush().then(() => { pushOn = true; toast(t('push_on')); render(); })
+      .catch(e => { b.disabled = false; toast(e.message === 'permission' ? t('push_denied') : t('sync_error') + ': ' + e.message); render(); }); break;
+    case 'push-off': S.disablePush().then(() => { pushOn = false; render(); }); break;
+    case 'push-hide': S.setPref('push-hidden', '1'); render(); break;
     case 'install-hide': S.setPref('install-hidden', '1'); render(); break;
     case 'share-app': { const d = { title: 'TTSC Buchen', text: t('share_text'), url: location.origin + location.pathname };
       if (navigator.share) navigator.share(d).catch(() => {}); else navigator.clipboard?.writeText(d.url).then(() => toast(t('link_copied'))); break; }

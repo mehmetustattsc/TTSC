@@ -78,8 +78,8 @@ export function reload() {
   loading = Promise.all([
     q('profiles', 'select=*'), q('availability'), q('events', 'select=*&order=date'), q('rsvps'), q('attendance'), q('match_stats'),
     q('notes', 'select=*&order=created_at'), q('self_ratings'), q('messages', 'select=*&order=created_at.desc&limit=500'),
-    q('members', 'select=*'), q('fees'), q('bookings'), q('repairs'), q('invites'), qNew('season_stats', 'select=*&order=apps.desc,minutes.desc'),
-  ]).then(([profiles, avail, events, rsvps, att, mstats, notes, selfs, msgs, members, fees, bookings, repairs, invites, season]) => {
+    q('members', 'select=*'), q('fees'), q('bookings'), q('repairs'), q('invites'), qNew('season_stats', 'select=*&order=apps.desc,minutes.desc'), qNew('app_config'),
+  ]).then(([profiles, avail, events, rsvps, att, mstats, notes, selfs, msgs, members, fees, bookings, repairs, invites, season, config]) => {
     const n = emptyDb(); n.seen = db.seen;
     n.users = profiles.map(p => ({ id: p.id, name: p.name, role: p.role, num: p.num || 0, pos: p.pos || 'MF', lang: p.lang, title: p.title || '', plays: !!p.plays }));
     avail.forEach(a => { n.availability[a.player_id] = { s: a.status, at: a.updated_at }; });
@@ -96,6 +96,7 @@ export function reload() {
     n.repairs = repairs.map(r => ({ id: r.id, title: r.title, text: r.text || '', status: r.status, by: r.reported_by, at: r.created_at }));
     n.invites = invites;
     n.season = season;
+    n.config = Object.fromEntries(config.map(c => [c.key, c.value]));
     n.loaded = true; db = n; status.error = null;
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(n)); } catch (e) { /* full or private: fine */ }
   }).catch(e => {
@@ -320,6 +321,33 @@ export function addSelf(s) {
   W(() => R.upsert('self_ratings', { player_id: x.pid, event_id: x.eid, rating: x.rating, good: x.good || [], improve: x.improve || [], text: x.text || null }, 'player_id,event_id'));
 }
 // season statistics from fussball.de (Einsätze, Minuten, Tore), matched to app players by name
+// ---------- push notifications ----------
+const b64 = s => { const p = '='.repeat((4 - s.length % 4) % 4); const r = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(r, c => c.charCodeAt(0)); };
+export const pushReady = () => mode === 'server' && !!(db.config || {}).vapid_public;
+export function pushSupport() {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return 'no';
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  if (!('PushManager' in window)) return ios && !standalone ? 'ios-install' : 'no';
+  if (Notification.permission === 'denied') return 'denied';
+  return 'yes';
+}
+export async function pushState() {
+  if (pushSupport() !== 'yes') return 'off';
+  const reg = await navigator.serviceWorker.getRegistration(); const sub = reg && await reg.pushManager.getSubscription();
+  return sub && Notification.permission === 'granted' ? 'on' : 'off';
+}
+export async function enablePush() {
+  const perm = await Notification.requestPermission(); if (perm !== 'granted') throw new Error('permission');
+  const reg = await navigator.serviceWorker.ready;
+  const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(db.config.vapid_public) });
+  const j = sub.toJSON();
+  await R.upsert('push_subs', { endpoint: j.endpoint, user_id: db.session.userId, p256dh: j.keys.p256dh, auth: j.keys.auth }, 'endpoint');
+}
+export async function disablePush() {
+  const reg = await navigator.serviceWorker.getRegistration(); const sub = reg && await reg.pushManager.getSubscription(); if (!sub) return;
+  await R.remove('push_subs', 'endpoint=eq.' + encodeURIComponent(sub.endpoint)).catch(() => {}); await sub.unsubscribe();
+}
 export const seasonStats = () => db.season || [];
 export async function importSeason({ season, source, rows }) {
   await R.upsert('season_stats', rows.map(([name, apps, minutes, goals]) => ({ season, name, apps, minutes, goals, source, updated_on: TODAY() })), 'season,name');

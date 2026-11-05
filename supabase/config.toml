@@ -1,0 +1,5 @@
+# Minimal Supabase CLI config, used only to deploy the edge function from GitHub Actions.
+project_id = "ttsc"
+
+[functions.notify]
+verify_jwt = false   # called by database triggers with a shared secret header, not by users

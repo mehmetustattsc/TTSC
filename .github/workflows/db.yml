@@ -32,10 +32,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
 
       - name: Apply schema and fixtures
         env:
           TOKEN: ${{ secrets.SUPABASE_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_TOKEN }}
           SEASON_DATA: ${{ github.event.inputs.season_data }}
           DB: ${{ secrets.SUPABASE_DB_URL }}
         run: |
@@ -70,6 +74,19 @@ jobs:
               sql_api /tmp/season.sql >/dev/null
               echo "Season stats loaded: $(python3 -c "import os,json,base64;r=os.environ['SEASON_DATA'].strip();r+='='*(-len(r)%4);print(len(json.loads(base64.urlsafe_b64decode(r))['rows']))") rows"
             fi
+            # push notifications: keys are created once and stay in Supabase (never printed, never in the repo)
+            echo "select count(*) as n from public.app_config where key = 'vapid_public';" > /tmp/q.sql
+            if [ "$(sql_api /tmp/q.sql | jq -r '.[0].n')" = "0" ]; then
+              keys=$(npx -y web-push@3.6.7 generate-vapid-keys --json)
+              pub=$(jq -r .publicKey <<<"$keys"); priv=$(jq -r .privateKey <<<"$keys"); hook=$(openssl rand -hex 24)
+              echo "::add-mask::$priv"; echo "::add-mask::$hook"
+              supabase secrets set --project-ref "$PROJECT_REF" VAPID_PUBLIC="$pub" VAPID_PRIVATE="$priv" HOOK_SECRET="$hook" VAPID_SUBJECT="mailto:info@ttscbuchen.de" >/dev/null
+              printf "insert into private.app_secrets values ('hook', '%s'), ('function_url', 'https://%s.supabase.co/functions/v1/notify') on conflict (key) do update set value = excluded.value;\ninsert into public.app_config values ('vapid_public', '%s') on conflict (key) do update set value = excluded.value;\n" "$hook" "$PROJECT_REF" "$pub" > /tmp/keys.sql
+              sql_api /tmp/keys.sql >/dev/null; rm -f /tmp/keys.sql
+              echo "Push keys created"
+            fi
+            sql_api supabase/push.sql >/dev/null
+            supabase functions deploy notify --project-ref "$PROJECT_REF" --no-verify-jwt --use-api
             { echo "### Database updated"; sql_api /tmp/summary.sql | jq -r '.[0] | to_entries[] | "- \(.key): \(.value)"'; } >> "$GITHUB_STEP_SUMMARY"
             cat "$GITHUB_STEP_SUMMARY"
             exit 0

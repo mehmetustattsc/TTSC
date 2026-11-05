@@ -159,6 +159,21 @@ create table if not exists public.season_stats (
   primary key (season, name)
 );
 
+-- ---------- push notifications ----------
+-- one row per phone/browser that allowed notifications
+create table if not exists public.push_subs (
+  endpoint text primary key,
+  user_id uuid not null references public.profiles on delete cascade,
+  p256dh text not null, auth text not null,
+  created_at timestamptz not null default now()
+);
+-- public settings the app reads (e.g. the VAPID public key)
+create table if not exists public.app_config (key text primary key, value text not null);
+-- secrets for the database itself; this schema is not reachable through the API
+create schema if not exists private;
+create table if not exists private.app_secrets (key text primary key, value text not null);
+revoke all on schema private from public;
+
 -- ---------- access rules ----------
 alter table public.invites      enable row level security;
 alter table public.profiles     enable row level security;
@@ -175,6 +190,8 @@ alter table public.fees         enable row level security;
 alter table public.bookings     enable row level security;
 alter table public.repairs      enable row level security;
 alter table public.season_stats enable row level security;
+alter table public.push_subs    enable row level security;
+alter table public.app_config   enable row level security;
 
 drop policy if exists invites_admin on public.invites;
 create policy invites_admin on public.invites for all using (public.is_admin()) with check (public.is_admin());
@@ -243,6 +260,10 @@ drop policy if exists fees_board on public.fees;
 create policy fees_board on public.fees for all using (public.is_board()) with check (public.is_board());
 drop policy if exists bookings_board on public.bookings;
 create policy bookings_board on public.bookings for all using (public.is_board()) with check (public.is_board());
+drop policy if exists push_own on public.push_subs;
+create policy push_own on public.push_subs for all using (user_id = auth.uid()) with check (user_id = auth.uid() and public.is_member());
+drop policy if exists config_read on public.app_config;
+create policy config_read on public.app_config for select using (auth.uid() is not null);
 drop policy if exists season_read on public.season_stats;
 create policy season_read on public.season_stats for select using (public.is_member());
 drop policy if exists season_board on public.season_stats;
