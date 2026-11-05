@@ -102,6 +102,8 @@ await go('building/bookings'); await shot('12-bookings');
 await as('b1');
 await go('members'); check(await page.locator('select[data-act-change="role"]').count() > 0, 'admin sees roles');
 await page.selectOption('select[data-id="p16"]', 'coach'); await page.waitForTimeout(80);
+await page.check('input[data-act-change="plays"][data-id="c2"]'); await page.waitForTimeout(80);
+await go('stats/players'); check((await page.locator('.view').innerText()).includes('Stefan'), 'player-coach appears among players');
 await as('p16').catch(() => {}); // p16 is now a coach and listed under coaches
 check((await tiles()).includes('#/players'), 'role change gives coach tiles');
 

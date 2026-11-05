@@ -53,7 +53,7 @@ function relDay(iso) {
   return d === 0 ? t('today') : d === 1 ? t('tomorrow') : d > 1 && d < 8 ? t('days_left', { n: d }) : '';
 }
 const initials = n => n.split(' ').map(x => x[0]).slice(0, 2).join('').toUpperCase();
-const avatar = (u, cls = '') => u ? `<span class="av ${cls} av-${u.role}">${u.role === 'player' && u.num ? u.num : initials(u.name)}</span>` : '';
+const avatar = (u, cls = '') => u ? `<span class="av ${cls} av-${u.role}">${S.isPlaying(u) && u.num ? u.num : initials(u.name)}</span>` : '';
 const evTitle = e => e.type === 'match' ? `${e.home ? 'TTSC' : esc(e.opponent)} – ${e.home ? esc(e.opponent) : 'TTSC'}` : e.type === 'event' ? esc(e.title) : t('training');
 const evIcon = e => ({ match: '⚽', training: '🏃', event: '🎉' }[e.type]);
 const evType = e => e.type === 'match' ? t('match') + ' · ' + t(e.home ? 'home' : 'away') : e.type === 'event' ? t('club_event') : t('training');
@@ -89,7 +89,7 @@ const btns = id => `<div class="sheet-btns"><button class="btn" data-act="close-
 function badges(u) {
   const b = {};
   b.msg = S.channels(u).reduce((n, ch) => n + S.unreadChat(u, ch), 0) + (S.seesNotes(u) ? S.unreadNotes(u).length : 0);
-  if (u.role === 'player') b.cal = S.upcoming().filter(e => relDay(e.date) && !S.rsvp(e.id, u.id)).length;
+  if (S.isPlaying(u)) b.cal = S.upcoming().filter(e => relDay(e.date) && !S.rsvp(e.id, u.id)).length;
   if (S.can(u, 'players')) b.players = S.coachAlerts().filter(a => a.level === 'warn').length;
   if (S.can(u, 'building')) b.building = S.repairs().filter(r => r.status === 'open').length;
   if (S.can(u, 'members')) b.members = S.memberSummary().open;
@@ -179,7 +179,7 @@ function viewDemoLogin() {
 function viewHome(_, u) {
   const next = S.upcoming()[0], b = badges(u);
   let html = `<h1 class="hello">${t('hello')}, ${esc(u.name.split(' ')[0])} 👋</h1>`;
-  if (u.role === 'player') {
+  if (S.isPlaying(u)) {
     const a = S.availability(u.id).s;
     html += `<section class="card"><div class="card-h">${t('avail_title')}</div>
       <div class="seg">${['fit', 'limited', 'injured'].map(s => `<button class="${a === s ? 'on s-' + s : ''}" data-act="avail" data-v="${s}">${t('avail_' + s)}</button>`).join('')}</div></section>`;
@@ -195,7 +195,7 @@ function viewHome(_, u) {
 }
 
 function eventCard(e, u, big = false) {
-  const c = S.rsvpCounts(e.id), mine = u.role === 'player' ? S.rsvp(e.id, u.id) : null, rd = relDay(e.date);
+  const c = S.rsvpCounts(e.id), mine = S.isPlaying(u) ? S.rsvp(e.id, u.id) : null, rd = relDay(e.date);
   const past = S.isPast(e);
   return `<article class="card ev ${big ? 'big' : ''} ev-${e.type}">
     <a href="#/ev/${e.id}" class="ev-main">
@@ -204,7 +204,7 @@ function eventCard(e, u, big = false) {
         <b class="ev-title">${evTitle(e)}</b><small class="muted">${fmtDate(e.date, { weekday: 'long' })} ${e.time}${e.place ? ' · ' + esc(e.place) : ''}</small></span>
       ${past ? resultBadge(e) : `<span class="counts"><i class="c-yes">${c.yes}</i><i class="c-no">${c.no}</i><i class="c-open">${c.open}</i></span>`}
     </a>
-    ${!past && u.role === 'player' ? `<div class="rsvp">
+    ${!past && S.isPlaying(u) ? `<div class="rsvp">
       <button class="yes ${mine?.s === 'yes' ? 'on' : ''}" data-act="rsvp-yes" data-eid="${e.id}">✓ ${t('rsvp_yes')}</button>
       <button class="no ${mine?.s === 'no' ? 'on' : ''}" data-act="rsvp-no" data-eid="${e.id}">✕ ${t('rsvp_no')}</button></div>
       ${mine?.s === 'no' ? `<div class="reason small muted">${t('reason_' + mine.reason)}${mine.text ? ' · ' + esc(mine.text) : ''}</div>` : ''}` : ''}
@@ -243,7 +243,7 @@ function viewEvent(id, u) {
   const past = S.isPast(e), coach = S.isCoach(u);
   let html = eventCard(e, u, true);
   if (e.note) html += `<div class="card small">${esc(e.note)}</div>`;
-  if (past && e.type !== 'event' && u.role === 'player' && S.attended(e.id, u.id)) {
+  if (past && e.type !== 'event' && S.isPlaying(u) && S.attended(e.id, u.id)) {
     const s = S.selfOf(u.id, e.id);
     html += `<button class="btn block" data-act="self" data-eid="${e.id}">📝 ${t('to_assess')}${s ? ' · ' + '★'.repeat(s.rating) : ''}</button>`;
   }
@@ -307,7 +307,7 @@ function viewNotes(u) {
 // ---------- stats ----------
 let sortKey = 'rate';
 function viewStats(tab, u) {
-  const tabs = [['team', t('team_stats')], ['players', t('player_stats_tab')], ...(u.role === 'player' ? [['me', t('my_stats')]] : [])];
+  const tabs = [['team', t('team_stats')], ['players', t('player_stats_tab')], ...(S.isPlaying(u) ? [['me', t('my_stats')]] : [])];
   if (!tabs.some(x => x[0] === tab)) tab = 'team';
   const nav = tabsNav('stats', tab, tabs);
   if (tab === 'me') return nav + playerBody(u.id, u);
@@ -354,7 +354,7 @@ function leagueTable() {
 // ---------- player profile ----------
 function viewPlayer(id, u) { return playerBody(id, u); }
 function playerBody(id, u) {
-  const p = S.user(id); if (!p || p.role !== 'player') return `<div class="card empty">–</div>`;
+  const p = S.user(id); if (!p || !S.isPlaying(p)) return `<div class="card empty">–</div>`;
   const st = S.playerStats(id), mine = u.id === id, coach = S.isCoach(u), canPrivate = mine || coach;
   const recent = S.pastEvents().filter(e => e.type !== 'event').slice(0, 14).reverse();
   let html = `<section class="profile-h">${avatar(p, 'xl')}<div><h1>${esc(p.name)}</h1><div class="muted">${t('pos_' + p.pos)} · #${p.num} · ${LANGS[p.lang]} ${availBadge(id)}</div></div></section>
@@ -423,7 +423,7 @@ function viewPlayers(_, u) {
     }).join('')}</section>`).join('')}`;
 }
 
-const invitedList = () => { const inv = S.invites(); return inv.length ? `<div class="sec-t">${t('invites_pending')}</div><section class="card list">${inv.map(i => `<div class="row"><span class="av sm av-pending">✉</span><span class="grow"><b>${esc(i.name)}</b><small>${esc(i.email)} · ${t('role_' + i.role)}</small></span></div>`).join('')}</section>` : ''; };
+const invitedList = () => { const inv = S.invites(); return inv.length ? `<div class="sec-t">${t('invites_pending')}</div><section class="card list">${inv.map(i => `<div class="row"><span class="av sm av-pending">✉</span><span class="grow"><b>${esc(i.name)}</b><small>${esc(i.email)} · ${t('role_' + i.role)}${i.plays ? ' · ' + t('also_plays') : ''}</small></span></div>`).join('')}</section>` : ''; };
 // ---------- members and fees (board) ----------
 let onlyOpen = false;
 function viewMembers(_, u) {
@@ -437,8 +437,9 @@ function viewMembers(_, u) {
       <div class="row"><span class="grow"><b>${esc(m.name)}</b>${m.userId ? ' <span class="badge b-app">' + t('app_user') + '</span>' : ''}<small>${t('m_' + m.type)} · ${S.FEES[m.type]}€ · ${t('member_since', { y: m.since })}</small></span>
         <button class="pay ${m.fees[y] ? 'paid' : ''}" data-act="fee" data-id="${m.id}">${m.fees[y] ? '✓ ' + t('mark_paid') : t('mark_open')}</button></div>`).join('') || empty()}</section>`;
   if (S.isAdmin(u)) {
-    html += `<div class="sec-t">${t('roles_title')}</div>${S.isDemo() ? '' : `<button class="btn primary block" data-act="invite">✉ ${t('invite_person')}</button>${invitedList()}`}<div class="sec-t">${t('in_app')}</div><section class="card list">${S.users().filter(x => x.role !== 'player').concat(S.players()).map(x => `
-      <div class="row">${avatar(x, 'sm')}<span class="grow">${esc(x.name)}</span><select data-act-change="role" data-id="${x.id}" ${x.id === u.id ? 'disabled' : ''}>${S.ROLES.map(r => `<option value="${r}" ${x.role === r ? 'selected' : ''}>${t('role_' + r)}</option>`).join('')}</select></div>`).join('')}</section>`;
+    html += `<div class="sec-t">${t('roles_title')}</div>${S.isDemo() ? '' : `<button class="btn primary block" data-act="invite">✉ ${t('invite_person')}</button>${invitedList()}`}<div class="sec-t">${t('in_app')}</div><section class="card list">${S.users().filter(x => !S.isPlaying(x) || x.role !== 'player').concat(S.players().filter(x => x.role === 'player')).map(x => `
+      <div class="row">${avatar(x, 'sm')}<span class="grow">${esc(x.name)}</span><select data-act-change="role" data-id="${x.id}" ${x.id === u.id ? 'disabled' : ''}>${S.ROLES.map(r => `<option value="${r}" ${x.role === r ? 'selected' : ''}>${t('role_' + r)}</option>`).join('')}</select>
+        ${x.role !== 'player' ? `<label class="plays"><input type="checkbox" data-act-change="plays" data-id="${x.id}" ${x.plays ? 'checked' : ''}> ${t('also_plays')}</label>` : ''}</div>`).join('')}</section>`;
   }
   return html;
 }
@@ -463,7 +464,7 @@ function viewBuilding(tab, u) {
 
 // ---------- me ----------
 function viewMe(_, u) {
-  return `<section class="card profile-h sm">${avatar(u, 'lg')}<div><b>${esc(u.name)}</b><div class="muted small">${t('role_' + u.role)}${u.title ? ' · ' + esc(u.title) : ''}</div></div>${u.role === 'player' ? `<a class="btn sm" href="#/stats/me">${t('my_stats')}</a>` : ''}</section>
+  return `<section class="card profile-h sm">${avatar(u, 'lg')}<div><b>${esc(u.name)}</b><div class="muted small">${t('role_' + u.role)}${u.plays ? ' · ' + t('also_plays') : ''}${u.title ? ' · ' + esc(u.title) : ''}</div></div>${S.isPlaying(u) ? `<a class="btn sm" href="#/stats/me">${t('my_stats')}</a>` : ''}</section>
     <div class="sec-t">${t('language')}</div><section class="card"><div class="seg">${Object.entries(LANGS).map(([k, v]) => `<button class="${u.lang === k ? 'on' : ''}" data-act="lang" data-v="${k}">${v}</button>`).join('')}</div><small class="muted">${t('multi_hint')}</small></section>
     ${S.isDemo() ? `<div class="demo-banner">${t('demo_banner')}</div>` : ''}
     <a class="btn block" href="datenschutz.html">🔒 ${t('privacy')}</a>
@@ -595,16 +596,18 @@ function addPlayerSheet(role = 'player', admin = false) {
     <label class="fld"><span>${t('name')}</span><input id="pn" maxlength="40"></label>
     ${server ? `<label class="fld"><span>${t('email')}</span><input id="pe" type="email" inputmode="email" autocomplete="off" maxlength="120"></label>` : ''}
     ${admin ? `<label class="fld"><span>${t('role')}</span><select id="pr">${S.ROLES.map(r => `<option value="${r}" ${r === role ? 'selected' : ''}>${t('role_' + r)}</option>`).join('')}</select></label>` : ''}
+    ${admin ? `<label class="check" id="ppw"><input type="checkbox" id="pplays"> ${t('also_plays')}</label>` : ''}
     <div class="two" id="pfx"><label class="fld"><span>${t('number')}</span><input id="pu" type="number" inputmode="numeric" min="1" max="99"></label>
       <label class="fld"><span>${t('position')}</span><select id="pp">${['TW', 'AB', 'MF', 'ST'].map(p => `<option value="${p}">${t('pos_' + p)}</option>`).join('')}</select></label></div>
     <label class="fld"><span>${t('language')}</span><select id="pl">${Object.entries(LANGS).map(([k, v]) => `<option value="${k}" ${k === getLang() ? 'selected' : ''}>${v}</option>`).join('')}</select></label>${btns('pok')}`, el => {
-    const pr = $('#pr', el); if (pr) { const sync = () => { $('#pfx', el).hidden = pr.value !== 'player'; }; pr.onchange = sync; sync(); }
+    const pr = $('#pr', el), pp = $('#pplays', el);
+    if (pr) { const sync = () => { const pl = pr.value === 'player'; $('#ppw', el).hidden = pl; $('#pfx', el).hidden = !pl && !pp.checked; }; pr.onchange = sync; pp.onchange = sync; sync(); }
     $('#pok', el).onclick = () => {
       const name = $('#pn', el).value.trim(), email = $('#pe', el)?.value.trim() || '';
       if (!name || (server && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))) { el.querySelector(name ? '#pe' : '#pn').focus(); return; }
-      const r = pr ? pr.value : 'player';
-      const d = { name, email, num: r === 'player' ? $('#pu', el).value : '', pos: r === 'player' ? $('#pp', el).value : '', lang: $('#pl', el).value };
-      if (server) { if (r === 'player') S.addPlayer(d); else S.invite({ ...d, role: r }); closeSheet(); toast(t('invite_sent')); return; }
+      const r = pr ? pr.value : 'player', plays = r === 'player' || !!pp?.checked;
+      const d = { name, email, num: plays ? $('#pu', el).value : '', pos: plays ? $('#pp', el).value : '', lang: $('#pl', el).value };
+      if (server) { if (r === 'player') S.addPlayer(d); else S.invite({ ...d, role: r, plays }); closeSheet(); toast(t('invite_sent')); return; }
       const p = S.addPlayer(d); closeSheet(); location.hash = '#/p/' + p.id;
     };
   });
@@ -691,6 +694,7 @@ document.addEventListener('click', ev => {
 document.addEventListener('change', ev => {
   const c = ev.target.closest('[data-act-change]'); if (!c) return;
   if (c.dataset.actChange === 'role') S.setRole(c.dataset.id, c.value);
+  if (c.dataset.actChange === 'plays') S.setPlays(c.dataset.id, c.checked);
 });
 document.addEventListener('submit', async ev => {
   const lf = ev.target.closest('[data-form]');

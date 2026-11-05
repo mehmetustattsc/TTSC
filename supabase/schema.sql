@@ -14,6 +14,8 @@ create table if not exists public.invites (
   created_at timestamptz not null default now()
 );
 
+-- player-coach: a coach (or board member) who also plays has plays = true
+alter table public.invites add column if not exists plays boolean not null default false;
 create table if not exists public.profiles (
   id uuid primary key references auth.users on delete cascade,
   name text not null,
@@ -23,6 +25,7 @@ create table if not exists public.profiles (
   title text,
   created_at timestamptz not null default now()
 );
+alter table public.profiles add column if not exists plays boolean not null default false;
 
 -- role of the signed-in person (security definer so policies can call it without recursion)
 create or replace function public.my_role() returns text
@@ -41,8 +44,8 @@ language plpgsql security definer set search_path = public as $$
 declare inv public.invites;
 begin
   select * into inv from public.invites where lower(email) = lower(new.email);
-  insert into public.profiles (id, name, role, num, pos, lang)
-  values (new.id, coalesce(inv.name, split_part(new.email, '@', 1)), coalesce(inv.role, 'pending'), inv.num, inv.pos, coalesce(inv.lang, 'de'));
+  insert into public.profiles (id, name, role, num, pos, lang, plays)
+  values (new.id, coalesce(inv.name, split_part(new.email, '@', 1)), coalesce(inv.role, 'pending'), inv.num, inv.pos, coalesce(inv.lang, 'de'), coalesce(inv.plays, false));
   return new;
 end $$;
 drop trigger if exists on_auth_user_created on auth.users;
@@ -51,7 +54,7 @@ create trigger on_auth_user_created after insert on auth.users for each row exec
 -- nobody but an admin may change a role
 create or replace function public.guard_role() returns trigger language plpgsql as $$
 begin
-  if new.role is distinct from old.role and not public.is_admin() then raise exception 'only admins change roles'; end if;
+  if (new.role is distinct from old.role or new.plays is distinct from old.plays) and not public.is_admin() then raise exception 'only admins change roles'; end if;
   return new;
 end $$;
 drop trigger if exists profiles_guard_role on public.profiles;
@@ -225,7 +228,7 @@ create policy notes_write_player on public.notes for insert with check (kind = '
 drop policy if exists self_read on public.self_ratings;
 create policy self_read on public.self_ratings for select using (player_id = auth.uid() or public.is_coach());
 drop policy if exists self_own on public.self_ratings;
-create policy self_own on public.self_ratings for all using (player_id = auth.uid()) with check (player_id = auth.uid() and public.my_role() = 'player');
+create policy self_own on public.self_ratings for all using (player_id = auth.uid()) with check (player_id = auth.uid() and (public.my_role() = 'player' or (select plays from public.profiles where id = auth.uid())));
 
 drop policy if exists msg_read on public.messages;
 create policy msg_read on public.messages for select using ((channel = 'team' and public.is_member()) or (channel = 'board' and public.is_board()));

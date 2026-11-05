@@ -81,7 +81,7 @@ export function reload() {
     q('members', 'select=*'), q('fees'), q('bookings'), q('repairs'), q('invites'), qNew('season_stats', 'select=*&order=apps.desc,minutes.desc'),
   ]).then(([profiles, avail, events, rsvps, att, mstats, notes, selfs, msgs, members, fees, bookings, repairs, invites, season]) => {
     const n = emptyDb(); n.seen = db.seen;
-    n.users = profiles.map(p => ({ id: p.id, name: p.name, role: p.role, num: p.num || 0, pos: p.pos || 'MF', lang: p.lang, title: p.title || '' }));
+    n.users = profiles.map(p => ({ id: p.id, name: p.name, role: p.role, num: p.num || 0, pos: p.pos || 'MF', lang: p.lang, title: p.title || '', plays: !!p.plays }));
     avail.forEach(a => { n.availability[a.player_id] = { s: a.status, at: a.updated_at }; });
     n.events = events.map(e => ({ id: e.id, type: e.type, title: e.title || '', opponent: e.opponent || '', home: !!e.home, date: e.date, time: hm(e.time), place: e.place || '', note: e.note || '', result: e.result_us == null ? null : { us: e.result_us, them: e.result_them } }));
     rsvps.forEach(r => { (n.rsvp[r.event_id] ||= {})[r.player_id] = { s: r.status, reason: r.reason || '', text: r.text || '', at: r.updated_at }; });
@@ -125,7 +125,9 @@ export function setUserLang(l) { const u = me(); if (u) { u.lang = l; persist();
 // ---------- people ----------
 export const users = () => db.users.filter(u => u.role !== 'pending');
 export const user = id => db.users.find(u => u.id === id);
-export const players = () => db.users.filter(u => u.role === 'player').sort((a, b) => a.num - b.num);
+// everyone who plays: players, and coaches/board members marked as also playing (player-coach)
+export const isPlaying = u => !!u && (u.role === 'player' || (!!u.plays && u.role !== 'pending'));
+export const players = () => db.users.filter(isPlaying).sort((a, b) => a.num - b.num);
 export const coaches = () => db.users.filter(u => u.role === 'coach');
 export const isStaff = u => !!u && ['coach', 'board', 'admin'].includes(u.role);
 export const isCoach = u => !!u && u.role === 'coach';
@@ -142,10 +144,15 @@ export const can = (u, mod) => !!u && (PERMS[mod] || []).includes(u.role);
 // chat channels: the team chat is for everyone, the board chat only for the board
 export const channels = u => isBoard(u) ? ['team', 'board'] : ['team'];
 // private notes (coach <-> player) are never visible to the board
-export const seesNotes = u => !!u && (u.role === 'player' || u.role === 'coach');
+export const seesNotes = u => !!u && (u.role === 'player' || u.role === 'coach' || isPlaying(u));
 export function setRole(id, role) {
   const x = user(id); if (!x || !ROLES.includes(role)) return;
-  x.role = role; persist(); W(() => R.update('profiles', 'id=eq.' + id, { role }));
+  x.role = role; if (role === 'player') x.plays = false; persist(); W(() => R.update('profiles', 'id=eq.' + id, { role, plays: x.plays }));
+}
+export function setPlays(id, plays, { num, pos } = {}) {
+  const x = user(id); if (!x) return;
+  x.plays = !!plays; if (num) x.num = +num; if (pos) x.pos = pos; persist();
+  W(() => R.update('profiles', 'id=eq.' + id, { plays: x.plays, num: x.num || null, pos: x.pos || null }));
 }
 // demo: the player exists at once; server: an invitation, the player appears after their first login
 export function addPlayer({ name, num, pos, lang, email }) {
@@ -154,8 +161,8 @@ export function addPlayer({ name, num, pos, lang, email }) {
   db.users.push(p); db.availability[p.id] = { s: 'fit', at: TODAY() }; persist(); return p;
 }
 export const invites = () => (db.invites || []).filter(i => !db.users.some(u => u.name === i.name && u.role === i.role));
-export function invite({ email, name, num, pos, lang, role }) {
-  const row = { email: email.trim().toLowerCase(), name, num: +num || null, pos: pos || null, lang: lang || 'de', role };
+export function invite({ email, name, num, pos, lang, role, plays }) {
+  const row = { email: email.trim().toLowerCase(), name, num: +num || null, pos: pos || null, lang: lang || 'de', role, plays: role !== 'player' && !!plays };
   (db.invites ||= []).push(row); persist(); W(() => R.upsert('invites', row, 'email'));
   return null;
 }

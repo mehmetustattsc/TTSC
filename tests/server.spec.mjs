@@ -115,7 +115,8 @@ try {
   for (const [name, email, role] of [['Murat Coach', 'coach@ttsc.test', 'coach'], ['Can Player', 'player@ttsc.test', 'player']]) {
     await admin.go('members'); await admin.click('[data-act="invite"]');
     await admin.fill('#pn', name); await admin.fill('#pe', email); await admin.selectOption('#pr', role);
-    if (role === 'player') { await admin.fill('#pu', '9'); await admin.selectOption('#pp', 'ST'); }
+    if (role === 'coach') await admin.check('#pplays'); // the coach also plays (player-coach)
+    if (role === 'player' || role === 'coach') { await admin.fill('#pu', role === 'coach' ? '7' : '9'); await admin.selectOption('#pp', role === 'coach' ? 'MF' : 'ST'); }
     await admin.click('#pok'); await settle();
   }
   check(psql(`select count(*) from invites`) === '3', 'two invitations stored on the server');
@@ -129,6 +130,11 @@ try {
   const player = await person('player@ttsc.test');
   check((await tiles(coach)).includes('#/players') && !(await tiles(coach)).includes('#/members'), 'coach tiles');
   check(!(await tiles(player)).includes('#/players'), 'player tiles');
+  check(psql(`select plays::text || num from profiles where name = 'Murat Coach'`) === 'true7', 'player-coach stored with number');
+  check((await coach.text()).includes('Einsatzbereit') || (await coach.locator('[data-act="avail"]').count()) > 0, 'player-coach can set his status');
+  const coachTok = await coach.evaluate(() => JSON.parse(localStorage.getItem('ttsc-session')).access_token);
+  const unplay = await fetch(url + `rest/v1/profiles?id=eq.${psql(`select id from profiles where name = 'Murat Coach'`)}`, { method: 'PATCH', headers: { apikey: 'x', Authorization: 'Bearer ' + coachTok, 'Content-Type': 'application/json' }, body: JSON.stringify({ plays: false }) });
+  check(unplay.status >= 400, 'only admin changes the also-plays flag');
 
   // coach plans a match, player answers "no" with a reason, coach sees it
   await coach.go('cal'); await coach.click('[data-act="new-event"]'); await coach.click('#nt [data-v="match"]');
