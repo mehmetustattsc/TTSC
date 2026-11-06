@@ -16,6 +16,9 @@ on:
         description: 'File path on that branch'
         required: true
 
+permissions:
+  contents: write
+
 jobs:
   upload:
     runs-on: ubuntu-latest
@@ -32,3 +35,6 @@ jobs:
           echo "::add-mask::$URL"
           echo "bytes: $(stat -c %s "$FILE")"
           curl -sS --fail-with-body -T "$FILE" "$URL"; echo
+      - name: Delete the short-lived branch
+        if: always() && github.event.inputs.ref != 'main'
+        run: git push origin --delete "${{ github.event.inputs.ref }}"
