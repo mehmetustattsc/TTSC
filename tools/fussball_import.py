@@ -195,6 +195,8 @@ select (select count(*) from linked) as linked, (select count(*) from upd) as up
     report.append(f'logos: {len(ids)} clubs, {len(rows)} new')
 
     sq = squad()
+    if DRY:  # name shape only, letters masked (e.g. 'Xxxxx, Xxxxx'), to check the order fussball.de uses
+        print('name shapes:', [re.sub(r'[^\s,.-]', 'x', r[0]).replace('x', 'X', 1) for r in sq[:4]], '| with comma:', sum(',' in r[0] for r in sq))
     if sq and sum(1 for r in sq if re.search(r'[A-Za-zÀ-ÿ]', r[0])) == len(sq):
         values = ',\n'.join(f"({q(SEASON)}, {q(n)}, {a}, {m}, {g}, {q(SQUAD_PAGE)})" for n, a, m, g in sq)
         sql(f"""insert into public.season_stats (season, name, apps, minutes, goals, source) values {values}
