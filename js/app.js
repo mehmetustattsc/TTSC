@@ -814,7 +814,7 @@ document.addEventListener('click', ev => {
   switch (a) {
     case 'login': S.login(b.dataset.id); location.hash = '#/'; break;
     case 'play': openGame(b.dataset.g); break;
-    case 'play-close': if (history.state && history.state.play) history.back(); else closeGame(); break;
+    case 'play-close': { const own = history.state && history.state.play; closeGame(); if (own) history.back(); break; } // close at once, then drop our history step
     case 'login-lang': localStorage.setItem('ttsc-lang', b.dataset.v); render(); break;
     case 'login-restart': loginStep = 'email'; render(); break;
     case 'intro-edit': { const me = S.me(); if (me) S.setPref('intro-' + me.id, ''); render(); break; }

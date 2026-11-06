@@ -662,6 +662,9 @@ const FORM={
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 let lang=new URLSearchParams(location.search).get('lang')||store.get('ttsc_lang')||((navigator.language||'tr').slice(0,2));if(!UI[lang])lang='tr';
 const $=id=>document.getElementById(id);
+// inside the TTSC app (an iframe) lesson changes must not pile up in the phone's back history
+const EMB=window.parent!==window;
+function nav(h){if(EMB)location.replace('#'+h);else location.hash=h}
 const t=k=>(UI[lang][k]||UI.tr[k]||k);
 const loc=o=>o?(o[lang]||o.tr):'';
 let filter='all',cur=null,variant='good',step=0,anim=1,playing=false,hold=0,formation=store.get('ttsc_taktik_form')||'4-1-4-1',phase=0,fk=1,sel=-1;
@@ -687,7 +690,7 @@ function renderList(){
   list.forEach(l=>{const b=document.createElement('button');b.className='lcard';
     b.innerHTML=`<span class="tags"><span class="tag">${t(l.phase)}</span><span class="tag">${t('lv'+l.lvl)}</span>${l.tags.map(g=>`<span class="tag">${ROLE[lang][g][1]}</span>`).join('')}</span><b></b><p></p>`;
     b.querySelector('b').textContent=loc(l.title);b.querySelector('p').textContent=loc(l.sum);
-    b.onclick=()=>{location.hash='ders-'+l.id};$('grid').appendChild(b)});
+    b.onclick=()=>{nav('ders-'+l.id)};$('grid').appendChild(b)});
 }
 // ---------- routing ----------
 function route(){
@@ -695,15 +698,15 @@ function route(){
   const lesson=h.startsWith('ders-')?LESSONS.find(l=>'ders-'+l.id===h):null;
   const quiz=h==='karar';
   $('vList').hidden=!!lesson||h==='dizilis'||quiz;$('vLesson').hidden=!lesson;$('vForm').hidden=h!=='dizilis';$('vQuiz').hidden=!quiz;
-  if(quiz&&!qList.length){location.hash='dersler';return}
+  if(quiz&&!qList.length){nav('dersler');return}
   if(quiz)sizeQ();
   $('tabL').setAttribute('aria-selected',h!=='dizilis');$('tabF').setAttribute('aria-selected',h==='dizilis');
   if(lesson)openLesson(lesson);else{cur=null;playing=false}
   if(h==='dizilis'){fk=1;sizeAll()}
 }
 window.addEventListener('hashchange',route);
-$('tabL').onclick=()=>{location.hash='dersler'};$('tabF').onclick=()=>{location.hash='dizilis'};
-$('back').onclick=()=>{location.hash='dersler'};
+$('tabL').onclick=()=>{nav('dersler')};$('tabF').onclick=()=>{nav('dizilis')};
+$('back').onclick=()=>{nav('dersler')};
 
 // ---------- lesson engine ----------
 function stepsOf(l,v){return[l.intro,...l[v]]}
@@ -727,7 +730,7 @@ function openLesson(l){
 }
 function navList(){const f=filtered();return f.includes(cur)?f:LESSONS}
 let slideDir=0;
-function goLesson(d){const L2=navList(),i=L2.indexOf(cur),n=L2.length;slideDir=d;autoPlay=true;location.hash='ders-'+L2[(i+d+n)%n].id}
+function goLesson(d){const L2=navList(),i=L2.indexOf(cur),n=L2.length;slideDir=d;autoPlay=true;nav('ders-'+L2[(i+d+n)%n].id)}
 let autoPlay=false;
 function renderLessonText(){
   const L2=navList();$('lMeta').innerHTML=`<span class="badge">${t(cur.phase)}</span><span class="badge lv">${t('lv'+cur.lvl)}</span><span>${L2.indexOf(cur)+1}${t('of')}${L2.length}</span>`;
@@ -823,7 +826,7 @@ const QN=8,cvQ=$('cvQ'),gQ=cvQ.getContext('2d');
 let qList=[],qi=0,qScore=0,qMap={},qPhase='ask',qPrev=null,qPS=0,qk=1,qD=0,qStep=0,qHold=0,qPicked=null;
 function sizeQ(){if(qList[qi])size(cvQ,qList[qi].view)}
 function startQuiz(){const pool=filtered().filter(l=>diverge(l)>0);for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}
-  qList=pool.slice(0,QN);qi=0;qScore=0;if(!qList.length)return;setupQ();location.hash='karar'}
+  qList=pool.slice(0,QN);qi=0;qScore=0;if(!qList.length)return;setupQ();nav('karar')}
 function setupQ(){const l=qList[qi];qMap=Math.random()<.5?{A:'good',B:'bad'}:{A:'bad',B:'good'};qPhase='ask';qPrev=null;qPS=0;qk=1;qD=diverge(l);qStep=0;qHold=0;qPicked=null;sizeQ();renderQ();window.scrollTo(0,0)}
 function renderQ(){const l=qList[qi];if(!l)return;
   $('qMeta').innerHTML=`<span class="badge">${t(l.phase)}</span><span class="badge lv">${t('lv'+l.lvl)}</span><span>${t('q')} ${qi+1}${t('of')}${qList.length} · ${qScore} ✓</span>`;
@@ -848,8 +851,8 @@ function pick(x){if(qPhase!=='ask')return;qPicked=x;if(qMap[x]==='good')qScore++
 $('quizGo').onclick=startQuiz;
 $('qA').onclick=()=>watch('A');$('qB').onclick=()=>watch('B');$('qPA').onclick=()=>pick('A');$('qPB').onclick=()=>pick('B');
 $('qNext').onclick=()=>{if(qi>=qList.length-1){qPhase='end';renderQ()}else{qi++;setupQ()}};
-$('qAgain').onclick=()=>{startQuiz()};$('qHome').onclick=()=>{qList=[];location.hash='dersler'};
-$('qBack').onclick=()=>{qList=[];location.hash='dersler'};
+$('qAgain').onclick=()=>{startQuiz()};$('qHome').onclick=()=>{qList=[];nav('dersler')};
+$('qBack').onclick=()=>{qList=[];nav('dersler')};
 function quizTick(dt){const l=qList[qi];if(!l||qPhase==='end')return;
   if(qPhase==='ask'){if(!qPrev){drawScene(gQ,cvQ,l,'good',0,1,true);return}
     const v=qMap[qPrev];if(qk<1)qk=Math.min(1,qk+dt/1.1);else if(qPS<qD){qPS++;qk=0}

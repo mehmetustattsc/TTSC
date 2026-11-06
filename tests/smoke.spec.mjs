@@ -101,7 +101,17 @@ for (const [g, n] of [['sonkare', 'son-kare'], ['kornokta', 'kor-nokta'], ['takt
 }
 await go('games'); await page.click('[data-act="play"][data-g="taktik-karar"]'); await page.waitForSelector('.play-o iframe');
 await page.frameLocator('.play-o iframe').locator('#quizGo').waitFor(); await page.waitForTimeout(300); await shot('07f-game-taktik');
-await page.click('[data-act="play-close"]'); await page.waitForTimeout(80);
+// browsing lessons inside Taktik must not fill the back history: one back press / one ‹ tap closes the game
+const tk = page.frameLocator('.play-o iframe');
+await tk.locator('.lcard').first().click(); await tk.locator('#nl').click(); await tk.locator('#nl').click(); await tk.locator('#tabF').click(); await page.waitForTimeout(150);
+await page.goBack(); await page.waitForTimeout(200);
+check(await page.locator('.play-o').count() === 0 && page.url().endsWith('#/games'), 'phone back closes Taktik at once, even after browsing lessons');
+await page.click('[data-act="play"][data-g="taktik-karar"]'); await page.waitForSelector('.play-o iframe');
+await tk.locator('.lcard').first().click(); await tk.locator('#nl').click(); await page.waitForTimeout(150);
+await page.click('[data-act="play-close"]'); await page.waitForTimeout(200);
+check(await page.locator('.play-o').count() === 0 && page.url().endsWith('#/games'), 'the ‹ bar closes Taktik at once');
+await page.goBack(); await page.waitForTimeout(200);
+check(await page.locator('.play-o').count() === 0, 'back after closing does not reopen the game');
 check(!foreign.length, 'no game loads anything from other sites: ' + [...new Set(foreign)].join(', '));
 await go('stats/team'); await page.waitForSelector('.league'); check((await page.locator('.league tr.us').innerText()).includes('TTSC'), 'league table highlights TTSC'); await shot('07d-league-full');
 await go('club'); check((await page.locator('.view').innerText()).includes('ttscbuchen.de') && (await page.locator('.view').innerText()).includes('@ttscbuchen'), 'club links'); await shot('07c-club');
