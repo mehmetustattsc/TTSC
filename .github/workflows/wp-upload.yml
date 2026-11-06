@@ -1,0 +1,28 @@
+name: Upload a file to the website
+
+# Helper: sends a small file (base64 input) to a one-time upload link of the website's media library
+# (Easy MCP AI). Used when the assistant's own network cannot reach ttscbuchen.de. Nothing is stored in the repo.
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'One-time upload link'
+        required: true
+      data:
+        description: 'File content, base64'
+        required: true
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Upload
+        env:
+          URL: ${{ github.event.inputs.url }}
+          DATA: ${{ github.event.inputs.data }}
+        run: |
+          echo "::add-mask::$URL"
+          printf '%s' "$DATA" | base64 -d > file
+          echo "bytes: $(stat -c %s file), sha256: $(sha256sum file | cut -c1-16)…"
+          curl -sS --fail-with-body -T file "$URL"; echo
