@@ -109,7 +109,11 @@ def squad():
         if not nm: continue
         nums = [clean(x) for x in re.findall(r'<td[^>]*>(\d+)</td>', tr)]
         if len(nums) < 3: continue
-        rows.append([decode(nm.group(2), nm.group(1)), int(nums[0]), int(nums[1]), int(nums[2])])
+        name = decode(nm.group(2), nm.group(1))
+        if ',' in name:  # fussball.de lists "Last, First"; the site and the club use "First Last"
+            last, first = [x.strip() for x in name.split(',', 1)]
+            name = f'{first} {last}'.strip()
+        rows.append([name, int(nums[0]), int(nums[1]), int(nums[2])])
     return rows
 
 
@@ -196,11 +200,13 @@ select (select count(*) from linked) as linked, (select count(*) from upd) as up
 
     sq = squad()
     if DRY:  # name shape only, letters masked (e.g. 'Xxxxx, Xxxxx'), to check the order fussball.de uses
-        print('name shapes:', [re.sub(r'[^\s,.-]', 'x', r[0]).replace('x', 'X', 1) for r in sq[:4]], '| with comma:', sum(',' in r[0] for r in sq))
+        print('name shapes:', [re.sub(r'[^\s,.-]', 'x', r[0]) for r in sq[:4]], '| with comma:', sum(',' in r[0] for r in sq))
     if sq and sum(1 for r in sq if re.search(r'[A-Za-zÀ-ÿ]', r[0])) == len(sq):
         values = ',\n'.join(f"({q(SEASON)}, {q(n)}, {a}, {m}, {g}, {q(SQUAD_PAGE)})" for n, a, m, g in sq)
         sql(f"""insert into public.season_stats (season, name, apps, minutes, goals, source) values {values}
-on conflict (season, name) do update set apps = excluded.apps, minutes = excluded.minutes, goals = excluded.goals, source = excluded.source, updated_on = current_date;""")
+on conflict (season, name) do update set apps = excluded.apps, minutes = excluded.minutes, goals = excluded.goals, source = excluded.source, updated_on = current_date;
+-- the squad list is complete: drop rows of this season that are no longer on it (old spellings, players who left)
+delete from public.season_stats where season = {q(SEASON)} and name not in ({', '.join(q(r[0]) for r in sq)});""")
         report.append(f'squad: {len(sq)} players, {sum(r[3] for r in sq)} goals')
     else:
         report.append(f'squad: not recognised ({len(sq)} rows) – kept the old one')
