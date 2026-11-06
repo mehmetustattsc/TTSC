@@ -1,0 +1,21 @@
+name: Check the website
+
+# Helper: fetches a page of ttscbuchen.de and reports whether given words appear (counts only),
+# plus the cache headers, because the assistant's own network cannot reach the site.
+on:
+  workflow_dispatch:
+    inputs:
+      url: { description: 'Page', required: true, default: 'https://ttscbuchen.de/' }
+      words: { description: 'Words to look for, separated by |', required: true }
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch
+        env: { URL: "${{ github.event.inputs.url }}", WORDS: "${{ github.event.inputs.words }}" }
+        run: |
+          curl -sS -D headers -o page.html "$URL"
+          grep -iE '^(HTTP|cache|age|x-|expires|last-modified|server)' headers || true
+          IFS='|'; for w in $WORDS; do echo "$w: $(grep -o -- "$w" page.html | wc -l)"; done
