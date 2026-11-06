@@ -20,6 +20,14 @@ const GAMES = [
   { name: 'Petek Ustası', url: 'https://mehmetustattsc.github.io/puzzle-game/', img: 'assets/games/petek.png',
     desc: { tr: 'Arılarla renkli petek bulmacası', de: 'Waben-Farbpuzzle mit Bienen', en: 'Hexagon colour puzzle with bees', fr: 'Puzzle de couleurs en alvéoles avec des abeilles' } },
 ];
+// Football-intelligence games: they live in games/… inside this app, open in an overlay and report
+// each finished game with a window message (stored by S.addGameResult, seen by the player and coaches).
+const IQ = [
+  { id: 'omuz', path: 'games/omuz/index.html', name: 'Omuz', sk: 'sk_scan', c: '#C98A0B', icon: 'M12 4a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM5 21c.5-4.5 3.2-7 7-7s6.5 2.5 7 7M4 9.5C2.8 8 2.8 6 4 4.5M20 9.5c1.2-1.5 1.2-3.5 0-5' },
+  { id: 'sonkare', path: 'games/son-kare/index.html', name: 'Son Kare', sk: 'sk_antic', c: '#23408E', icon: 'M4 5h16v14H4zM9 5v14M15 5v14M4 12h16M7 8.5h.01M18 15.5h.01' },
+  { id: 'kornokta', path: 'games/kor-nokta/index.html', name: 'Kör Nokta', sk: 'sk_offball', c: '#0E6E86', icon: 'M12 4L4 18h16zM12 10v4M12 16.5h.01' },
+  { id: 'taktik-karar', path: 'games/taktik/index.html', name: 'Taktik', sk: 'sk_decide', c: '#0F6B54', icon: 'M4 4h16v16H4zM4 12h16M12 4v16M8 8l2 2M16 14l-2 2' },
+];
 // Public club links (website, Instagram, fan shop).
 const CLUB = [
   { k: 'club_web', url: 'https://ttscbuchen.de', label: 'ttscbuchen.de', icon: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z', c: '#C8102E' },
@@ -388,6 +396,7 @@ function playerBody(id, u) {
   if (coach && !mine) html += `<button class="btn primary block" data-act="coach-note" data-pid="${id}">✍️ ${t('write_note')}</button>`;
   const notes = S.notesFor(u, id);
   html += `<div class="sec-t">${t('notes_thread')}</div><section class="card list">${notes.length ? notes.map(n => noteRow(n, u)).join('') : `<div class="row muted">${t('no_notes')}</div>`}</section>`;
+  html += `<div class="sec-t">${t('iq_title')}</div>${iqCard(id, mine)}`;
   const selfs = S.selfFor(id).slice(0, 10);
   if (selfs.length) {
     html += `<div class="sec-t">${t('self_history')}</div><section class="card"><div class="bars">${selfs.slice().reverse().map(s => { const e = S.event(s.eid); return `<span class="bar" style="height:${s.rating * 20}%" title="${e ? fmtDate(e.date) : ''}"><i>${s.rating}</i></span>`; }).join('')}</div></section>
@@ -405,8 +414,21 @@ function noteRow(n, viewer, withTarget = false) {
 }
 
 // ---------- games ----------
-function viewGames() {
-  return `<div class="grid games">${GAMES.map(g => `<a class="tile-m game" href="${g.url}" target="_blank" rel="noopener" style="--c:${g.c || '#E08A00'}">
+function iqCard(pid, mine) {
+  const prof = S.iqProfile(pid);
+  if (!prof.some(p => p.n)) return `<section class="card"><div class="row muted">${t(mine ? 'iq_empty' : 'iq_none')}</div></section>`;
+  return `<section class="card list iq-card">${prof.map(p => { const g = IQ.find(x => x.id === p.game);
+    return `<div class="row"><span class="ti sm" style="--c:${g.c}">${svg(g.icon)}</span><span class="grow"><b>${t(g.sk)}</b><small>${g.name} · ${p.n ? t('iq_played', { n: p.n }) + ' · ' + t('iq_best', { n: p.best }) : '–'}</small>
+      ${p.trend.length > 1 ? `<span class="spark">${p.trend.map(v => `<i style="height:${Math.max(8, v)}%"></i>`).join('')}</span>` : ''}</span>
+      ${p.acc == null ? '<span class="pct muted">–</span>' : `<span class="meter"><span style="width:${p.acc}%" class="${p.acc < 50 ? 'low' : p.acc < 75 ? 'mid' : ''}"></span></span><span class="pct">${p.acc}%</span>`}</div>`; }).join('')}
+    <div class="row small muted">${t('iq_note')}</div></section>`;
+}
+function viewGames(_, u) {
+  return `<div class="sec-t">${t('iq_title')}</div><p class="muted small iq-hint">${t('iq_hint')}</p>
+    <div class="grid games">${IQ.map(g => `<button type="button" class="tile-m game iq" data-act="play" data-g="${g.id}" style="--c:${g.c}"><span class="ti">${svg(g.icon)}</span><span class="tl">${g.name}</span><small>${t('g_' + g.id.replace('-', '_'))}</small></button>`).join('')}</div>
+    <div class="sec-t">${t('iq_mine')}</div>${iqCard(u.id, true)}
+    <div class="sec-t">${t('other_games')}</div>
+    <div class="grid games">${GAMES.map(g => `<a class="tile-m game" href="${g.url}" target="_blank" rel="noopener" style="--c:${g.c || '#E08A00'}">
       ${g.img ? `<img class="gi" src="${g.img}" alt="" width="64" height="64">` : `<span class="ti emoji">${g.emoji}</span>`}<span class="tl">${g.name}</span><small>${g.desc[getLang()] ?? g.desc.en}</small></a>`).join('')}</div>
     <p class="muted small center">${t('games_soon')}</p>`;
 }
@@ -762,12 +784,37 @@ function exportCsv() {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = `ttsc-statistik-${S.TODAY()}.csv`; a.click();
 }
 
+// ---------- game overlay ----------
+let gameO = null;
+function openGame(id) {
+  const g = IQ.find(x => x.id === id); if (!g) return;
+  closeGame(true);
+  gameO = document.createElement('div'); gameO.className = 'play-o';
+  gameO.innerHTML = `<div class="play-bar"><button type="button" class="back-btn" data-act="play-close" aria-label="${t('back')}">‹</button><span class="top-t">${esc(g.name)}</span></div><iframe src="${g.path}?lang=${getLang()}" title="${esc(g.name)}"></iframe>`;
+  document.body.appendChild(gameO); document.body.classList.add('playing');
+  try { history.pushState({ play: id }, ''); } catch (e) { /* ignore */ }
+}
+function closeGame(silent) {
+  if (!gameO) return;
+  gameO.remove(); gameO = null; document.body.classList.remove('playing');
+  if (!silent) render();
+}
+window.addEventListener('popstate', () => closeGame());
+window.addEventListener('message', e => {
+  const d = e.data;
+  if (e.origin !== location.origin || !gameO || !d || d.source !== 'ttsc-games') return;
+  if (e.source !== gameO.querySelector('iframe').contentWindow) return;
+  if (S.addGameResult(d)) toast(t('iq_saved'));
+});
+
 // ---------- actions ----------
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-act]'); if (!b) return;
   const u = S.me(), a = b.dataset.act;
   switch (a) {
     case 'login': S.login(b.dataset.id); location.hash = '#/'; break;
+    case 'play': openGame(b.dataset.g); break;
+    case 'play-close': if (history.state && history.state.play) history.back(); else closeGame(); break;
     case 'login-lang': localStorage.setItem('ttsc-lang', b.dataset.v); render(); break;
     case 'login-restart': loginStep = 'email'; render(); break;
     case 'intro-edit': { const me = S.me(); if (me) S.setPref('intro-' + me.id, ''); render(); break; }

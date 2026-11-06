@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>
+/* Club fonts from the app itself (no request to Google). Barlow, SIL Open Font License */
+@font-face{font-family:'Barlow';font-weight:400;font-display:swap;src:url(../../assets/fonts/Barlow-Regular.woff) format('woff')}
+@font-face{font-family:'Barlow';font-weight:500;font-display:swap;src:url(../../assets/fonts/Barlow-Medium.woff) format('woff')}
+@font-face{font-family:'Barlow';font-weight:600;font-display:swap;src:url(../../assets/fonts/Barlow-SemiBold.woff) format('woff')}
+@font-face{font-family:'Barlow';font-weight:700;font-display:swap;src:url(../../assets/fonts/Barlow-Bold.woff) format('woff')}
+@font-face{font-family:'Barlow Condensed';font-weight:600;font-display:swap;src:url(../../assets/fonts/BarlowCondensed-SemiBold.woff) format('woff')}
+@font-face{font-family:'Barlow Condensed';font-weight:700;font-display:swap;src:url(../../assets/fonts/BarlowCondensed-Bold.woff) format('woff')}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}[hidden]{display:none!important}
+</style>
+<title>Son Kare</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: coach's magnetic tactics board — handwritten header, board canvas, a quiet status line under it */
+:root{
+  --bg:#e9ece3; --board:#f4f6ef; --grass:#e3eadb; --line:#33443a; --muted:#6b7a70;
+  --navy:#23408e; --red:#c43f2e; --hi:#f2cf3b; --good:#2f8a4a; --edge:#cfd6c8;
+  --hand:'Barlow Condensed','Segoe Print',cursive; --body:'Barlow',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121814; --board:#1a221d; --grass:#1d2720; --line:#c4d1c4; --muted:#8fa093;
+  --navy:#86a2f2; --red:#f07b66; --hi:#e8c548; --good:#79d18f; --edge:#2b372f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121814; --board:#1a221d; --grass:#1d2720; --line:#c4d1c4; --muted:#8fa093;
+  --navy:#86a2f2; --red:#f07b66; --hi:#e8c548; --good:#79d18f; --edge:#2b372f; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--line);font-family:var(--body);margin:0;-webkit-tap-highlight-color:transparent}
+.app{height:100%;box-sizing:border-box;max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:8px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+h1{font-family:var(--hand);font-weight:700;font-size:38px;margin:0;line-height:1}
+h1 span{background:linear-gradient(transparent 55%,var(--hi) 55%);padding:0 2px}
+.sel{display:flex;gap:6px}
+select{background:var(--board);color:var(--line);border:1px solid var(--edge);border-radius:6px;padding:6px 8px;font:500 13px var(--body)}
+select:focus-visible,button:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+.hud{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.hud b{color:var(--line)}
+.stage{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center}
+canvas{display:block;border-radius:6px;touch-action:none;box-shadow:0 1px 0 var(--edge),0 10px 30px rgba(0,0,0,.12);border:1px solid var(--edge)}
+.status{min-height:22px;text-align:center;font-family:var(--hand);font-size:24px;font-weight:700}
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:12px}
+.card{background:var(--board);border:1px solid var(--edge);border-radius:8px;padding:20px;max-width:340px;width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;box-shadow:0 10px 40px rgba(0,0,0,.15)}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.card h2{font-family:var(--hand);font-size:48px;margin:0;line-height:.9;text-wrap:balance}
+.card ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;line-height:1.45;font-size:14px}
+.stats{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:14px;font-variant-numeric:tabular-nums;margin:0}
+.stats dt{color:var(--muted)} .stats dd{margin:0;text-align:right;font-weight:600}
+.big{font-family:var(--hand);font-size:64px;font-weight:700;line-height:.9;color:var(--navy)}
+.primary{font:600 16px var(--body);background:var(--navy);color:var(--board);border:0;border-radius:8px;padding:13px;cursor:pointer}
+.tip{margin:0;font-size:13px;color:var(--muted);line-height:1.4}
+</style>
+
+<div class="app">
+  <header>
+    <h1>Son <span>Kare</span></h1>
+    <div class="sel">
+      <select id="lvl" aria-label="Level"><option value="easy" data-i="easy"></option><option value="medium" data-i="medium"></option><option value="hard" data-i="hard"></option></select>
+      <select id="lang" aria-label="Language"><option value="tr">TR</option><option value="de">DE</option><option value="en">EN</option><option value="fr">FR</option></select>
+    </div>
+  </header>
+  <div class="hud"><span><span data-i="round"></span> <b id="hRound">0/12</b></span><span><span data-i="score"></span> <b id="hScore">0</b></span></div>
+  <div class="stage" id="stage">
+    <canvas id="cv"></canvas>
+    <div class="overlay" id="ov"><div class="card">
+      <div class="eyebrow" data-i="tag"></div>
+      <h2 id="ovTitle">Son Kare</h2>
+      <ol id="how"><li data-i="how1"></li><li data-i="how2"></li><li data-i="how3"></li></ol>
+      <div id="endBox" hidden><div class="big" id="endScore">0</div><dl class="stats" id="endStats"></dl></div>
+      <button class="primary" id="go" data-i="start"></button>
+      <p class="tip" data-i="tip"></p>
+    </div></div>
+  </div>
+  <div class="status" id="status" aria-live="polite"></div>
+</div>
+
+<script>
+const T={
+tr:{tag:'Öngörü · Pası önceden oku',how1:'Pozisyon akar ve pas atılmadan hemen önce donar.',how2:'Topun kime gideceğine dokun. Boş pas yolunu, koşuların yönünü ve topçunun vücut duruşunu oku.',how3:'Seviye arttıkça an daha erken donar ve ipuçları azalır.',start:'Başla',again:'Tekrar oyna',round:'Pozisyon',score:'Puan',freeze:'Dondu! Pas kime gidiyor?',good:'Doğru okudun',bad:'Pas {n} numaraya gitti',fast:'hızlı karar',acc:'Doğru tahmin',rt:'Ortalama karar süresi',best:'Rekor',end:'Seri bitti',newbest:'Yeni rekor!',tip:'İyi oyuncular topa değil, boşluğa ve vücut duruşuna bakar.',easy:'Kolay',medium:'Orta',hard:'Zor',watch:'İzle…'},
+de:{tag:'Antizipation · Den Pass vorher lesen',how1:'Die Szene läuft und friert kurz vor dem Pass ein.',how2:'Tippe auf den Spieler, der den Ball bekommt. Lies freie Passwege, Laufwege und die Körperhaltung des Ballführenden.',how3:'Je höher die Stufe, desto früher friert die Szene ein.',start:'Start',again:'Nochmal',round:'Szene',score:'Punkte',freeze:'Stopp! Wohin geht der Pass?',good:'Richtig gelesen',bad:'Der Pass ging zur {n}',fast:'schnelle Entscheidung',acc:'Richtige Vorhersagen',rt:'Ø Entscheidungszeit',best:'Rekord',end:'Serie beendet',newbest:'Neuer Rekord!',tip:'Gute Spieler schauen auf Räume und Körperhaltung, nicht nur auf den Ball.',easy:'Leicht',medium:'Mittel',hard:'Schwer',watch:'Beobachte…'},
+en:{tag:'Anticipation · Read the pass early',how1:'The play runs and freezes just before the pass.',how2:'Tap the player who gets the ball. Read the open lane, the runs and the passer’s body shape.',how3:'Higher levels freeze earlier, with fewer clues.',start:'Play',again:'Play again',round:'Play',score:'Score',freeze:'Frozen! Where does the pass go?',good:'Read it right',bad:'The pass went to {n}',fast:'quick decision',acc:'Correct reads',rt:'Avg. decision time',best:'Best',end:'Series over',newbest:'New best!',tip:'Good players watch space and body shape, not just the ball.',easy:'Easy',medium:'Medium',hard:'Hard',watch:'Watch…'},
+fr:{tag:'Anticipation · Lis la passe à l’avance',how1:'L’action se déroule et se fige juste avant la passe.',how2:'Touche le joueur qui reçoit le ballon. Lis la ligne libre, les courses et l’orientation du porteur.',how3:'Plus le niveau monte, plus l’image se fige tôt.',start:'Jouer',again:'Rejouer',round:'Action',score:'Points',freeze:'Figé ! Où va la passe ?',good:'Bien lu',bad:'La passe allait au {n}',fast:'décision rapide',acc:'Bonnes lectures',rt:'Temps moyen de décision',best:'Record',end:'Série terminée',newbest:'Nouveau record !',tip:'Les bons joueurs regardent l’espace et le corps, pas seulement le ballon.',easy:'Facile',medium:'Moyen',hard:'Difficile',watch:'Observe…'}
+};
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+let lang=new URLSearchParams(location.search).get('lang')||store.get('ttsc_lang')||((navigator.language||'tr').slice(0,2));if(!T[lang])lang='tr';
+let level=store.get('ttsc_sonkare_level')||'easy';if(!['easy','medium','hard'].includes(level))level='easy';
+const tx=k=>(T[lang][k]||T.tr[k]||k),$=id=>document.getElementById(id);
+function applyLang(){document.documentElement.lang=lang;document.querySelectorAll('[data-i]').forEach(el=>el.textContent=tx(el.dataset.i));$('lang').value=lang;$('lvl').value=level}
+
+const LW=360,LH=480,ROUNDS=12,D=2.6;
+const LV={easy:{nd:3,f:.9,decoy:false},medium:{nd:4,f:.74,decoy:false},hard:{nd:5,f:.56,decoy:true}};
+const rand=(a,b)=>a+Math.random()*(b-a),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+function segDist(p,a,b){const dx=b.x-a.x,dy=b.y-a.y,l2=dx*dx+dy*dy||1;let t=((p.x-a.x)*dx+(p.y-a.y)*dy)/l2;t=clamp(t,0,1);return Math.hypot(p.x-(a.x+dx*t),p.y-(a.y+dy*t))}
+const ease=t=>t*t*(3-2*t);
+const NUMS=[7,9,11];
+
+const cv=$('cv'),ctx=cv.getContext('2d'),stage=$('stage');let S=1;
+function fit(){const r=stage.getBoundingClientRect();let w=r.width,h=r.height;if(h<150)h=w*LH/LW;let cw=Math.min(w,h*LW/LH);cw=Math.max(220,cw);const ch=cw*LH/LW;
+  cv.style.width=cw+'px';cv.style.height=ch+'px';const d=Math.min(2,window.devicePixelRatio||1);cv.width=Math.round(cw*d);cv.height=Math.round(ch*d);S=cv.width/LW}
+window.addEventListener('resize',fit);
+let C={};function readColors(){const s=getComputedStyle(document.documentElement);for(const k of['board','grass','line','muted','navy','red','hi','good'])C[k]=s.getPropertyValue('--'+k).trim()}
+readColors();setInterval(readColors,1000);
+
+// ---------- scenario ----------
+let sc=null;
+function mk(sx,sy,ex,ey,n){return{sx,sy,ex,ey,n}}
+function posAt(e,t){const k=ease(clamp(t/D,0,1));return{x:e.sx+(e.ex-e.sx)*k,y:e.sy+(e.ey-e.sy)*k}}
+function gen(){
+  const L=LV[level];
+  for(let tries=0;tries<400;tries++){
+    const cx=rand(110,250),cy=rand(360,400);
+    const car=mk(cx+rand(-15,15),cy+rand(20,38),cx,cy);
+    const tm=[];let g=0;
+    while(tm.length<3&&g<200){g++;const e={x:rand(40,320),y:rand(110,300)};
+      if(tm.some(t=>Math.hypot(t.ex-e.x,t.ey-e.y)<80))continue;if(Math.hypot(e.x-cx,e.y-cy)<95)continue;
+      const a=rand(-Math.PI*.85,-Math.PI*.15),len=rand(35,105);
+      tm.push(mk(clamp(e.x-Math.cos(a)*len,20,340),clamp(e.y-Math.sin(a)*len,60,440),e.x,e.y,NUMS[tm.length]))}
+    if(tm.length<3)continue;
+    const def=[];
+    tm.forEach(t=>{const gx=180-t.ex,gy=0-t.ey,l=Math.hypot(gx,gy)||1,r=rand(14,58);
+      const ex=clamp(t.ex+gx/l*r+rand(-14,14),15,345),ey=clamp(t.ey+gy/l*r+rand(-6,6),30,440);
+      def.push(mk(clamp(ex+rand(-28,28),15,345),clamp(ey+rand(-34,8),30,440),ex,ey))});
+    for(let i=3;i<L.nd;i++){const ex=rand(50,310),ey=rand(200,330);def.push(mk(ex+rand(-25,25),ey+rand(-25,10),ex,ey))}
+    const ce={x:car.ex,y:car.ey};
+    const sc_=tm.map(t=>{const te={x:t.ex,y:t.ey};let lane=1e9,mark=1e9,blk=-1;
+      def.forEach((d,i)=>{const dp={x:d.ex,y:d.ey};const ld=segDist(dp,ce,te);if(ld<lane){lane=ld;blk=i}mark=Math.min(mark,dist(dp,te))});
+      return{lane,mark,blk,s:Math.min(lane,mark*.8)+(ce.y-te.y)*.06}});
+    const ord=sc_.map((v,i)=>i).sort((a,b)=>sc_[b].s-sc_[a].s);
+    const b=sc_[ord[0]];
+    if(b.lane<22||b.mark<30||b.s-sc_[ord[1]].s<10)continue;
+    const decoy=ord[1+Math.floor(Math.random()*2)];
+    return{car,tm,def,target:ord[0],scores:sc_,decoy};
+  }
+  return gen();
+}
+
+// ---------- state ----------
+let phase='idle',t=0,round=0,score=0,stats,choice=-1,freezeAt=0,revealT=0,res=null;
+function startGame(){round=0;score=0;stats={correct:0,rt:0};$('ov').hidden=true;next()}
+function next(){round++;sc=gen();t=0;phase='play';choice=-1;res=null;$('status').textContent=tx('watch');hud()}
+function hud(){$('hRound').textContent=Math.min(round,ROUNDS)+'/'+ROUNDS;$('hScore').textContent=score}
+function facing(tm){
+  const L=LV[level];const c=posAt(sc.car,t);
+  const tg=sc.tm[sc.target],dc=sc.tm[sc.decoy];
+  const at=(e)=>{const p=posAt(e,D);return Math.atan2(p.y-c.y,p.x-c.x)};
+  const base=L.decoy?at(dc):-Math.PI/2;const goal=at(tg);
+  const k=clamp((t/D-.65)/.3,0,1);
+  let d=goal-base;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;
+  return base+d*ease(k);
+}
+function pick(i){
+  const L=LV[level];const rt=(performance.now()-freezeAt)/1000;stats.rt+=rt;
+  const ok=i===sc.target;let pts=0;
+  if(ok){stats.correct++;pts=100+Math.round(50*clamp(1-(rt-.6)/2.4,0,1))}
+  score+=pts;choice=i;res={ok,pts,rt};phase='reveal';revealT=0;$('status').textContent='';hud();
+}
+function endGame(){
+  phase='end';const key='ttsc_sonkare_best_'+level;const prev=+(store.get(key)||0);const nb=score>prev;if(nb)store.set(key,score);
+  const acc=Math.round(stats.correct/ROUNDS*100),rt=(stats.rt/ROUNDS).toFixed(2);
+  $('ovTitle').textContent=nb?tx('newbest'):tx('end');$('how').hidden=true;$('endBox').hidden=false;$('endScore').textContent=score;
+  $('endStats').innerHTML=`<dt>${tx('acc')}</dt><dd>${acc}%</dd><dt>${tx('rt')}</dt><dd>${rt} s</dd><dt>${tx('best')}</dt><dd>${Math.max(prev,score)}</dd>`;
+  const go=$('go');go.dataset.i='again';go.textContent=tx('again');$('ov').hidden=false;$('status').textContent='';
+  try{window.parent.postMessage({source:'ttsc-games',game:'sonkare',level,score,accuracy:acc,avgDecision:+rt},'*')}catch(e){}
+}
+function update(dt){
+  const L=LV[level];
+  if(phase==='play'){t+=dt;if(t>=D*L.f){t=D*L.f;phase='freeze';freezeAt=performance.now();$('status').textContent=tx('freeze')}}
+  else if(phase==='reveal'){revealT+=dt;t=Math.min(D,t+dt*1.4);
+    if(t>=D&&res&&!res.shown){res.shown=true;res.passStart=revealT;
+      const tg=sc.tm[sc.target];$('status').textContent=res.ok?tx('good')+'  +'+res.pts+(res.rt<1.2?' · '+tx('fast'):''):tx('bad').replace('{n}',tg.n)}
+    if(res&&res.shown&&revealT-res.passStart>1.9){if(round>=ROUNDS)endGame();else next()}}
+}
+
+// ---------- draw ----------
+function circle(x,y,r){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2)}
+function magnet(p,col,label,r=11){
+  ctx.fillStyle='rgba(0,0,0,.18)';circle(p.x+1.2,p.y+2,r);ctx.fill();
+  ctx.fillStyle=col;circle(p.x,p.y,r);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.22)';circle(p.x-3,p.y-3,r*.45);ctx.fill();
+  if(label!==undefined){ctx.fillStyle=C.board;ctx.font='700 17px "Barlow Condensed", sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,p.x,p.y+1)}
+}
+function trail(e,col){if(phase==='idle')return;const a=posAt(e,Math.max(0,t-.55)),b=posAt(e,t);if(dist(a,b)<3)return;
+  ctx.strokeStyle=col;ctx.globalAlpha=.45;ctx.lineWidth=2;ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+  const ang=Math.atan2(b.y-a.y,b.x-a.x);ctx.fillStyle=col;ctx.globalAlpha=.5;ctx.beginPath();ctx.moveTo(b.x+Math.cos(ang)*16,b.y+Math.sin(ang)*16);
+  ctx.lineTo(b.x+Math.cos(ang+2.6)*9+Math.cos(ang)*10,b.y+Math.sin(ang+2.6)*9+Math.sin(ang)*10);ctx.lineTo(b.x+Math.cos(ang-2.6)*9+Math.cos(ang)*10,b.y+Math.sin(ang-2.6)*9+Math.sin(ang)*10);ctx.fill();ctx.globalAlpha=1}
+function draw(){
+  ctx.setTransform(S,0,0,S,0,0);
+  ctx.fillStyle=C.board;ctx.fillRect(0,0,LW,LH);
+  ctx.fillStyle=C.grass;for(let i=0;i<8;i+=2)ctx.fillRect(0,i*LH/8,LW,LH/8);
+  ctx.strokeStyle=C.line;ctx.globalAlpha=.55;ctx.lineWidth=1.6;
+  ctx.strokeRect(10,10,LW-20,LH+40);ctx.strokeRect(80,10,200,70);ctx.strokeRect(135,10,90,26);
+  ctx.beginPath();ctx.arc(180,80,34,0.2*Math.PI,0.8*Math.PI);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(10,LH-20);ctx.lineTo(LW-10,LH-20);ctx.stroke();ctx.beginPath();ctx.arc(180,LH-20,48,Math.PI,2*Math.PI);ctx.stroke();
+  ctx.globalAlpha=1;ctx.lineWidth=3;ctx.strokeStyle=C.line;ctx.beginPath();ctx.moveTo(155,10);ctx.lineTo(205,10);ctx.stroke();
+  if(!sc)return;
+  for(const d of sc.def)trail(d,C.red);
+  for(const m of sc.tm)trail(m,C.navy);
+  // reveal lanes
+  if(phase==='reveal'&&res&&res.shown){
+    const ce=posAt(sc.car,D),tg=sc.tm[sc.target],te=posAt(tg,D);
+    ctx.strokeStyle=C.hi;ctx.globalAlpha=.75;ctx.lineWidth=12;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(ce.x,ce.y);ctx.lineTo(te.x,te.y);ctx.stroke();ctx.globalAlpha=1;ctx.lineCap='butt';
+    if(!res.ok&&choice>=0){const ch=sc.tm[choice],cp=posAt(ch,D);ctx.strokeStyle=C.red;ctx.lineWidth=2;ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(ce.x,ce.y);ctx.lineTo(cp.x,cp.y);ctx.stroke();ctx.setLineDash([]);
+      const bd=sc.def[sc.scores[choice].blk];if(bd){const bp=posAt(bd,D);ctx.lineWidth=2.5;circle(bp.x,bp.y,17);ctx.stroke()}}
+  }
+  for(const d of sc.def)magnet(posAt(d,t),C.red);
+  sc.tm.forEach((m,i)=>{const p=posAt(m,t);magnet(p,C.navy,m.n);
+    if(phase==='reveal'&&i===choice){ctx.strokeStyle=res.ok?C.good:C.red;ctx.lineWidth=2.5;circle(p.x,p.y,16);ctx.stroke()}});
+  // carrier with body-shape notch
+  const c=posAt(sc.car,t);const f=facing();
+  ctx.fillStyle=C.navy;ctx.beginPath();ctx.moveTo(c.x+Math.cos(f)*22,c.y+Math.sin(f)*22);ctx.lineTo(c.x+Math.cos(f+.5)*12,c.y+Math.sin(f+.5)*12);ctx.lineTo(c.x+Math.cos(f-.5)*12,c.y+Math.sin(f-.5)*12);ctx.fill();
+  magnet(c,C.navy,10,13);
+  // ball
+  let bp={x:c.x+Math.cos(f)*15,y:c.y+Math.sin(f)*15};
+  if(phase==='reveal'&&res&&res.shown){const k=clamp((revealT-res.passStart)/.5,0,1),te=posAt(sc.tm[sc.target],D);bp={x:bp.x+(te.x-bp.x)*k,y:bp.y+(te.y-bp.y)*k}}
+  ctx.fillStyle='#fff';circle(bp.x,bp.y,4.5);ctx.fill();ctx.strokeStyle='#222';ctx.lineWidth=1.2;ctx.stroke();
+  if(phase==='freeze'){ctx.strokeStyle=C.hi;ctx.lineWidth=6;ctx.strokeRect(3,3,LW-6,LH-6)}
+}
+let lastT=performance.now();
+function loop(now){const dt=Math.min(.05,(now-lastT)/1000);lastT=now;update(dt);draw();requestAnimationFrame(loop)}
+cv.addEventListener('pointerdown',e=>{if(phase!=='freeze')return;const r=cv.getBoundingClientRect();const p={x:(e.clientX-r.left)/r.width*LW,y:(e.clientY-r.top)/r.height*LH};
+  let best=-1,bd=42;sc.tm.forEach((m,i)=>{const d=dist(posAt(m,t),p);if(d<bd){bd=d;best=i}});if(best>=0)pick(best)});
+window.addEventListener('keydown',e=>{if(phase!=='freeze')return;const i=['1','2','3'].indexOf(e.key);if(i>=0)pick(i)});
+$('go').addEventListener('click',startGame);
+$('lang').addEventListener('change',e=>{lang=e.target.value;store.set('ttsc_lang',lang);applyLang()});
+$('lvl').addEventListener('change',e=>{level=e.target.value;store.set('ttsc_sonkare_level',level);if(phase!=='idle'&&phase!=='end'){phase='idle';$('how').hidden=false;$('endBox').hidden=true;$('ovTitle').textContent='Son Kare';const go=$('go');go.dataset.i='start';go.textContent=tx('start');$('ov').hidden=false;round=0;score=0;hud();$('status').textContent=''}});
+applyLang();fit();sc=gen();t=D*.4;hud();requestAnimationFrame(loop);
+</script>
+
+</html>

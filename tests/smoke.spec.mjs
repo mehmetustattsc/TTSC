@@ -59,6 +59,7 @@ await page.locator('#cg .chip').first().click(); await page.fill('#ct', 'Secret 
 await page.click('[data-act="notes-tab"][data-v="out"]'); check((await page.locator('.view').innerText()).includes('Secret coach note'), 'coach note in sent');
 await go('msg/board'); check(!(await page.locator('.seg').innerText()).includes('Vorstand') && !(await page.locator('.seg').innerText()).includes('Yönetim sohbeti'), 'coach has no board chat');
 await go('players'); await shot('04-players-full');
+await go('p/p1'); check(await page.locator('.iq-card').count() === 1, 'coach sees a player\'s game results');
 
 // ----- player (German) -----
 await as('p8');
@@ -78,7 +79,30 @@ check(await page.locator('.hello').count() === 1, 'back from a module tab goes t
 await go('ev/' + await page.evaluate(() => location.hash) + 'x'); // unknown event still has a back arrow
 await go('cal'); await page.locator('a.ev-main').first().click(); await page.waitForTimeout(80); await page.click('[data-act="back"]'); await page.waitForTimeout(80);
 check(page.url().endsWith('#/cal'), 'back from a match goes to the calendar');
-await go('games'); check(await page.locator('.tile-m.game').count() === 4, 'four games in the game corner'); await shot('07b-games');
+await go('games'); check(await page.locator('.tile-m.game').count() === 8, 'eight games in the game corner (four football-intelligence games)'); await shot('07b-games-full');
+// a football-intelligence game opens inside the app, loads nothing from other sites, and its result reaches the profile
+foreign.length = 0;
+await page.click('[data-act="play"][data-g="omuz"]'); await page.waitForSelector('.play-o iframe');
+await page.frameLocator('.play-o iframe').locator('#go').waitFor(); await page.waitForTimeout(300); await shot('07e-game-omuz');
+check(!foreign.length, 'games load nothing from other sites: ' + [...new Set(foreign)].join(', '));
+const gfr = page.frames().find(f => f.url().includes('games/omuz'));
+await gfr.evaluate(() => parent.postMessage({ source: 'ttsc-games', game: 'omuz', level: 'easy', score: 640, accuracy: 70, scansPerBall: 1.4, onTimeRate: 60 }, location.origin));
+await page.waitForTimeout(150);
+await page.evaluate(() => window.postMessage({ source: 'ttsc-games', game: 'omuz', level: 'easy', score: 9999, accuracy: 100 }, location.origin)); // not from the game: ignored
+await page.click('[data-act="play-close"]'); await page.waitForTimeout(120);
+check(await page.locator('.play-o').count() === 0, 'game overlay closes');
+check((await page.locator('.iq-card').innerText()).includes('70%'), 'game result shows in my football intelligence');
+await go('p/p8'); check((await page.locator('.iq-card').innerText()).includes('70%') && !(await page.locator('.iq-card').innerText()).includes('9999'), 'own profile shows the game result, forged message ignored');
+for (const [g, n] of [['sonkare', 'son-kare'], ['kornokta', 'kor-nokta'], ['taktik-karar', 'taktik']]) {
+  await go('games'); await page.click(`[data-act="play"][data-g="${g}"]`); await page.waitForSelector('.play-o iframe');
+  await page.frameLocator('.play-o iframe').locator(g === 'taktik-karar' ? '#quizGo' : '#go').waitFor();
+  check(page.frames().some(f => f.url().includes('games/' + n)), g + ' opens inside the app');
+  await page.click('[data-act="play-close"]'); await page.waitForTimeout(80);
+}
+await go('games'); await page.click('[data-act="play"][data-g="taktik-karar"]'); await page.waitForSelector('.play-o iframe');
+await page.frameLocator('.play-o iframe').locator('#quizGo').waitFor(); await page.waitForTimeout(300); await shot('07f-game-taktik');
+await page.click('[data-act="play-close"]'); await page.waitForTimeout(80);
+check(!foreign.length, 'no game loads anything from other sites: ' + [...new Set(foreign)].join(', '));
 await go('stats/team'); await page.waitForSelector('.league'); check((await page.locator('.league tr.us').innerText()).includes('TTSC'), 'league table highlights TTSC'); await shot('07d-league-full');
 await go('club'); check((await page.locator('.view').innerText()).includes('ttscbuchen.de') && (await page.locator('.view').innerText()).includes('@ttscbuchen'), 'club links'); await shot('07c-club');
 await go(''); check(await page.locator('.card.install').count() === 1, 'install hint on home');
@@ -92,6 +116,7 @@ tl = await tiles();
 check(tl.includes('#/members') && tl.includes('#/building') && tl.includes('#/players'), 'board tiles: ' + tl);
 await shot('08-board-home');
 await go('p/p11'); check(!(await page.locator('.view').innerText()).includes('Secret coach note'), 'board cannot read coach notes');
+await go('p/p1'); check(await page.locator('.iq-card').count() === 0, 'board does not see game results');
 await go('msg/notes'); check(!(await page.locator('.seg').innerText()).match(/Notlar|Notizen|Notes/), 'board has no notes tab');
 await go('msg/board'); check((await page.locator('.view').innerText()).includes('Aidat'), 'board reads board chat'); await shot('09-board-chat');
 await go('members'); const before = await page.locator('.pay.paid').count(); await page.locator('.pay:not(.paid)').first().click(); await page.waitForTimeout(80);

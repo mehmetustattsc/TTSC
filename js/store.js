@@ -60,7 +60,7 @@ export const setPref = (k, v) => { try { localStorage.setItem('ttsc-pref-' + k, 
 function emptyDb() {
   let seen = {};
   try { seen = JSON.parse(localStorage.getItem('ttsc-seen') || '{}'); } catch (e) { seen = {}; }
-  return { v: 2, session: { userId: R.userId() }, users: [], events: [], rsvp: {}, attendance: {}, stats: {}, availability: {}, notes: [], self: [], messages: [], members: [], bookings: [], repairs: [], invites: [], seen, loaded: false };
+  return { v: 2, session: { userId: R.userId() }, users: [], events: [], rsvp: {}, attendance: {}, stats: {}, availability: {}, notes: [], self: [], messages: [], members: [], bookings: [], repairs: [], invites: [], games: [], seen, loaded: false };
 }
 function saveSeen() { try { localStorage.setItem('ttsc-seen', JSON.stringify(db.seen)); } catch (e) { /* ignore */ } }
 
@@ -79,7 +79,8 @@ export function reload() {
     q('profiles', 'select=*'), q('availability'), q('events', 'select=*&order=date'), q('rsvps'), q('attendance'), q('match_stats'),
     q('notes', 'select=*&order=created_at'), q('self_ratings'), q('messages', 'select=*&order=created_at.desc&limit=500'),
     q('members', 'select=*'), q('fees'), q('bookings'), q('repairs'), q('invites'), qNew('season_stats', 'select=*&order=apps.desc,minutes.desc'), qNew('app_config'),
-  ]).then(([profiles, avail, events, rsvps, att, mstats, notes, selfs, msgs, members, fees, bookings, repairs, invites, season, config]) => {
+    qNew('game_results', 'select=*&order=created_at.desc&limit=3000'),
+  ]).then(([profiles, avail, events, rsvps, att, mstats, notes, selfs, msgs, members, fees, bookings, repairs, invites, season, config, games]) => {
     const n = emptyDb(); n.seen = db.seen;
     n.users = profiles.map(p => ({ id: p.id, name: p.name, role: p.role, num: p.num || 0, pos: p.pos || 'MF', lang: p.lang, title: p.title || '', plays: !!p.plays }));
     avail.forEach(a => { n.availability[a.player_id] = { s: a.status, at: a.updated_at }; });
@@ -94,6 +95,7 @@ export function reload() {
     n.members = members.map(m => ({ id: m.id, name: m.name, type: m.type, since: m.since, userId: m.user_id, fees: fee[m.id] || {} }));
     n.bookings = bookings.map(b => ({ id: b.id, title: b.title, date: b.date, time: hm(b.time), who: b.who || '', note: b.note || '' }));
     n.repairs = repairs.map(r => ({ id: r.id, title: r.title, text: r.text || '', status: r.status, by: r.reported_by, at: r.created_at }));
+    n.games = games.map(g => ({ id: g.id, pid: g.player_id, game: g.game, level: g.level, score: g.score, acc: g.accuracy, detail: g.detail || {}, at: g.created_at }));
     n.invites = invites;
     n.season = season;
     n.config = Object.fromEntries(config.map(c => [c.key, c.value]));
@@ -315,6 +317,33 @@ export function setRepairStatus(id, status) {
   r.status = status; persist(); W(() => R.update('repairs', 'id=eq.' + id, { status, updated_at: new Date().toISOString() }));
 }
 
+// ---------- football-intelligence games ----------
+// The four training games (games/…) run inside the app and report a finished game with a window message.
+export const IQ_GAMES = ['omuz', 'sonkare', 'kornokta', 'taktik-karar'];
+const pct = v => Math.max(0, Math.min(100, Math.round(+v || 0)));
+export function addGameResult(m) {
+  const u = me(); if (!u || !m || !IQ_GAMES.includes(m.game)) return null;
+  const acc = m.game === 'kornokta' ? pct((+m.goals || 0) / (+m.rounds || 1) * 100) : pct(m.accuracy);
+  const detail = {};
+  ['scansPerBall', 'onTimeRate', 'avgDecision', 'goals', 'rounds', 'questions'].forEach(k => { if (typeof m[k] === 'number' && isFinite(m[k])) detail[k] = m[k]; });
+  if (m.mistakes && typeof m.mistakes === 'object') detail.mistakes = Object.fromEntries(Object.entries(m.mistakes).filter(([k, v]) => /^[a-z]{2,10}$/.test(k) && typeof v === 'number').slice(0, 8));
+  if (Array.isArray(m.lessons)) detail.lessons = m.lessons.filter(x => typeof x === 'string' && /^[a-z0-9-]{1,40}$/.test(x)).slice(0, 20);
+  const level = ['easy', 'medium', 'hard'].includes(m.level) ? m.level : null;
+  const x = { id: uid(), pid: u.id, game: m.game, level, score: Math.max(0, Math.min(100000, Math.round(+m.score || 0))), acc, detail, at: new Date().toISOString() };
+  (db.games ||= []).unshift(x); persist();
+  W(() => R.insert('game_results', { id: x.id, player_id: x.pid, game: x.game, level, score: x.score, accuracy: acc, detail }));
+  return x;
+}
+export const gamesOf = pid => (db.games || []).filter(g => g.pid === pid);
+// per game: times played, best score, average accuracy of the last five, last eight accuracies (oldest first)
+export function iqProfile(pid) {
+  const all = gamesOf(pid);
+  return IQ_GAMES.map(game => {
+    const r = all.filter(g => g.game === game), last = r.slice(0, 5);
+    return { game, n: r.length, best: r.reduce((m, g) => Math.max(m, g.score), 0), acc: last.length ? Math.round(last.reduce((s, g) => s + g.acc, 0) / last.length) : null, trend: r.slice(0, 8).map(g => g.acc).reverse() };
+  });
+}
+
 export function addSelf(s) {
   db.self = db.self.filter(x => !(x.pid === s.pid && x.eid === s.eid));
   const x = { id: s.pid + s.eid, at: new Date().toISOString(), ...s }; db.self.push(x); persist();
@@ -524,5 +553,15 @@ function seed() {
     { id: 'r2', title: 'Flutlicht Mast 2 flackert', text: '', by: 'c1', status: 'doing', at: ago(120) },
     { id: 'r3', title: 'Kühlschrank Küche', text: 'Tür schließt nicht richtig.', by: 'b2', status: 'done', at: ago(300) },
   ];
-  return { v: 2, session: { userId: null }, users, events, rsvp, attendance, stats, availability, notes, self, messages, members, bookings, repairs, seen: {} };
+  // invented game results for a few demo players
+  const games = [];
+  pl.slice(0, 12).forEach((p, i) => {
+    if (i % 4 === 3) return;
+    ['omuz', 'sonkare', 'kornokta', 'taktik-karar'].forEach((g, gi) => {
+      const n = 1 + Math.floor(R() * 4), base = 40 + Math.floor(R() * 35);
+      for (let k = 0; k < n; k++) { const acc = Math.min(100, base + k * 6 + Math.floor(R() * 10)); games.push({ id: uid('g'), pid: p.id, game: g, level: k > 1 ? 'medium' : 'easy', score: g === 'taktik-karar' ? Math.round(acc * 8 / 100) : acc * (g === 'kornokta' ? 10 : 12), acc, detail: {}, at: ago(24 * (n - k) + gi) }); }
+    });
+  });
+  games.sort((a, b) => b.at.localeCompare(a.at));
+  return { v: 2, session: { userId: null }, users, events, rsvp, attendance, stats, availability, notes, self, messages, members, bookings, repairs, games, seen: {} };
 }

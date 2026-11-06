@@ -163,6 +163,20 @@ create table if not exists public.season_stats (
 -- ---------- club logos (copied from fussball.de by the daily import, used in match graphics) ----------
 create table if not exists public.club_logos (name text primary key, png text not null, updated_on date not null default current_date);
 
+-- ---------- football-intelligence games (Omuz, Son Kare, Kör Nokta, Taktik "Sen karar ver") ----------
+-- one row per finished game; seen only by the player and the coaches (like self ratings)
+create table if not exists public.game_results (
+  id uuid primary key default gen_random_uuid(),
+  player_id uuid not null default auth.uid() references public.profiles on delete cascade,
+  game text not null check (game in ('omuz', 'sonkare', 'kornokta', 'taktik-karar')),
+  level text check (level in ('easy', 'medium', 'hard')),
+  score int not null default 0 check (score between 0 and 100000),
+  accuracy int not null check (accuracy between 0 and 100),
+  detail jsonb not null default '{}',
+  created_at timestamptz not null default now()
+);
+create index if not exists game_results_player on public.game_results (player_id, created_at desc);
+
 -- ---------- push notifications ----------
 -- one row per phone/browser that allowed notifications
 create table if not exists public.push_subs (
@@ -197,6 +211,7 @@ alter table public.season_stats enable row level security;
 alter table public.push_subs    enable row level security;
 alter table public.club_logos   enable row level security;
 alter table public.app_config   enable row level security;
+alter table public.game_results enable row level security;
 
 drop policy if exists invites_admin on public.invites;
 create policy invites_admin on public.invites for all using (public.is_admin()) with check (public.is_admin());
@@ -275,6 +290,12 @@ drop policy if exists season_read on public.season_stats;
 create policy season_read on public.season_stats for select using (public.is_member());
 drop policy if exists season_board on public.season_stats;
 create policy season_board on public.season_stats for all using (public.is_board()) with check (public.is_board());
+drop policy if exists games_read on public.game_results;
+create policy games_read on public.game_results for select using (player_id = auth.uid() or public.is_coach());
+drop policy if exists games_own on public.game_results;
+create policy games_own on public.game_results for insert with check (player_id = auth.uid() and public.is_member());
+drop policy if exists games_delete_own on public.game_results;
+create policy games_delete_own on public.game_results for delete using (player_id = auth.uid());
 drop policy if exists repairs_board on public.repairs;
 create policy repairs_board on public.repairs for all using (public.is_board()) with check (public.is_board());
 

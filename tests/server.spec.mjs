@@ -190,6 +190,18 @@ try {
   await player.fresh('msg/board'); check(!(await player.text()).includes('Nur für den Vorstand'), 'player cannot read board chat');
   await player.screenshot({ path: join(root, 'tests/shots/s2-player-chat.png') });
 
+  // football-intelligence game result: written through the app's message, seen by the player and the coach, not the admin/board
+  await player.fresh('games'); await player.click('[data-act="play"][data-g="omuz"]'); await player.waitForSelector('.play-o iframe');
+  await player.frameLocator('.play-o iframe').locator('#go').waitFor();
+  await player.frames().find(f => f.url().includes('games/omuz')).evaluate(() => parent.postMessage({ source: 'ttsc-games', game: 'omuz', level: 'easy', score: 640, accuracy: 70, onTimeRate: 60 }, location.origin));
+  await settle();
+  check(psql(`select game || ':' || accuracy || ':' || score from game_results where player_id = '${pid0}'`) === 'omuz:70:640', 'game result stored on the server');
+  check((await fetch(url + 'rest/v1/game_results', { method: 'POST', headers: H(pTok), body: JSON.stringify({ player_id: psql(`select id from profiles where name = 'Murat Coach'`), game: 'omuz', score: 1, accuracy: 1 }) })).status >= 400, 'player cannot store a result for someone else');
+  check((await (await fetch(url + 'rest/v1/game_results?select=id', { headers: H(cTok) })).json()).length === 1, 'coach sees the player\'s game result');
+  const aTok = await admin.evaluate(() => JSON.parse(localStorage.getItem('ttsc-session')).access_token);
+  check((await (await fetch(url + 'rest/v1/game_results?select=id', { headers: H(aTok) })).json()).length === 0, 'admin/board does not see game results');
+  await coach.fresh('p/' + pid0); check((await coach.text()).includes('70%'), 'coach sees the result on the player\'s profile');
+
   // private coach note: player sees it, admin never does
   const pid = psql(`select id from profiles where name = 'Can Player'`);
   await coach.go('p/' + pid); await coach.click('[data-act="coach-note"]'); await coach.locator('#cg .chip').first().click(); await coach.fill('#ct', 'Gizli not'); await coach.click('#cok'); await settle();

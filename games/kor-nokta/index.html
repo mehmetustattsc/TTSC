@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>
+/* Club fonts from the app itself (no request to Google). Barlow, SIL Open Font License */
+@font-face{font-family:'Barlow';font-weight:400;font-display:swap;src:url(../../assets/fonts/Barlow-Regular.woff) format('woff')}
+@font-face{font-family:'Barlow';font-weight:500;font-display:swap;src:url(../../assets/fonts/Barlow-Medium.woff) format('woff')}
+@font-face{font-family:'Barlow';font-weight:600;font-display:swap;src:url(../../assets/fonts/Barlow-SemiBold.woff) format('woff')}
+@font-face{font-family:'Barlow';font-weight:700;font-display:swap;src:url(../../assets/fonts/Barlow-Bold.woff) format('woff')}
+@font-face{font-family:'Barlow Condensed';font-weight:600;font-display:swap;src:url(../../assets/fonts/BarlowCondensed-SemiBold.woff) format('woff')}
+@font-face{font-family:'Barlow Condensed';font-weight:700;font-display:swap;src:url(../../assets/fonts/BarlowCondensed-Bold.woff) format('woff')}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}[hidden]{display:none!important}
+</style>
+<title>Kör Nokta</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: night-vision pitch — header strip, portrait canvas with glowing view cones, one wide call button */
+:root{
+  --void:#060a13; --panel:#0e1626; --edge:#22304b;
+  --beam:#7fe7ff; --heat:#ffb547; --mate:#8cf2a8; --foe:#ff6b7d;
+  --ink:#e8eefc; --muted:#8796b4;
+  --display:'Barlow Condensed','Arial Narrow',sans-serif; --body:'Barlow',system-ui,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--void);color:var(--ink);font-family:var(--body);margin:0;-webkit-tap-highlight-color:transparent}
+.app{height:100%;box-sizing:border-box;max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:10px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+h1{font-family:var(--display);font-weight:700;font-size:28px;margin:0;letter-spacing:.06em;text-transform:uppercase;line-height:1}
+h1 span{color:var(--beam);text-shadow:0 0 14px rgba(127,231,255,.6)}
+.sel{display:flex;gap:6px}
+select{background:var(--panel);color:var(--ink);border:1px solid var(--edge);border-radius:6px;padding:6px 8px;font:500 13px var(--body)}
+select:focus-visible,button:focus-visible{outline:2px solid var(--beam);outline-offset:2px}
+.hud{display:flex;justify-content:space-between;font-family:var(--display);font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-variant-numeric:tabular-nums}
+.hud b{color:var(--ink)}
+.stage{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center}
+canvas{display:block;border-radius:10px;touch-action:none;box-shadow:0 0 0 1px var(--edge),0 0 40px rgba(127,231,255,.08)}
+.call{font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:.14em;text-transform:uppercase;
+  background:var(--heat);color:#1d1203;border:0;border-radius:12px;padding:16px;cursor:pointer;touch-action:manipulation;user-select:none}
+.call:active{transform:scale(.98)}
+.call:disabled{opacity:.35}
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:12px}
+.card{background:rgba(6,10,19,.94);border:1px solid var(--edge);border-radius:14px;padding:20px;max-width:340px;width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:12px}
+.eyebrow{font-family:var(--display);color:var(--beam);letter-spacing:.14em;text-transform:uppercase;font-size:13px}
+.card h2{font-family:var(--display);font-size:40px;margin:0;line-height:.95;text-transform:uppercase;text-wrap:balance}
+.card ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;line-height:1.45;font-size:14px;color:#cdd7ee}
+.stats{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:14px;font-variant-numeric:tabular-nums;margin:0}
+.stats dt{color:var(--muted)} .stats dd{margin:0;text-align:right;font-weight:700}
+.big{font-family:var(--display);font-size:56px;font-weight:700;color:var(--heat);line-height:1}
+.primary{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:.12em;text-transform:uppercase;background:var(--beam);color:#041218;border:0;border-radius:10px;padding:14px;cursor:pointer}
+.tip{margin:0;font-size:13px;color:var(--muted);line-height:1.4}
+</style>
+
+<div class="app">
+  <header>
+    <h1>Kör <span>Nokta</span></h1>
+    <div class="sel">
+      <select id="lvl" aria-label="Level"><option value="easy" data-i="easy"></option><option value="medium" data-i="medium"></option><option value="hard" data-i="hard"></option></select>
+      <select id="lang" aria-label="Language"><option value="tr">TR</option><option value="de">DE</option><option value="en">EN</option><option value="fr">FR</option></select>
+    </div>
+  </header>
+  <div class="hud"><span><span data-i="round"></span> <b id="hRound">0/8</b></span><span id="hTime">—</span><span><span data-i="score"></span> <b id="hScore">0</b></span></div>
+  <div class="stage" id="stage">
+    <canvas id="cv"></canvas>
+    <div class="overlay" id="ov"><div class="card">
+      <div class="eyebrow" data-i="tag"></div>
+      <h2 id="ovTitle">Kör Nokta</h2>
+      <ol id="how"><li data-i="how1"></li><li data-i="how2"></li><li data-i="how3"></li></ol>
+      <div id="endBox" hidden><div class="big" id="endScore">0</div><dl class="stats" id="endStats"></dl></div>
+      <button class="primary" id="go" data-i="start"></button>
+      <p class="tip" data-i="tip"></p>
+    </div></div>
+  </div>
+  <button class="call" id="call" data-i="call" disabled></button>
+</div>
+
+<script>
+const T={
+tr:{tag:'Topsuz oyun · Kör noktayı bul',how1:'Sen topsuz forvetsin. Parmağını sahada sürükleyerek koş.',how2:'Savunmacıların ışığı neyi gördüklerini gösterir. Işıkta uzun kalırsan seni markaja alırlar. Işıktan çıkıp uzaklaşırsan seni bırakırlar.',how3:'Yeşil banda gir: çizgiye yaklaş ama geçme. Pas yolu açıkken pası iste. Kolay seviyede hazır olduğunda forvet yeşil yanar.',start:'Başla',again:'Tekrar oyna',call:'Pas iste',round:'Atak',score:'Puan',goal:'GOL!',offside:'Ofsayt',seen:'Görüldün, pas riskli',marked:'Markajdasın',blocked:'Pas yolu kapalı',late:'Süre doldu, pas gelmedi',deep:'Çok derindesin, ara pası koşamazsın',tight:'çizgide mükemmel zamanlama',goals:'Gol',common:'En sık hata',none:'Yok',best:'Rekor',end:'Antrenman bitti',newbest:'Yeni rekor!',tip:'Forvetler topun uzak tarafında, son savunmacının omzunda bekler.',easy:'Kolay',medium:'Orta',hard:'Zor'},
+de:{tag:'Spiel ohne Ball · Finde den toten Winkel',how1:'Du bist Stürmer ohne Ball. Ziehe den Finger über das Feld, um zu laufen.',how2:'Das Licht zeigt, was die Verteidiger sehen. Bleibst du lange darin, wirst du gedeckt. Läufst du weg, lassen sie dich los.',how3:'Geh ins grüne Band: nah an die Linie, aber nicht darüber. Fordere den Ball, wenn der Passweg frei ist. Auf Leicht leuchtet der Stürmer grün, wenn es passt.',start:'Start',again:'Nochmal',call:'Ball fordern',round:'Angriff',score:'Punkte',goal:'TOR!',offside:'Abseits',seen:'Gesehen, Pass zu riskant',marked:'Du wirst gedeckt',blocked:'Passweg zu',late:'Zeit abgelaufen',deep:'Zu tief, kein Pass in die Tiefe',tight:'perfektes Timing an der Linie',goals:'Tore',common:'Häufigster Fehler',none:'Keiner',best:'Rekord',end:'Training beendet',newbest:'Neuer Rekord!',tip:'Stürmer warten ballfern an der Schulter des letzten Verteidigers.',easy:'Leicht',medium:'Mittel',hard:'Schwer'},
+en:{tag:'Off the ball · Find the blind spot',how1:'You are a striker without the ball. Drag your finger on the pitch to run.',how2:'The light shows what defenders see. Stay in it too long and you get marked. Run away and they let you go.',how3:'Get into the green band: close to the line, not past it. Call for the ball when the lane is open. On Easy the striker glows green when it is on.',start:'Play',again:'Play again',call:'Call for it',round:'Attack',score:'Score',goal:'GOAL!',offside:'Offside',seen:'Spotted, pass too risky',marked:'You are marked',blocked:'Passing lane closed',late:'Time up, no pass',deep:'Too deep, no ball in behind',tight:'perfect timing on the line',goals:'Goals',common:'Most common mistake',none:'None',best:'Best',end:'Session over',newbest:'New best!',tip:'Strikers wait on the far side, on the last defender’s shoulder.',easy:'Easy',medium:'Medium',hard:'Hard'},
+fr:{tag:'Jeu sans ballon · Trouve l’angle mort',how1:'Tu es attaquant sans ballon. Fais glisser ton doigt sur le terrain pour courir.',how2:'La lumière montre ce que voient les défenseurs. Reste-y trop longtemps et tu seras marqué. Éloigne-toi et ils te lâchent.',how3:'Entre dans la bande verte : près de la ligne, sans la dépasser. Demande le ballon quand la ligne de passe est libre. En Facile, l’attaquant devient vert quand c’est bon.',start:'Jouer',again:'Rejouer',call:'Demande le ballon',round:'Attaque',score:'Points',goal:'BUT !',offside:'Hors-jeu',seen:'Repéré, passe risquée',marked:'Tu es marqué',blocked:'Ligne de passe fermée',late:'Temps écoulé',deep:'Trop bas, pas de passe en profondeur',tight:'timing parfait sur la ligne',goals:'Buts',common:'Erreur la plus fréquente',none:'Aucune',best:'Record',end:'Séance terminée',newbest:'Nouveau record !',tip:'Les attaquants attendent côté opposé, à l’épaule du dernier défenseur.',easy:'Facile',medium:'Moyen',hard:'Difficile'}
+};
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+let lang=new URLSearchParams(location.search).get('lang')||store.get('ttsc_lang')||((navigator.language||'tr').slice(0,2));if(!T[lang])lang='tr';
+let level=store.get('ttsc_kornokta_level')||'easy';if(!['easy','medium','hard'].includes(level))level='easy';
+const tx=k=>(T[lang][k]||T.tr[k]||k),$=id=>document.getElementById(id);
+function applyLang(){document.documentElement.lang=lang;document.querySelectorAll('[data-i]').forEach(el=>el.textContent=tx(el.dataset.i));$('lang').value=lang;$('lvl').value=level}
+
+const LW=360,LH=540,ROUNDS=8,HALF=.87,RANGE=135,DEEP=50;
+const LV={easy:{nd:3,time:10,seenMax:1.2,check:[2.8,4.2],trap:false,line:true,msp:66,ready:true},
+          medium:{nd:4,time:9,seenMax:1.1,check:[2.2,3.6],trap:true,line:true,msp:74,ready:false},
+          hard:{nd:4,time:8,seenMax:.9,check:[1.7,3.0],trap:true,line:false,msp:82,ready:false}};
+const rand=(a,b)=>a+Math.random()*(b-a),clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+function segDist(p,a,b){const dx=b.x-a.x,dy=b.y-a.y,l2=dx*dx+dy*dy||1;let t=clamp(((p.x-a.x)*dx+(p.y-a.y)*dy)/l2,0,1);return Math.hypot(p.x-(a.x+dx*t),p.y-(a.y+dy*t))}
+function angDiff(a,b){let d=a-b;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;return d}
+
+const cv=$('cv'),ctx=cv.getContext('2d'),stage=$('stage');let S=1;
+function fit(){const r=stage.getBoundingClientRect();let w=r.width,h=r.height;if(h<150)h=w*LH/LW;let cw=Math.min(w,h*LW/LH);cw=Math.max(220,cw);const ch=cw*LH/LW;
+  cv.style.width=cw+'px';cv.style.height=ch+'px';const d=Math.min(2,window.devicePixelRatio||1);cv.width=Math.round(cw*d);cv.height=Math.round(ch*d);S=cv.width/LW}
+window.addEventListener('resize',fit);
+
+// ---------- state ----------
+let phase='idle',tt=0,round=0,score=0,stats,defs=[],gk,car,me,aim=null,lineBase=210,nextTrap=0,res=null,resT=0;
+function setup(){
+  const L=LV[level];defs=[];
+  for(let i=0;i<L.nd;i++){const bx=60+i*(240/(L.nd-1))+rand(-12,12);defs.push({x:bx,y:210+rand(-6,6),bx,jit:rand(-6,6),dir:Math.PI/2,look:0,next:rand(...L.check),seen:0,mark:false})}
+  gk={x:180,y:42};
+  car={x:rand(100,260),y:445,tx:rand(60,300),ty:rand(420,470)};
+  me={x:rand(110,250),y:rand(355,375)};aim=null;lineBase=210;nextTrap=rand(2,3.5);
+}
+function lineY(){return Math.min(...defs.map(d=>d.y))}
+function inCone(d,p){const dd=dist(d,p);if(dd>RANGE||dd<1)return false;return Math.abs(angDiff(Math.atan2(p.y-d.y,p.x-d.x),d.dir))<HALF}
+function startGame(){round=0;score=0;stats={goals:0,reasons:{}};$('ov').hidden=true;next()}
+function next(){round++;setup();phase='play';tt=0;res=null;$('call').disabled=false;hud()}
+function hud(){$('hRound').textContent=Math.min(round,ROUNDS)+'/'+ROUNDS;$('hScore').textContent=score;
+  $('hTime').textContent=phase==='play'?Math.max(0,LV[level].time-tt).toFixed(1)+' s':'—'}
+
+function judge(){const ly=lineY();let reason=null;const P={x:me.x,y:Math.max(70,me.y-55)};
+  if(me.y<ly-4)reason='offside';
+  else if(me.y>ly+DEEP)reason='deep';
+  else if(defs.some(d=>dist(d,me)<26))reason='marked';
+  else{const blk=defs.find(d=>segDist(d,car,P)<11);if(blk){reason='blocked';P.x=blk.x;P.y=blk.y}}
+  return{reason,P}}
+function callBall(){if(phase!=='play')return;const j=judge();finish(j.reason,j.P)}
+function finish(reason,P){
+  let pts=0,sub='';
+  if(!reason){stats.goals++;const tight=Math.max(0,me.y-lineY());const bonus=Math.round(50*Math.max(0,1-tight/60));pts=100+bonus;if(bonus>=35)sub=tx('tight')}
+  else stats.reasons[reason]=(stats.reasons[reason]||0)+1;
+  score+=pts;res={reason,P,pts,sub,line:lineY(),start:{x:me.x,y:me.y}};phase='result';resT=0;$('call').disabled=true;hud();
+}
+function endGame(){
+  phase='end';const key='ttsc_kornokta_best_'+level;const prev=+(store.get(key)||0);const nb=score>prev;if(nb)store.set(key,score);
+  const r=Object.entries(stats.reasons).sort((a,b)=>b[1]-a[1])[0];
+  $('ovTitle').textContent=nb?tx('newbest'):tx('end');$('how').hidden=true;$('endBox').hidden=false;$('endScore').textContent=score;
+  $('endStats').innerHTML=`<dt>${tx('goals')}</dt><dd>${stats.goals}/${ROUNDS}</dd><dt>${tx('common')}</dt><dd>${r?tx(r[0]):tx('none')}</dd><dt>${tx('best')}</dt><dd>${Math.max(prev,score)}</dd>`;
+  const go=$('go');go.dataset.i='again';go.textContent=tx('again');$('ov').hidden=false;
+  try{window.parent.postMessage({source:'ttsc-games',game:'kornokta',level,score,goals:stats.goals,rounds:ROUNDS,mistakes:stats.reasons},'*')}catch(e){}
+}
+
+function update(dt){
+  const L=LV[level];
+  if(phase==='play'){
+    tt+=dt;
+    // ball carrier wanders
+    const cd=Math.hypot(car.tx-car.x,car.ty-car.y);if(cd<4){car.tx=rand(60,300);car.ty=rand(420,470)}else{car.x+=(car.tx-car.x)/cd*45*dt;car.y+=(car.ty-car.y)/cd*45*dt}
+    // offside trap + slow drop
+    if(L.trap&&tt>=nextTrap){lineBase=Math.min(290,lineBase+24);nextTrap=tt+rand(2.6,4.2)}
+    lineBase=Math.max(175,lineBase-6*dt);
+    // me runs toward finger
+    if(aim){const d=dist(aim,me);if(d>2){const s=Math.min(d,150*dt);me.x+=(aim.x-me.x)/d*s;me.y+=(aim.y-me.y)/d*s}}
+    me.x=clamp(me.x,16,344);me.y=clamp(me.y,60,520);
+    for(const d of defs){
+      let tx_,ty_,sp;
+      if(d.mark){tx_=me.x;ty_=me.y-16;sp=L.msp;
+        if(dist(d,me)>70){d.lose=(d.lose||0)+dt;if(d.lose>.8){d.mark=false;d.seen=0;d.lose=0}}else d.lose=0}
+      else{tx_=d.bx+(car.x-180)*.25;ty_=lineBase+d.jit;sp=d.y<ty_-4?110:70}
+      const dd=Math.hypot(tx_-d.x,ty_-d.y);if(dd>1){const s=Math.min(dd,sp*dt);d.x+=(tx_-d.x)/dd*s;d.y+=(ty_-d.y)/dd*s}
+      d.next-=dt;if(d.next<=0){if(!d.mark&&dist(d,me)<120)d.look=.45;d.next=rand(...L.check)}
+      d.look=Math.max(0,d.look-dt);
+      const want=(d.mark||d.look>0)?Math.atan2(me.y-d.y,me.x-d.x):Math.atan2(car.y-d.y,car.x-d.x);
+      d.dir+=angDiff(want,d.dir)*Math.min(1,dt*8);
+      if(inCone(d,me))d.seen+=dt*(d.look>0?.6:1);else d.seen=Math.max(0,d.seen-dt*.5);
+      if(d.seen>L.seenMax)d.mark=true;
+    }
+    if(tt>=L.time)finish('late',{x:car.x,y:car.y});
+    hud();
+  }else if(phase==='result'){resT+=dt;if(resT>2){if(round>=ROUNDS)endGame();else next()}}
+}
+
+// ---------- draw ----------
+function circle(x,y,r){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2)}
+function draw(){
+  ctx.setTransform(S,0,0,S,0,0);
+  ctx.fillStyle='#0b1322';ctx.fillRect(0,0,LW,LH);
+  for(let i=0;i<9;i++){ctx.fillStyle=i%2?'rgba(255,255,255,.012)':'rgba(255,255,255,.03)';ctx.fillRect(0,i*LH/9,LW,LH/9)}
+  ctx.strokeStyle='#24324d';ctx.lineWidth=1.6;ctx.strokeRect(10,10,LW-20,LH+40);ctx.strokeRect(70,10,220,90);ctx.strokeRect(130,10,100,34);
+  ctx.beginPath();ctx.arc(180,100,40,.2*Math.PI,.8*Math.PI);ctx.stroke();
+  ctx.strokeStyle='#8796b4';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(150,10);ctx.lineTo(210,10);ctx.stroke();
+  const L=LV[level];
+  // cones
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  for(const d of defs){const hot=phase==='play'&&inCone(d,me);
+    const g=ctx.createRadialGradient(d.x,d.y,6,d.x,d.y,RANGE);
+    const col=hot?'255,181,71':'127,231,255';g.addColorStop(0,`rgba(${col},${hot?.42:.28})`);g.addColorStop(1,`rgba(${col},0)`);
+    ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(d.x,d.y);ctx.arc(d.x,d.y,RANGE,d.dir-HALF,d.dir+HALF);ctx.closePath();ctx.fill()}
+  ctx.restore();
+  // offside line
+  const showLine=(L.line&&phase==='play')||phase==='result';
+  if(showLine){const ly=phase==='result'?res.line:lineY();const off=phase==='result'&&res.reason==='offside';
+    ctx.strokeStyle=off?'#ff6b7d':'rgba(232,238,252,.35)';ctx.lineWidth=off?2.5:1.2;ctx.setLineDash([6,6]);ctx.beginPath();ctx.moveTo(10,ly);ctx.lineTo(LW-10,ly);ctx.stroke();ctx.setLineDash([])}
+  if(phase==='play'&&L.ready){const ly=lineY();ctx.fillStyle='rgba(140,242,168,.07)';ctx.fillRect(10,ly-4,LW-20,DEEP+4)}
+  // seen meters + defenders
+  for(const d of defs){
+    ctx.fillStyle='#0b1322';circle(d.x,d.y,11);ctx.fill();ctx.lineWidth=2.5;ctx.strokeStyle=d.mark?'#ff6b7d':'#7fe7ff';ctx.stroke();
+    ctx.fillStyle=d.mark?'#ff6b7d':'#7fe7ff';ctx.beginPath();ctx.arc(d.x+Math.cos(d.dir)*7,d.y+Math.sin(d.dir)*7,3,0,Math.PI*2);ctx.fill();
+    if(phase==='play'&&d.seen>0&&!d.mark){const k=Math.min(1,d.seen/L.seenMax);ctx.strokeStyle='#ffb547';ctx.lineWidth=3;ctx.beginPath();ctx.arc(d.x,d.y,16,-Math.PI/2,-Math.PI/2+k*2*Math.PI);ctx.stroke()}
+  }
+  // keeper
+  ctx.fillStyle='#0b1322';circle(gk.x,gk.y,11);ctx.fill();ctx.strokeStyle='#ffb547';ctx.lineWidth=2;ctx.stroke();
+  // carrier
+  ctx.fillStyle='#8cf2a8';circle(car.x,car.y,11);ctx.fill();
+  // aim marker
+  if(aim&&phase==='play'){ctx.strokeStyle='rgba(232,238,252,.4)';ctx.lineWidth=1;circle(aim.x,aim.y,6);ctx.stroke()}
+  // me
+  let mp={x:me.x,y:me.y},bp={x:car.x,y:car.y-13};
+  if(phase==='result'&&res){
+    const k1=clamp(resT/.5,0,1);
+    if(!res.reason){const k2=clamp((resT-.5)/.4,0,1);mp={x:res.start.x+(res.P.x-res.start.x)*k1,y:res.start.y+(res.P.y-res.start.y)*k1};
+      bp=k2>0?{x:res.P.x+(180-res.P.x)*k2,y:res.P.y+(14-res.P.y)*k2}:{x:car.x+(res.P.x-car.x)*k1,y:car.y-13+(res.P.y-car.y+13)*k1}}
+    else if(res.reason!=='late'){bp={x:car.x+(res.P.x-car.x)*k1,y:car.y-13+(res.P.y-car.y+13)*k1}}
+  }
+  const ready=phase==='play'&&L.ready&&!judge().reason;
+  ctx.save();ctx.shadowColor=ready?'rgba(140,242,168,1)':'rgba(255,255,255,.8)';ctx.shadowBlur=ready?22:14;ctx.fillStyle=ready?'#8cf2a8':'#ffffff';circle(mp.x,mp.y,10);ctx.fill();ctx.restore();
+  ctx.fillStyle='#060a13';ctx.font='700 9px Barlow, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('9',mp.x,mp.y+.5);
+  ctx.fillStyle='#fff';circle(bp.x,bp.y,4.5);ctx.fill();ctx.strokeStyle='#060a13';ctx.lineWidth=1;ctx.stroke();
+  // result banner
+  if(phase==='result'&&res){
+    ctx.fillStyle='rgba(6,10,19,.9)';ctx.fillRect(16,LH/2-46,LW-32,76);
+    ctx.fillStyle=res.reason?'#ff6b7d':'#8cf2a8';ctx.font='700 28px "Barlow Condensed", sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText((res.reason?tx(res.reason):tx('goal')+'  +'+res.pts).toUpperCase(),LW/2,LH/2-20);
+    if(res.sub){ctx.fillStyle='#cdd7ee';ctx.font='500 14px Barlow, sans-serif';ctx.fillText(res.sub,LW/2,LH/2+12)}
+  }
+}
+let lastT=performance.now();
+function loop(now){const dt=Math.min(.05,(now-lastT)/1000);lastT=now;update(dt);draw();requestAnimationFrame(loop)}
+
+function toL(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*LW,y:(e.clientY-r.top)/r.height*LH}}
+let dragging=false;
+cv.addEventListener('pointerdown',e=>{if(phase!=='play')return;dragging=true;try{cv.setPointerCapture(e.pointerId)}catch(_){};aim=toL(e)});
+cv.addEventListener('pointermove',e=>{if(dragging&&phase==='play')aim=toL(e)});
+cv.addEventListener('pointerup',()=>{dragging=false});
+cv.addEventListener('pointercancel',()=>{dragging=false});
+$('call').addEventListener('pointerdown',e=>{e.preventDefault();callBall()});
+window.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();callBall()}});
+$('go').addEventListener('click',startGame);
+$('lang').addEventListener('change',e=>{lang=e.target.value;store.set('ttsc_lang',lang);applyLang()});
+$('lvl').addEventListener('change',e=>{level=e.target.value;store.set('ttsc_kornokta_level',level);if(phase!=='idle'&&phase!=='end'){phase='idle';$('how').hidden=false;$('endBox').hidden=true;$('ovTitle').textContent='Kör Nokta';const go=$('go');go.dataset.i='start';go.textContent=tx('start');$('ov').hidden=false;$('call').disabled=true;round=0;score=0;hud()}});
+applyLang();fit();setup();hud();requestAnimationFrame(loop);
+</script>
+
+</html>

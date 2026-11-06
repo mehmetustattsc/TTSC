@@ -47,7 +47,7 @@ jobs:
       - name: Collect the site files
         run: |
           mkdir _site
-          cp -r index.html datenschutz.html afis.html manifest.webmanifest sw.js css js assets data _site/
+          cp -r index.html datenschutz.html afis.html manifest.webmanifest sw.js css js assets data games _site/
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5
         with:

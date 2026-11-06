@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>
+/* Club fonts from the app itself (no request to Google). Barlow, SIL Open Font License */
+@font-face{font-family:'Barlow';font-weight:400;font-display:swap;src:url(../../assets/fonts/Barlow-Regular.woff) format('woff')}
+@font-face{font-family:'Barlow';font-weight:500;font-display:swap;src:url(../../assets/fonts/Barlow-Medium.woff) format('woff')}
+@font-face{font-family:'Barlow';font-weight:600;font-display:swap;src:url(../../assets/fonts/Barlow-SemiBold.woff) format('woff')}
+@font-face{font-family:'Barlow';font-weight:700;font-display:swap;src:url(../../assets/fonts/Barlow-Bold.woff) format('woff')}
+@font-face{font-family:'Barlow Condensed';font-weight:600;font-display:swap;src:url(../../assets/fonts/BarlowCondensed-SemiBold.woff) format('woff')}
+@font-face{font-family:'Barlow Condensed';font-weight:700;font-display:swap;src:url(../../assets/fonts/BarlowCondensed-Bold.woff) format('woff')}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}[hidden]{display:none!important}
+</style>
+<title>Taktik</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: coaching playbook — tab bar, then either a lesson library (cards by position) or a board view with narration under the pitch */
+:root{
+  --bg:#f2f5f3; --surface:#ffffff; --ink:#13201b; --muted:#5d6e66; --line:#d5ddd8;
+  --accent:#0f6b54; --accent-ink:#ffffff; --bad:#c2412b; --good:#16794f;
+  --display:'Barlow Condensed','Arial Narrow',sans-serif; --body:'Barlow',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c1411; --surface:#131e19; --ink:#e4ede8; --muted:#90a39a; --line:#25352d;
+  --accent:#5fd3a5; --accent-ink:#06231a; --bad:#ff8a73; --good:#6fe0a8; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c1411; --surface:#131e19; --ink:#e4ede8; --muted:#90a39a; --line:#25352d;
+  --accent:#5fd3a5; --accent-ink:#06231a; --bad:#ff8a73; --good:#6fe0a8; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;margin:0;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:760px;margin:0 auto;box-sizing:border-box;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 32px;display:flex;flex-direction:column;gap:14px}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+h1{font-family:var(--display);font-weight:800;font-size:30px;letter-spacing:-.01em;margin:0;line-height:1}
+h1 small{display:block;font:600 12px var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+select{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:600 13px var(--body)}
+button{font-family:var(--body)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tab{background:none;border:0;border-bottom:3px solid transparent;padding:10px 12px;font:700 15px var(--body);color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{color:var(--ink);border-color:var(--accent)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:var(--surface);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:6px 12px;font:600 14px var(--body);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.packhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.packhead h2{font-family:var(--display);font-size:20px;margin:0}
+.packhead span{color:var(--muted);font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.lcard{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:6px;color:var(--ink);min-width:0}
+.lcard:hover{border-color:var(--accent)}
+.lcard b{font-family:var(--display);font-size:17px;line-height:1.2}
+.lcard p{margin:0;color:var(--muted);font-size:14px;line-height:1.4}
+.tags{display:flex;gap:4px;flex-wrap:wrap}
+.tag{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);border:1px solid var(--line);border-radius:4px;padding:1px 6px}
+.soon{color:var(--muted);font-size:14px;margin:0}
+.boardbox{display:flex;flex-direction:column;gap:10px}
+.back{align-self:flex-start;background:none;border:0;color:var(--accent);font:700 14px var(--body);cursor:pointer;padding:4px 0}
+.ltitle{font-family:var(--display);font-size:24px;margin:0;line-height:1.15;text-wrap:balance}
+canvas{display:block;width:100%;border-radius:10px;touch-action:manipulation}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;align-self:flex-start}
+.seg button{background:var(--surface);border:0;padding:8px 14px;font:700 14px var(--body);color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"].w{background:var(--bad);color:#fff}
+.seg button[aria-pressed="true"].r{background:var(--good);color:#fff}
+.seg button[aria-pressed="true"].n{background:var(--accent);color:var(--accent-ink)}
+.narr{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:12px 14px;min-height:56px;font-size:17px;line-height:1.45}
+.narr.bad{border-left-color:var(--bad)} .narr.good{border-left-color:var(--good)}
+.narr .k{display:block;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;font-variant-numeric:tabular-nums}
+.ctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cbtn{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font:700 15px var(--body);color:var(--ink);cursor:pointer;min-width:48px}
+.cbtn.main{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.cbtn:disabled{opacity:.4}
+.dots{display:flex;gap:5px;margin-left:auto}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--line)}
+.dot.on{background:var(--accent)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:13px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:5px}
+.role{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;line-height:1.45}
+.role b{font-family:var(--display)}
+#vLesson,#cvL{touch-action:pan-y}
+.quizgo{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:14px 16px;cursor:pointer}
+.quizgo b{font-family:var(--display);font-size:19px}
+.quizgo span{font-size:14px;opacity:.9}
+.qrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.qrow .cbtn{width:100%}
+.qrow .cbtn[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:1px}
+#qAfter{grid-template-columns:1fr}
+.score{font-family:var(--display);font-size:44px;line-height:1;color:var(--accent);display:block;margin:4px 0}
+.frow{display:flex;gap:8px;align-items:center;min-width:0}
+.flab{flex:0 0 auto;width:64px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.frow .chips{flex-wrap:nowrap;overflow-x:auto;min-width:0;padding-bottom:2px;scrollbar-width:none}
+.frow .chip{flex:0 0 auto}
+.lmeta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.badge{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:4px;padding:2px 7px;background:var(--accent);color:var(--accent-ink)}
+.badge.lv{background:none;border:1px solid var(--line);color:var(--ink)}
+.lnav{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--line);padding-top:10px}
+.lnav .hint{font-size:12px;color:var(--muted);text-align:center}
+.slide-n{animation:sn .28s ease-out}.slide-p{animation:sp .28s ease-out}
+@keyframes sn{from{transform:translateX(36px);opacity:.3}to{transform:none;opacity:1}}
+@keyframes sp{from{transform:translateX(-36px);opacity:.3}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Taktik<small data-i="sub"></small></h1>
+    <select id="lang" aria-label="Language"><option value="tr">TR</option><option value="de">DE</option><option value="en">EN</option><option value="fr">FR</option></select>
+  </header>
+  <div class="tabs" role="tablist">
+    <button class="tab" id="tabL" role="tab" data-i="lessons"></button>
+    <button class="tab" id="tabF" role="tab" data-i="formations"></button>
+  </div>
+
+  <section id="vList">
+    <div class="boardbox">
+      <div class="frow"><span class="flab" data-i="phase"></span><div class="chips" id="chP"></div></div><div class="frow"><span class="flab" data-i="level"></span><div class="chips" id="chV"></div></div><div class="frow"><span class="flab" data-i="pos"></span><div class="chips" id="chips"></div></div>
+      <button class="quizgo" id="quizGo"><b data-i="quiz"></b><span id="quizSub"></span></button>
+      <div class="packhead"><h2 data-i="pack"></h2><span id="count"></span></div>
+      <div class="grid" id="grid"></div>
+      <p class="soon" data-i="soon"></p>
+    </div>
+  </section>
+
+  <section id="vLesson" hidden>
+    <div class="boardbox" id="lbox">
+      <button class="back" id="back">← <span data-i="backAll"></span></button>
+      <div class="lmeta" id="lMeta"></div><h2 class="ltitle" id="lTitle"></h2>
+      <div class="seg" id="variant"><button class="w" id="vBad" data-i="wrong"></button><button class="r" id="vGood" data-i="right"></button></div>
+      <canvas id="cvL" aria-label="Board"></canvas>
+      <div class="legend"><span><i style="background:#ffffff;border:1px solid #9aa"></i><span data-i="us"></span></span><span><i style="background:#e4573d"></i><span data-i="them"></span></span><span><i style="background:#f5b83d"></i><span data-i="moves"></span></span></div>
+      <div class="narr" id="narr" aria-live="polite"></div>
+      <div class="ctrl">
+        <button class="cbtn" id="prev" aria-label="Prev">◀</button>
+        <button class="cbtn main" id="play"></button>
+        <button class="cbtn" id="next" aria-label="Next">▶</button>
+        <div class="dots" id="dots"></div>
+      </div>
+      <div class="lnav"><button class="cbtn" id="pl">‹ <span data-i="prevL"></span></button><span class="hint" data-i="swipe"></span><button class="cbtn" id="nl"><span data-i="nextL"></span> ›</button></div>
+    </div>
+  </section>
+
+  <section id="vQuiz" hidden>
+    <div class="boardbox">
+      <button class="back" id="qBack">← <span data-i="backAll"></span></button>
+      <div class="lmeta" id="qMeta"></div>
+      <h2 class="ltitle" id="qTitle"></h2>
+      <canvas id="cvQ" aria-label="Board"></canvas>
+      <div class="narr" id="qNarr" aria-live="polite"></div>
+      <div class="qrow" id="qOpts"><button class="cbtn" id="qA"></button><button class="cbtn" id="qB"></button></div>
+      <div class="qrow" id="qPick"><button class="cbtn main" id="qPA"></button><button class="cbtn main" id="qPB"></button></div>
+      <div class="qrow" id="qAfter" hidden><button class="cbtn main" id="qNext"></button></div>
+      <div class="qrow" id="qEndBtns" hidden><button class="cbtn main" id="qAgain"></button><button class="cbtn" id="qHome"></button></div>
+    </div>
+  </section>
+
+  <section id="vForm" hidden>
+    <div class="boardbox">
+      <div class="chips" id="fchips"></div>
+      <div class="seg" id="phase"><button class="n" id="pDef" data-i="defense"></button><button class="n" id="pAtt" data-i="attack"></button></div>
+      <canvas id="cvF" aria-label="Formation"></canvas>
+      <div class="role" id="role"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+// ================= text =================
+const UI={
+tr:{sub:'Pozisyon eğitimi',lessons:'Dersler',formations:'Dizilişler',all:'Hepsi',backAll:'Tüm dersler',wrong:'Yanlış',right:'Doğru',play:'Oynat',pause:'Durdur',again:'Baştan',us:'Biz',them:'Rakip',moves:'Koşu / pas',defense:'Savunma',attack:'Hücum',tapHint:'Bir oyuncuya dokun, o fazdaki görevini gör.',pack:'Savunma paketi',lessonsN:'{n} ders',step:'Adım',soon:'Sıradaki paketler: orta saha (çevre kontrolü, pas bağlantısı), kanat oyunu (bindirme, içe kat etme), hücum.'},
+de:{sub:'Positionstraining',lessons:'Lektionen',formations:'Grundordnungen',all:'Alle',backAll:'Alle Lektionen',wrong:'Falsch',right:'Richtig',play:'Abspielen',pause:'Pause',again:'Von vorn',us:'Wir',them:'Gegner',moves:'Lauf / Pass',defense:'Defensive',attack:'Offensive',tapHint:'Tippe auf einen Spieler, um seine Aufgabe zu sehen.',pack:'Defensiv-Paket',lessonsN:'{n} Lektionen',step:'Schritt',soon:'Als Nächstes: Mittelfeld (Scanning, Passverbindungen), Flügelspiel (Hinterlaufen, nach innen ziehen), Angriff.'},
+en:{sub:'Position training',lessons:'Lessons',formations:'Formations',all:'All',backAll:'All lessons',wrong:'Wrong',right:'Right',play:'Play',pause:'Pause',again:'Restart',us:'Us',them:'Opponent',moves:'Run / pass',defense:'Defending',attack:'Attacking',tapHint:'Tap a player to see their job in this phase.',pack:'Defending pack',lessonsN:'{n} lessons',step:'Step',soon:'Coming next: midfield (scanning, passing links), wing play (overlaps, cutting inside), attacking.'},
+fr:{sub:'Formation par poste',lessons:'Leçons',formations:'Systèmes',all:'Tous',backAll:'Toutes les leçons',wrong:'Faux',right:'Juste',play:'Lire',pause:'Pause',again:'Rejouer',us:'Nous',them:'Adversaire',moves:'Course / passe',defense:'Défense',attack:'Attaque',tapHint:'Touche un joueur pour voir son rôle dans cette phase.',pack:'Pack défense',lessonsN:'{n} leçons',step:'Étape',soon:'Bientôt : milieu (scanning, liaisons), jeu sur les ailes (débordement, repiquer), attaque.'}
+};
+const UI2={
+tr:{pack:'Ders kütüphanesi',soon:'Kütüphane büyümeye devam ediyor. Kütüphane büyümeye devam edecek. Önerin olan bir pozisyon veya durum varsa ekleyelim.',phase:'Faz',level:'Seviye',pos:'Pozisyon',def:'Top rakipte',att:'Top bizde',trans:'Geçiş',set:'Duran top',lv1:'Başlangıç',lv2:'Orta',lv3:'İleri',prevL:'Önceki',nextL:'Sonraki',swipe:'Kaydırarak ders değiştir',of:'/'},
+de:{pack:'Lektionsbibliothek',soon:'Die Bibliothek wächst weiter. Die Bibliothek wächst weiter. Wünsche für Positionen oder Situationen sind willkommen.',phase:'Phase',level:'Stufe',pos:'Position',def:'Gegner am Ball',att:'Wir am Ball',trans:'Umschalten',set:'Standards',lv1:'Einsteiger',lv2:'Fortgeschritten',lv3:'Profi',prevL:'Zurück',nextL:'Weiter',swipe:'Wischen wechselt die Lektion',of:'/'},
+en:{pack:'Lesson library',soon:'The library keeps growing. The library keeps growing. Suggestions for positions or situations are welcome.',phase:'Phase',level:'Level',pos:'Position',def:'Out of possession',att:'In possession',trans:'Transition',set:'Set pieces',lv1:'Beginner',lv2:'Intermediate',lv3:'Advanced',prevL:'Previous',nextL:'Next',swipe:'Swipe to change lesson',of:'/'},
+fr:{pack:'Bibliothèque de leçons',soon:'La bibliothèque continue de grandir. La bibliothèque continue de grandir. Les suggestions de postes ou de situations sont bienvenues.',phase:'Phase',level:'Niveau',pos:'Poste',def:'Sans ballon',att:'Avec ballon',trans:'Transition',set:'Coups de pied arrêtés',lv1:'Débutant',lv2:'Intermédiaire',lv3:'Avancé',prevL:'Précédente',nextL:'Suivante',swipe:'Glisse pour changer de leçon',of:'/'}};
+for(const l in UI2)Object.assign(UI[l],UI2[l]);
+const UI3={
+tr:{quiz:'Sen karar ver',quizSub:'{n} pozisyon · iki hareketi izle, doğruyu seç',optA:'A’yı izle',optB:'B’yi izle',pickA:'A doğru',pickB:'B doğru',ask:'Pozisyon dondu. İki seçeneği izle ve hangisinin doğru olduğuna karar ver.',watching:'Seçenek {x}',yes:'Doğru karar!',no:'Yanlış. Doğrusu {x} seçeneğiydi.',nextQ:'Sonraki pozisyon',finish:'Sonucu gör',result:'Doğru karar',again:'Yeni seri',home:'Derslere dön',best:'Rekor',q:'Soru'},
+de:{quiz:'Du entscheidest',quizSub:'{n} Szenen · zwei Lösungen ansehen, die richtige wählen',optA:'A ansehen',optB:'B ansehen',pickA:'A ist richtig',pickB:'B ist richtig',ask:'Die Szene ist eingefroren. Sieh dir beide Lösungen an und entscheide, welche richtig ist.',watching:'Lösung {x}',yes:'Richtig entschieden!',no:'Falsch. Richtig war {x}.',nextQ:'Nächste Szene',finish:'Ergebnis',result:'Richtige Entscheidungen',again:'Neue Serie',home:'Zu den Lektionen',best:'Rekord',q:'Frage'},
+en:{quiz:'You decide',quizSub:'{n} situations · watch two moves, pick the right one',optA:'Watch A',optB:'Watch B',pickA:'A is right',pickB:'B is right',ask:'The play is frozen. Watch both options and decide which one is right.',watching:'Option {x}',yes:'Right call!',no:'Wrong. The right one was {x}.',nextQ:'Next situation',finish:'See result',result:'Right decisions',again:'New series',home:'Back to lessons',best:'Best',q:'Question'},
+fr:{quiz:'À toi de décider',quizSub:'{n} situations · regarde deux options, choisis la bonne',optA:'Voir A',optB:'Voir B',pickA:'A est juste',pickB:'B est juste',ask:'L’action est figée. Regarde les deux options et décide laquelle est juste.',watching:'Option {x}',yes:'Bonne décision !',no:'Faux. La bonne était {x}.',nextQ:'Situation suivante',finish:'Voir le résultat',result:'Bonnes décisions',again:'Nouvelle série',home:'Retour aux leçons',best:'Record',q:'Question'}};
+for(const l in UI3)Object.assign(UI[l],UI3[l]);
+const ROLE={
+tr:{GK:['Kaleci','KL'],CB:['Stoper','STP'],FB:['Bek','BEK'],WB:['Kanat bek','KB'],DM:['Ön libero (6)','6'],CM:['Merkez orta saha (8)','8'],AM:['On numara (10)','10'],W:['Kanat','KNT'],ST:['Forvet (9)','9']},
+de:{GK:['Torwart','TW'],CB:['Innenverteidiger','IV'],FB:['Außenverteidiger','AV'],WB:['Schienenspieler','SS'],DM:['Sechser','6'],CM:['Achter','8'],AM:['Zehner','10'],W:['Flügelspieler','FL'],ST:['Stürmer','9']},
+en:{GK:['Goalkeeper','GK'],CB:['Centre-back','CB'],FB:['Full-back','FB'],WB:['Wing-back','WB'],DM:['Holding midfielder (6)','6'],CM:['Central midfielder (8)','8'],AM:['Number 10','10'],W:['Winger','W'],ST:['Striker (9)','9']},
+fr:{GK:['Gardien','G'],CB:['Défenseur central','DC'],FB:['Latéral','LAT'],WB:['Piston','PIS'],DM:['Milieu défensif (6)','6'],CM:['Milieu relayeur (8)','8'],AM:['Meneur (10)','10'],W:['Ailier','AIL'],ST:['Avant-centre (9)','9']}
+};
+const JOB={
+tr:{GK:['Savunma arkasını kontrol et, hattı konuşarak yönet.','Oyun kurmaya katıl, kısa ve uzun seçeneği gör.'],CB:['Hattı birlikte tut, öndeki forveti kontrol et.','Genişle, topu ileri taşı veya hattı kıran pası ara.'],FB:['Kanadı kapat, içteki stoperle mesafeni koru.','Kanattan bindir. Kanat içeri kat ederse çizgi senin.'],WB:['Beşli hatta düş, rakip kanadı karşıla.','Tüm kanadı sen kullanırsın; genişliği sen verirsin.'],DM:['Stoperlerin önünü koru, pas yollarını kapat.','Stoperlerin arasına ya da önüne gel, oyunu yönlendir.'],CM:['Kompakt kal, merkezi kapat, baskıyı başlat.','Yarı alanlarda pas açısı ver, ceza sahasına koş.'],AM:['Rakibin 6 numarasını gölgende tut.','Hatlar arasında top iste, son pası ara.'],W:['Bekinin önünü kapat, rakip beki takip et.','Bekin bindirmesine göre çizgide kal ya da içeri kat et.'],ST:['Baskıyı başlat, oyunu bir kanada yönlendir.','Stoperleri meşgul et, savunma arkasına koş.']},
+de:{GK:['Raum hinter der Kette sichern und die Kette dirigieren.','Im Aufbau mitspielen, kurze und lange Option sehen.'],CB:['Kette gemeinsam halten, den Stürmer kontrollieren.','Breit machen, andribbeln oder linienbrechend passen.'],FB:['Flügel schließen, Abstand zum Innenverteidiger halten.','Hinterlaufen. Zieht der Flügel nach innen, gehört dir die Linie.'],WB:['In die Fünferkette fallen, Flügelspieler stellen.','Du gibst die Breite über die ganze Seite.'],DM:['Raum vor der Abwehr schützen, Passwege schließen.','Zwischen oder vor die Innenverteidiger kommen, Spiel lenken.'],CM:['Kompakt bleiben, Zentrum schließen, Pressing auslösen.','In den Halbräumen anbieten, in den Strafraum starten.'],AM:['Den gegnerischen Sechser im Deckungsschatten halten.','Zwischen den Linien anbieten, den letzten Pass suchen.'],W:['Vor dem Außenverteidiger schließen, gegnerischen AV verfolgen.','Je nach Hinterlaufen breit bleiben oder nach innen ziehen.'],ST:['Pressing starten, Spiel auf eine Seite lenken.','Innenverteidiger binden, in die Tiefe starten.']},
+en:{GK:['Guard the space behind the line and organise it.','Join the build-up; see the short and the long option.'],CB:['Hold the line together and control the striker.','Split wide, carry the ball or play the line-breaking pass.'],FB:['Close the flank, keep the gap to your centre-back.','Overlap. When the winger cuts inside, the touchline is yours.'],WB:['Drop into the back five and meet the winger.','You give width along the whole flank.'],DM:['Screen the back line and block passing lanes.','Drop between or ahead of the centre-backs and direct play.'],CM:['Stay compact, close the centre, trigger the press.','Offer angles in the half-spaces and run into the box.'],AM:['Keep their number 6 in your cover shadow.','Receive between the lines and look for the final pass.'],W:['Screen in front of your full-back, track their full-back.','Hold width or cut inside, depending on the overlap.'],ST:['Start the press and force play to one side.','Pin the centre-backs and run in behind.']},
+fr:{GK:['Protège l’espace derrière la ligne et organise-la.','Participe à la relance, vois l’option courte et longue.'],CB:['Tiens la ligne ensemble, contrôle l’attaquant.','Écarte-toi, conduis le ballon ou casse une ligne par la passe.'],FB:['Ferme le côté, garde la distance avec ton central.','Déborde. Si l’ailier rentre, la ligne de touche est à toi.'],WB:['Recule dans la ligne à cinq, affronte l’ailier.','Tu donnes la largeur sur tout le couloir.'],DM:['Protège la défense, ferme les lignes de passe.','Décroche entre ou devant les centraux, oriente le jeu.'],CM:['Reste compact, ferme l’axe, déclenche le pressing.','Offre des angles dans les demi-espaces, attaque la surface.'],AM:['Garde leur numéro 6 dans ton ombre.','Reçois entre les lignes, cherche la dernière passe.'],W:['Ferme devant ton latéral, suis leur latéral.','Reste large ou rentre, selon le dédoublement.'],ST:['Lance le pressing, oriente le jeu d’un côté.','Fixe les centraux, attaque la profondeur.']}
+};
+
+// ================= lessons (pitch units: x 0–68 width, y 0–105, our goal at y=105) =================
+const L=(tr,de,en,fr)=>({tr,de,en,fr});
+const LESSONS=[
+{id:'markaj',phase:'def',lvl:1,tags:['FB','CB'],view:'def',
+ title:L('Markaj: adamla kale arasında dur','Deckung: zwischen Gegner und Tor','Marking: stay goal-side','Marquage : entre l’adversaire et le but'),
+ sum:L('İç omuz, doğru mesafe, hem adamı hem topu görmek.','Innere Schulter, richtiger Abstand, Mann und Ball sehen.','Inside shoulder, right distance, see man and ball.','Épaule intérieure, bonne distance, voir l’homme et le ballon.'),
+ actors:[['2','us',54,76],['5','us',42,79],['4','us',28,79],['M','op',38,57],['W','op',58,68]],ball:'M',
+ intro:{txt:L('Rakip kanat topsuz. Bek (2) onu kontrol ediyor.','Der gegnerische Flügel ist ohne Ball. Außenverteidiger (2) kontrolliert ihn.','Their winger is off the ball. Full-back (2) is watching him.','L’ailier adverse est sans ballon. Le latéral (2) le surveille.')},
+ good:[
+  {p:{M:[41,60],W:[59,71],'2':[55,76]},arrows:[[59,71,34,105,'guide']],txt:L('Doğru konum: adamla kale arasında, iç omuzda. Hem adamı hem topu görüyorsun.','Richtig: zwischen Gegner und Tor, an der inneren Schulter. Du siehst Mann und Ball.','Right: between man and goal, on his inside shoulder. You see man and ball.','Juste : entre l’homme et le but, à l’épaule intérieure. Tu vois l’homme et le ballon.')},
+  {p:{W:[59,73],'2':[57,76]},ball:'W',arrows:[[41,60,59,73,'pass']],txt:L('Pas yoldayken yaklaş. Top ayağa geldiğinde bir kol mesafesindesin.','Rück heran, solange der Pass unterwegs ist. Bei der Annahme bist du eine Armlänge entfernt.','Close in while the pass travels. When it arrives you are an arm’s length away.','Approche pendant que la passe voyage. À la réception, tu es à une longueur de bras.')},
+  {p:{W:[62,82],'2':[59,83]},arrows:[[59,73,62,82,'run']],txt:L('İçeriyi kapattığın için rakip dışarı, daha az tehlikeli bölgeye gidiyor.','Weil du innen zu machst, muss er nach außen in die ungefährlichere Zone.','Because you shut the inside, he has to go wide, into less danger.','Comme tu fermes l’intérieur, il doit partir à l’extérieur, moins dangereux.')}],
+ bad:[
+  {p:{M:[41,60],W:[60,80],'2':[50,74]},arrows:[[59,68,60,80,'run']],txt:L('Hata: bek sadece topa bakıyor. Adam arkasına koşuyor.','Fehler: Der AV schaut nur auf den Ball. Der Gegner läuft in seinen Rücken.','Mistake: the full-back only watches the ball. His man runs in behind.','Erreur : le latéral ne regarde que le ballon. Son joueur file dans son dos.')},
+  {p:{W:[60,85],'2':[54,80]},ball:'W',arrows:[[41,60,60,85,'pass']],txt:L('Pas savunma arkasına gidiyor. Bek yarışı geride başlıyor.','Der Pass geht hinter die Abwehr. Der AV startet das Laufduell von hinten.','The pass goes in behind. The full-back starts the race from behind.','La passe part dans le dos. Le latéral démarre la course en retard.')},
+  {p:{W:[48,93],'2':[54,88]},arrows:[[60,85,48,93,'run']],txt:L('Rakip kaleye doğru serbest kalıyor.','Der Gegner läuft frei aufs Tor zu.','He is free, heading for goal.','Il est libre et file vers le but.')}]},
+
+{id:'alan',phase:'def',lvl:1,tags:['CB','FB','DM'],view:'def',
+ title:L('Alan savunması: dörtlü kayma','Raumdeckung: die Viererkette verschieben','Zonal defending: the back four shift','Défense de zone : la ligne de quatre coulisse'),
+ sum:L('Top kanada gidince hat birlikte kayar, uzak bek içeri daralır.','Geht der Ball auf den Flügel, verschiebt die Kette, der ballferne AV rückt ein.','Ball goes wide, the line shifts together and the far full-back tucks in.','Ballon sur le côté : la ligne coulisse, le latéral opposé resserre.'),
+ actors:[['3','us',14,78],['4','us',28,80],['5','us',40,80],['2','us',54,78],['6','us',34,69],['M','op',34,57],['R','op',20,66],['A','op',60,62]],ball:'M',
+ intro:{txt:L('Dörtlü savunma ve 6 numara topun konumuna göre birlikte hareket eder.','Viererkette und Sechser bewegen sich gemeinsam nach der Ballposition.','The back four and the 6 move together according to where the ball is.','La ligne de quatre et le 6 bougent ensemble selon la position du ballon.')},
+ good:[
+  {p:{A:[60,64],'2':[57,70],'5':[46,77],'4':[35,79],'3':[25,78],'6':[42,68]},ball:'A',arrows:[[34,57,60,64,'pass']],txt:L('Top kanada gidiyor. Bek (2) baskıya çıkar, diğerleri topa doğru kayar, uzak bek (3) içeri daralır.','Der Ball geht auf den Flügel. AV (2) presst, die anderen verschieben, der ballferne AV (3) rückt ein.','The ball goes wide. Full-back (2) presses, the rest shift across, the far full-back (3) tucks in.','Le ballon va sur le côté. Le latéral (2) presse, les autres coulissent, le latéral opposé (3) resserre.')},
+  {p:{R:[22,82],'3':[23,82]},arrows:[[20,66,22,82,'run']],txt:L('Arkaya koşan rakip, içeri daralmış bek tarafından karşılanıyor.','Der Läufer in die Tiefe wird vom eingerückten AV aufgenommen.','The runner in behind is picked up by the tucked-in full-back.','Le coureur dans la profondeur est pris par le latéral resserré.')},
+  {p:{A:[62,60],M:[36,56],'2':[54,76],'5':[40,80],'4':[28,80],'3':[16,79],'6':[34,69]},ball:'M',arrows:[[60,64,36,56,'pass']],txt:L('Top geri merkeze gelince hat yeniden ortalanır. Aralar 8–10 metreyi geçmez.','Kommt der Ball zurück ins Zentrum, zentriert sich die Kette wieder. Abstände bleiben bei 8–10 Metern.','When the ball returns centrally, the line re-centres. Gaps stay at 8–10 metres.','Ballon de retour dans l’axe : la ligne se recentre. Les écarts restent de 8 à 10 m.')}],
+ bad:[
+  {p:{A:[60,64],'2':[57,70],'5':[46,77],'4':[30,80],'3':[12,78],'6':[42,68]},ball:'A',arrows:[[34,57,60,64,'pass']],zone:[22,80,5,'bad'],txt:L('Hata: uzak bek (3) geniş kalıyor. Stoperle arasında boşluk açılıyor.','Fehler: Der ballferne AV (3) bleibt breit. Zwischen ihm und dem IV entsteht eine Lücke.','Mistake: the far full-back (3) stays wide. A gap opens next to the centre-back.','Erreur : le latéral opposé (3) reste large. Un trou s’ouvre à côté du central.')},
+  {p:{R:[22,84]},arrows:[[20,66,22,84,'run']],zone:[22,82,5,'bad'],txt:L('Rakip tam o boşluğa koşuyor.','Der Gegner läuft genau in diese Lücke.','The opponent runs straight into that gap.','L’adversaire attaque exactement ce trou.')},
+  {p:{R:[26,92]},ball:'R',arrows:[[60,64,22,84,'pass']],txt:L('Çapraz pas boşluğu buluyor. Kayma eksik kaldı.','Der Diagonalball findet die Lücke. Das Verschieben war unvollständig.','The diagonal ball finds the gap. The shift was incomplete.','Le ballon en diagonale trouve le trou. Le coulissement était incomplet.')}]},
+
+{id:'adam',phase:'def',lvl:1,tags:['CB'],view:'def',
+ title:L('Adam adama savunma','Manndeckung','Man-to-man defending','Défense individuelle'),
+ sum:L('Herkes bir rakibe bağlı; çapraz koşuda adamını bırakma.','Jeder hat seinen Gegner; bei Kreuzläufen nicht loslassen.','Everyone has a man; don’t lose him on crossing runs.','Chacun son joueur ; ne le lâche pas sur les courses croisées.'),
+ actors:[['4','us',28,80],['5','us',40,80],['X','op',38,74],['Y','op',27,73],['M','op',34,56]],ball:'M',
+ intro:{txt:L('İki stoper de bir rakibe bağlı. Rakip nereye giderse takip eder.','Beide IV haben einen festen Gegenspieler und folgen ihm überallhin.','Each centre-back has one man and follows him wherever he goes.','Chaque central a son joueur et le suit partout.')},
+ good:[
+  {p:{X:[24,82],Y:[44,77],'5':[26,85],'4':[43,81]},arrows:[[38,74,24,82,'run'],[27,73,44,77,'run']],txt:L('Rakipler çapraz koşuyor. Her savunmacı kendi adamını bırakmadan, kale tarafında takip ediyor.','Die Gegner kreuzen. Jeder Verteidiger bleibt torseitig an seinem Mann.','They cross their runs. Each defender stays goal-side of his own man.','Ils croisent leurs courses. Chaque défenseur reste côté but de son joueur.')},
+  {p:{M:[34,59]},txt:L('İki pas yolu da kapalı. Topçunun ileri pas seçeneği kalmıyor.','Beide Passwege sind zu. Der Ballführende hat keinen Pass nach vorn.','Both passing lanes are shut. The man on the ball has no forward pass.','Les deux lignes de passe sont fermées. Le porteur n’a pas de passe vers l’avant.')},
+  {txt:L('Değişim yapılacaksa yüksek sesle söyle: “Sende!” Adam adama savunmada konuşmak şart.','Wird übergeben, laut sagen: „Deiner!“ Ohne Kommunikation geht Manndeckung nicht.','If you switch men, say it loud: “Yours!” Man-marking needs talking.','Si vous échangez, dis-le fort : « À toi ! » Sans parler, pas d’individuelle.')}],
+ bad:[
+  {p:{X:[24,82],Y:[44,77],'5':[26,85],'4':[30,83]},arrows:[[38,74,24,82,'run'],[27,73,44,77,'run']],zone:[44,77,5,'bad'],txt:L('Hata: iki stoper de aynı oyuncuya kayıyor. Diğer rakip boşta kalıyor.','Fehler: Beide IV gehen zum selben Spieler. Der andere bleibt frei.','Mistake: both centre-backs drift to the same man. The other one is free.','Erreur : les deux centraux suivent le même joueur. L’autre est libre.')},
+  {p:{Y:[44,79]},ball:'Y',arrows:[[34,56,44,79,'pass']],txt:L('Pas boştaki oyuncuya gidiyor.','Der Pass geht zum freien Spieler.','The pass goes to the free man.','La passe va au joueur libre.')},
+  {p:{Y:[40,90]},arrows:[[44,79,40,90,'run']],txt:L('Kaleciyle karşı karşıya.','Allein vor dem Torwart.','One-on-one with the keeper.','Seul face au gardien.')}]},
+
+{id:'doldurma',phase:'def',lvl:2,tags:['CB','FB','DM'],view:'def',
+ title:L('Baskıya çıkanın yerini doldurmak','Den Raum des Herausrückenden schließen','Cover the player who steps out','Couvrir celui qui sort'),
+ sum:L('Stoper öne çıkınca diğer stoper ve bek içeri kayar.','Rückt ein IV heraus, schieben IV und AV ein.','When a centre-back steps out, the other CB and full-back slide in.','Quand un central sort, l’autre central et le latéral glissent.'),
+ actors:[['3','us',14,78],['4','us',28,80],['5','us',40,80],['2','us',54,78],['6','us',30,68],['X','op',38,72],['Z','op',50,63],['M','op',30,52]],ball:'M',
+ intro:{txt:L('Rakip forvet top almak için aşağı geliyor.','Der gegnerische Stürmer kommt entgegen, um den Ball zu holen.','Their striker drops short to get the ball.','L’attaquant adverse décroche pour recevoir.')},
+ good:[
+  {p:{X:[38,66],'5':[38,70],'4':[35,79],'2':[47,78],'3':[22,78]},ball:'X',arrows:[[30,52,38,66,'pass'],[40,80,38,70,'press']],zone:[40,80,4,'good'],txt:L('Stoper (5) baskıya çıkıyor. Diğer stoper (4) ve bek (2) içeri kayarak boşluğu dolduruyor.','IV (5) rückt heraus. IV (4) und AV (2) schieben ein und schließen den Raum.','Centre-back (5) steps out. CB (4) and full-back (2) slide in to fill the space.','Le central (5) sort. Le central (4) et le latéral (2) glissent pour combler.')},
+  {p:{Z:[44,78],'2':[45,80]},arrows:[[50,63,44,78,'run']],txt:L('Boşluğa koşan rakip, kayan bek tarafından karşılanıyor.','Der Läufer in die Lücke wird vom eingeschobenen AV aufgenommen.','The runner into the gap meets the full-back who slid across.','Le coureur dans le trou trouve le latéral qui a glissé.')},
+  {p:{X:[36,62],'5':[40,79],'4':[29,80],'2':[52,78],'3':[15,78],Z:[50,70]},ball:'M',arrows:[[38,66,30,52,'pass']],txt:L('Baskı bitince stoper hemen hatta geri döner, herkes yerine kayar.','Nach dem Pressing kehrt der IV sofort in die Kette zurück, alle schieben zurück.','Once the press ends, the centre-back drops straight back and everyone resets.','Une fois le pressing fini, le central revient et chacun reprend sa place.')}],
+ bad:[
+  {p:{X:[38,66],'5':[38,70]},ball:'X',arrows:[[30,52,38,66,'pass'],[40,80,38,70,'press']],zone:[42,79,5,'bad'],txt:L('Hata: stoper baskıya çıktı ama kimse yerini doldurmadı.','Fehler: Der IV ist herausgerückt, aber niemand schließt seinen Raum.','Mistake: the centre-back stepped out, but nobody filled his space.','Erreur : le central est sorti, mais personne ne comble.')},
+  {p:{Z:[42,82]},arrows:[[50,63,42,82,'run']],txt:L('Rakip, stoperin bıraktığı boşluğa koşuyor.','Der Gegner läuft in den Raum, den der IV verlassen hat.','The opponent runs into the space the centre-back left.','L’adversaire attaque l’espace laissé par le central.')},
+  {p:{Z:[40,91]},ball:'Z',arrows:[[38,66,42,82,'pass']],txt:L('Tek pasla kale önünde boş adam.','Ein Pass, und ein Gegner steht frei vor dem Tor.','One pass and a man is free in front of goal.','Une passe et un joueur est seul devant le but.')}]},
+
+{id:'hat',phase:'def',lvl:2,tags:['CB','FB'],view:'def',
+ title:L('Ofsayt hattı: birlikte çık','Abseitslinie: gemeinsam herausrücken','Offside line: step up together','Ligne du hors-jeu : monter ensemble'),
+ sum:L('Top geri gidince hat aynı anda öne çıkar; geride kalan herkesi oyunda tutar.','Geht der Ball zurück, rückt die Kette gleichzeitig heraus.','Ball goes back, the line steps up at once; one player left deep plays everyone on.','Ballon en retrait : la ligne monte en même temps.'),
+ actors:[['3','us',14,82],['4','us',28,83],['5','us',40,83],['2','us',54,82],['X','op',38,80],['Y','op',22,80],['M','op',34,60],['N','op',34,50]],ball:'M',
+ intro:{line:[82.5,'good'],txt:L('Dört savunmacı aynı hizada. Hat düz.','Alle vier Verteidiger auf einer Höhe. Die Kette steht gerade.','All four defenders level. The line is straight.','Les quatre défenseurs sont alignés. La ligne est droite.')},
+ good:[
+  {p:{'3':[14,74],'4':[28,74],'5':[40,74],'2':[54,74]},ball:'N',line:[74,'good'],arrows:[[34,60,34,50,'pass']],txt:L('Top geri gidince hat birlikte öne çıkıyor. Forvetler ofsayt pozisyonunda kalıyor.','Der Ball geht zurück, die Kette rückt gemeinsam heraus. Die Stürmer stehen im Abseits.','The ball goes back, the line steps up together. The strikers are left offside.','Le ballon revient, la ligne monte ensemble. Les attaquants restent hors-jeu.')},
+  {ball:[30,88],line:[74,'good'],arrows:[[34,50,30,88,'pass']],txt:L('Uzun top geliyor ama iki forvet de ofsayt. Hakem bayrağı kaldırır.','Der lange Ball kommt, aber beide Stürmer stehen im Abseits.','The long ball comes, but both strikers are offside.','Le ballon long arrive, mais les deux attaquants sont hors-jeu.')}],
+ bad:[
+  {p:{'3':[14,84],'4':[28,74],'5':[40,74],'2':[54,74]},ball:'N',line:[84,'bad'],arrows:[[34,60,34,50,'pass']],zone:[14,84,4,'bad'],txt:L('Hata: bir savunmacı (3) geride kaldı. Tüm rakipleri oyunda tutuyor.','Fehler: Ein Verteidiger (3) bleibt hinten und hebt das Abseits für alle auf.','Mistake: one defender (3) stays deep and plays everyone onside.','Erreur : un défenseur (3) reste bas et met tout le monde en jeu.')},
+  {p:{Y:[20,90]},ball:'Y',line:[84,'bad'],arrows:[[34,50,20,90,'pass'],[22,80,20,90,'run']],txt:L('Forvet onsayt ve kaleye yalnız gidiyor.','Der Stürmer ist nicht im Abseits und läuft allein aufs Tor.','The striker is onside and runs through alone.','L’attaquant est en jeu et part seul au but.')}]},
+
+{id:'yonlendirme',phase:'def',lvl:1,tags:['FB','W'],view:'def',
+ title:L('Kanatta 1’e 1: dışarı yönlendir','1 gegen 1 am Flügel: nach außen lenken','1v1 on the wing: show him outside','1 contre 1 sur l’aile : pousser à l’extérieur'),
+ sum:L('İç tarafta dur, gövdeni çapraz aç, rakibi çizgiye zorla.','Innen stehen, Körper seitlich öffnen, zur Linie zwingen.','Stand inside, open your body, force him to the line.','Reste à l’intérieur, oriente ton corps, pousse-le vers la ligne.'),
+ actors:[['3','us',14,76],['4','us',28,82],['W','op',12,62]],ball:'W',
+ intro:{txt:L('Rakip kanat topla beke doğru geliyor.','Der gegnerische Flügelspieler dribbelt auf den AV zu.','Their winger runs at the full-back with the ball.','L’ailier adverse arrive balle au pied sur le latéral.')},
+ good:[
+  {p:{W:[12,67],'3':[16,72]},arrows:[[16,72,8,80,'guide']],txt:L('Bek iç tarafta duruyor, gövdesini çapraz açıyor ve rakibi çizgiye yönlendiriyor.','Der AV steht innen, öffnet den Körper seitlich und lenkt nach außen.','The full-back stands inside, opens his body and shows him down the line.','Le latéral se place à l’intérieur, ouvre son corps et oriente vers la ligne.')},
+  {p:{W:[5,80],'3':[9,81]},arrows:[[12,67,5,80,'run']],txt:L('Rakip dışarı gitmek zorunda. Kaleyle açısı daralıyor.','Der Gegner muss nach außen. Sein Winkel zum Tor wird kleiner.','He has to go outside. His angle to goal gets smaller.','Il doit partir dehors. Son angle vers le but se réduit.')},
+  {p:{W:[3,88],'3':[6,88]},ball:[-1,92],txt:L('Ya top dışarı çıkıyor ya da zor bir açıdan orta yapmak zorunda.','Der Ball geht ins Aus oder er muss aus schlechtem Winkel flanken.','Either the ball goes out or he has to cross from a poor angle.','Soit le ballon sort, soit il centre dans un angle difficile.')}],
+ bad:[
+  {p:{W:[12,67],'3':[10,72]},zone:[20,76,4,'bad'],txt:L('Hata: bek dış tarafta duruyor. İç yol açık.','Fehler: Der AV steht außen. Der Weg nach innen ist offen.','Mistake: the full-back stands outside him. The inside is open.','Erreur : le latéral est côté extérieur. L’intérieur est ouvert.')},
+  {p:{W:[22,78],'3':[13,76]},arrows:[[12,67,22,78,'run']],txt:L('Rakip içeri kat ediyor ve kaleye dönük tehlikeli bölgeye giriyor.','Der Gegner zieht nach innen in die gefährliche Zone vor dem Tor.','He cuts inside, into the dangerous area facing goal.','Il repique vers l’intérieur, dans la zone dangereuse face au but.')},
+  {ball:[32,104],arrows:[[22,78,32,104,'pass']],txt:L('Rahat şut çekebiliyor.','Er kann frei schießen.','He gets a free shot.','Il peut frapper librement.')}]},
+{id:'stoper-kurulum',phase:'att',lvl:2,tags:['CB','DM','GK'],view:'def',
+ title:L('Stoper oyun kurar: açıl, sür, hattı kır','Der IV baut auf: breit machen, andribbeln, Linie brechen','Centre-backs build: split, carry, break the line','Le central construit : s’écarter, conduire, casser la ligne'),
+ sum:L('Kaleci topla; stoperler genişler, 6 gölgeden çıkar, hattı kıran pas aranır.','Torwart am Ball: IV gehen breit, der Sechser löst sich, Pass durch die Linie.','Keeper on the ball: CBs split, the 6 gets free, look for the line-breaking pass.','Gardien au ballon : les centraux s’écartent, le 6 se libère, passe qui casse la ligne.'),
+ actors:[['1','us',34,101],['4','us',28,95],['5','us',40,95],['6','us',34,80],['8','us',42,70],['X','op',34,84],['P','op',36,74],['Q','op',50,78]],ball:'1',
+ intro:{txt:L('Top kalecide. Rakip forvet (X) ortada bekliyor.','Der Torwart hat den Ball. Der gegnerische Stürmer wartet zentral.','The keeper has the ball. Their striker waits centrally.','Le gardien a le ballon. L’attaquant adverse attend dans l’axe.')},
+ good:[
+  {p:{'4':[14,93],'5':[54,93],'6':[42,84]},arrows:[[28,95,14,93,'run'],[40,95,54,93,'run']],txt:L('Stoperler ceza sahasının kenarına açılıyor. 6 numara forvetin gölgesinden çıkıyor.','Die IV gehen an die Strafraumkante. Der Sechser löst sich aus dem Deckungsschatten.','The centre-backs split to the edges of the box. The 6 steps out of the striker’s shadow.','Les centraux s’écartent au bord de la surface. Le 6 sort de l’ombre de l’attaquant.')},
+  {p:{X:[44,90]},ball:'5',arrows:[[34,101,54,93,'pass']],txt:L('Kaleci açılan stopere veriyor. Forvet tek başına iki seçeneği birden kapatamaz.','Pass zum breiten IV. Ein Stürmer allein kann nicht beide Optionen schließen.','The keeper finds the wide centre-back. One striker cannot close both options.','Le gardien trouve le central écarté. Un attaquant seul ne peut pas tout fermer.')},
+  {p:{'5':[55,81],Q:[54,74]},arrows:[[54,93,55,81,'run']],txt:L('Önü boş olduğu için stoper topu sürerek ileri taşıyor. Bu, bir rakibi üzerine çekiyor.','Vor ihm ist Platz, also dribbelt der IV an. Das zieht einen Gegner heraus.','With space ahead, the centre-back carries the ball. That draws an opponent out.','Avec de l’espace devant lui, le central conduit. Cela attire un adversaire.')},
+  {p:{'8':[44,64]},ball:'8',arrows:[[55,81,44,64,'pass']],txt:L('Rakip stopere çıkınca hatlar arasındaki 8 numara boşalıyor. Hattı kıran pas tam bu an.','Rückt der Gegner heraus, wird der Achter zwischen den Linien frei. Jetzt kommt der linienbrechende Pass.','When the opponent steps up, the 8 between the lines is free. Now the line-breaking pass.','Quand l’adversaire sort, le 8 entre les lignes est libre. C’est le moment de casser la ligne.')}],
+ bad:[
+  {p:{'6':[34,88]},zone:[34,86,4,'bad'],txt:L('Hata: stoperler dar, 6 numara forvetin hemen arkasında saklanıyor. Kısa pas yok.','Fehler: Die IV stehen eng, der Sechser versteckt sich hinter dem Stürmer. Kein kurzer Pass.','Mistake: the centre-backs stay narrow and the 6 hides right behind the striker. No short pass.','Erreur : centraux serrés, le 6 caché derrière l’attaquant. Pas de passe courte.')},
+  {p:{X:[34,96]},arrows:[[34,84,34,96,'press']],txt:L('Forvet kaleciye baskı yapıyor. Kısa pas çok riskli.','Der Stürmer läuft den Torwart an. Ein kurzer Pass ist zu riskant.','The striker presses the keeper. A short pass is too risky.','L’attaquant presse le gardien. La passe courte est trop risquée.')},
+  {ball:[34,50],arrows:[[34,101,34,52,'pass']],txt:L('Kaleci uzun vurmak zorunda. Top büyük ihtimalle rakibe geçiyor.','Der Torwart muss lang schlagen. Der Ball geht meist verloren.','The keeper has to go long. The ball is probably lost.','Le gardien doit jouer long. Le ballon est sans doute perdu.')}]},
+
+{id:'bindirme',phase:'att',lvl:1,tags:['FB','W'],view:'att',
+ title:L('Bekin bindirmesi','Das Hinterlaufen des Außenverteidigers','The full-back’s overlap','Le dédoublement du latéral'),
+ sum:L('Kanat içeri sürerken bek dışarıdan bindirir; rakip bek ikisini birden alamaz.','Der Flügel zieht nach innen, der AV hinterläuft außen; der Gegner kann nicht beide nehmen.','Winger drives inside, full-back overlaps outside; their full-back can’t take both.','L’ailier rentre, le latéral déborde ; l’adversaire ne peut pas prendre les deux.'),
+ actors:[['7','us',58,40],['2','us',58,52],['9','us',34,22],['A','op',58,30],['B','op',50,44],['C','op',40,16]],ball:'7',
+ intro:{txt:L('Kanat (7) topla, karşısında rakip bek (A).','Flügelspieler (7) am Ball, vor ihm der gegnerische AV.','Winger (7) on the ball, their full-back in front of him.','L’ailier (7) a le ballon, face à leur latéral.')},
+ good:[
+  {p:{'7':[50,33],A:[54,28],'2':[64,36]},arrows:[[58,40,50,33,'run'],[58,52,64,36,'run']],txt:L('7 numara içeri sürüyor. Bek (2) arkasından dışarıdan bindiriyor.','Die 7 dribbelt nach innen. Der AV (2) hinterläuft außen.','The 7 drives inside. The full-back (2) overlaps on the outside.','Le 7 rentre balle au pied. Le latéral (2) déborde par l’extérieur.')},
+  {p:{'2':[64,22]},ball:'2',arrows:[[50,33,64,22,'pass']],txt:L('Rakip bek iki oyuncunun arasında kalıyor. Pas boştaki beke.','Der gegnerische AV steht zwischen zwei Spielern. Pass zum freien AV.','Their full-back is caught between two. Pass to the free full-back.','Leur latéral est pris entre deux. Passe au latéral libre.')},
+  {p:{'9':[36,9],C:[42,10]},ball:[36,8],arrows:[[64,22,36,9,'pass'],[34,22,36,9,'run']],txt:L('2 numara çizgiye inip ortalıyor. 9 numara ön direğe koşuyor.','Die 2 geht zur Grundlinie und flankt. Die 9 läuft zum ersten Pfosten.','The 2 reaches the byline and crosses. The 9 attacks the near post.','Le 2 va au bout et centre. Le 9 attaque le premier poteau.')}],
+ bad:[
+  {p:{'7':[50,33],A:[54,28]},arrows:[[58,40,50,33,'run']],zone:[62,40,5,'bad'],txt:L('Hata: bek geride kalıyor. Dış koridor boş ama kullanılmıyor.','Fehler: Der AV bleibt hinten. Der Außenkorridor ist frei, aber ungenutzt.','Mistake: the full-back stays back. The outside lane is empty and unused.','Erreur : le latéral reste derrière. Le couloir est libre mais inutilisé.')},
+  {p:{A:[51,30],B:[48,36]},arrows:[[50,44,48,36,'press']],txt:L('Kanat iki rakibin arasında yalnız kalıyor.','Der Flügel ist allein gegen zwei Gegner.','The winger is alone against two.','L’ailier est seul contre deux.')},
+  {ball:'A',txt:L('Top kaybı; rakip kontra atağa çıkıyor.','Ballverlust, der Gegner kontert.','Ball lost, they counter.','Ballon perdu, ils contre-attaquent.')}]},
+
+{id:'icten-kosu',phase:'att',lvl:3,tags:['FB','W'],view:'att',
+ title:L('Bekin içten koşusu (yarı alan)','Der AV läuft innen (Halbraum)','The full-back’s underlap (half-space)','Le latéral par l’intérieur (demi-espace)'),
+ sum:L('Kanat genişliği tutar, bek rakip bekle stoper arasındaki boşluğa içten koşar.','Der Flügel hält die Breite, der AV startet innen zwischen AV und IV.','Winger holds width, full-back runs inside between their full-back and centre-back.','L’ailier garde la largeur, le latéral attaque entre le latéral et le central.'),
+ actors:[['8','us',42,44],['2','us',56,52],['7','us',62,32],['9','us',36,20],['A','op',58,30],['B','op',48,40],['C','op',44,16]],ball:'8',
+ intro:{txt:L('Top 8 numarada. Kanat (7) çizgide, rakip bek (A) onunla.','Der Ball ist bei der 8. Der Flügel (7) steht an der Linie, der gegnerische AV bei ihm.','The 8 has the ball. The winger (7) is on the touchline with their full-back.','Le 8 a le ballon. L’ailier (7) est collé à la ligne avec leur latéral.')},
+ good:[
+  {p:{'7':[65,28],A:[61,29],'2':[50,24]},arrows:[[56,52,50,24,'run']],zone:[51,25,4,'good'],txt:L('7 numara çizgide kalıp rakip beki genişte tutuyor. Bek (2) içten, yarı alana koşuyor.','Die 7 bleibt breit und bindet den AV. Der eigene AV (2) läuft innen in den Halbraum.','The 7 stays wide and pins their full-back. Our full-back (2) runs inside into the half-space.','Le 7 reste large et fixe le latéral. Notre latéral (2) attaque le demi-espace.')},
+  {ball:'2',arrows:[[42,44,50,24,'pass']],txt:L('Rakip bek kanatla meşgul. İçteki koşu boş kalıyor, pas oraya.','Der AV ist mit dem Flügel beschäftigt. Der Lauf innen bleibt frei, der Pass kommt.','Their full-back is busy with the winger. The inside run is free and gets the ball.','Leur latéral est occupé par l’ailier. La course intérieure est libre et reçoit.')},
+  {p:{'9':[36,13]},ball:'9',arrows:[[50,24,36,13,'pass']],txt:L('Yarı alandan geri pas: 9 numaraya net şut fırsatı.','Rückpass aus dem Halbraum: klare Chance für die 9.','A cut-back from the half-space: a clear chance for the 9.','Passe en retrait depuis le demi-espace : occasion nette pour le 9.')}],
+ bad:[
+  {p:{'2':[64,36]},arrows:[[56,52,64,36,'run']],txt:L('Hata: bek de dışarıdan koşuyor. İkisi aynı koridorda.','Fehler: Der AV läuft auch außen. Beide stehen im selben Korridor.','Mistake: the full-back also runs outside. Both are in the same lane.','Erreur : le latéral part aussi à l’extérieur. Les deux dans le même couloir.')},
+  {p:{A:[62,32],B:[54,32]},zone:[50,24,4,'bad'],txt:L('Tek rakip ikisini birden kapatıyor. Yarı alan boş ama kimse orada değil.','Ein Gegner deckt beide. Der Halbraum ist leer, aber niemand ist dort.','One opponent covers both. The half-space is empty but nobody is there.','Un seul adversaire couvre les deux. Le demi-espace est vide, personne n’y va.')},
+  {ball:[40,56],arrows:[[42,44,40,56,'pass']],txt:L('İleri pas yolu yok; top geriye dönüyor.','Kein Pass nach vorn, der Ball geht zurück.','No forward pass; the ball goes backwards.','Pas de passe vers l’avant ; le ballon revient.')}]},
+
+{id:'uzak-kanat',phase:'att',lvl:2,tags:['W','FB'],view:'mid',
+ title:L('Top diğer kanattayken uzak kanat','Ballferner Flügel, wenn der Ball auf der anderen Seite ist','The far-side winger when the ball is on the other flank','L’ailier opposé quand le ballon est de l’autre côté'),
+ sum:L('Uzak kanat geniş kalır; rakip topa kaydığı için kanat değişikliğinde 1’e 1 kazanır.','Der ballferne Flügel bleibt breit und bekommt nach der Verlagerung ein 1 gegen 1.','The far winger stays wide and gets a 1v1 after the switch.','L’ailier opposé reste large et obtient un 1 contre 1 après le renversement.'),
+ actors:[['7','us',58,44],['8','us',42,48],['11','us',8,36],['9','us',34,28],['A','op',56,38],['B','op',46,40],['C','op',40,26],['D','op',28,28],['E','op',22,32]],ball:'7',
+ intro:{txt:L('Top sağ kanatta. Rakip savunma topa doğru kaymış.','Der Ball ist auf rechts. Die gegnerische Abwehr hat zum Ball verschoben.','The ball is on the right. Their defence has shifted towards it.','Le ballon est à droite. Leur défense a coulissé vers lui.')},
+ good:[
+  {p:{'11':[6,34]},zone:[10,34,5,'good'],txt:L('Uzak kanat (11) çizgide, geniş duruyor. Rakip bek (E) içeride kalmış.','Der ballferne Flügel (11) steht breit an der Linie. Der gegnerische AV ist eingerückt.','The far winger (11) stays wide on the line. Their full-back has tucked inside.','L’ailier opposé (11) reste large. Leur latéral est rentré.')},
+  {ball:'11',p:{E:[16,33]},arrows:[[58,44,42,48,'pass'],[42,48,8,35,'pass']],txt:L('İki pasla kanat değişikliği. 11 numara alan ve zaman buluyor.','Zwei Pässe, Seitenwechsel. Die 11 hat Platz und Zeit.','Two passes switch the play. The 11 has space and time.','Deux passes pour renverser. Le 11 a de l’espace et du temps.')},
+  {p:{'11':[14,22],E:[17,26]},arrows:[[6,34,14,22,'run']],txt:L('Savunma yeniden kaymadan hemen 1’e 1’e git.','Sofort ins 1 gegen 1, bevor die Abwehr wieder verschiebt.','Go at him at once, before the defence shifts back.','Attaque tout de suite, avant que la défense ne recoulisse.')}],
+ bad:[
+  {p:{'11':[28,42]},arrows:[[8,36,28,42,'run']],txt:L('Hata: uzak kanat topa yaklaşıyor. Sağ taraf kalabalık, sol taraf boş.','Fehler: Der ballferne Flügel kommt zum Ball. Rechts ist es eng, links leer.','Mistake: the far winger drifts to the ball. The right is crowded, the left empty.','Erreur : l’ailier opposé se rapproche. La droite est saturée, la gauche vide.')},
+  {p:{A:[57,42],B:[50,44]},arrows:[[56,38,57,42,'press']],txt:L('Dar alanda baskı geliyor. Geniş seçenek yok.','Im engen Raum kommt Druck. Keine breite Option.','Pressure comes in a tight space. No wide option.','Pression dans un espace réduit. Aucune option large.')},
+  {ball:'A',txt:L('Top dar alanda kaybediliyor.','Ballverlust auf engem Raum.','The ball is lost in the tight space.','Ballon perdu dans l’espace réduit.')}]},
+
+{id:'pas-acisi',phase:'att',lvl:1,tags:['CM','DM','AM'],view:'mid',
+ title:L('Top bizdeyken pas açısı yarat','Mit Ball: Passwinkel schaffen','In possession: create a passing angle','Avec le ballon : créer un angle de passe'),
+ sum:L('Rakibin arkasında saklanma; gölgeden çık, üçgen kur, açık vücutla al.','Nicht hinter dem Gegner verstecken: aus dem Schatten, Dreieck, offene Stellung.','Don’t hide behind an opponent: step out of the shadow, form a triangle, open body.','Ne te cache pas derrière un adversaire : sors de l’ombre, triangle, corps ouvert.'),
+ actors:[['5','us',44,70],['6','us',34,60],['8','us',44,50],['9','us',36,30],['X','op',38,63],['O','op',44,58]],ball:'5',
+ intro:{txt:L('Top stoperde. 8 numara rakibin (O) tam arkasında, pas çizgisi kapalı.','Der Ball ist beim IV. Die 8 steht direkt hinter dem Gegner, der Passweg ist zu.','The centre-back has the ball. The 8 is right behind an opponent, the lane is shut.','Le central a le ballon. Le 8 est juste derrière un adversaire, la ligne est fermée.')},
+ good:[
+  {p:{'8':[53,53],'6':[29,59]},arrows:[[44,50,53,53,'run']],zone:[53,53,4,'good'],txt:L('8 numara yana kayarak gölgeden çıkıyor. Stoper, 6 ve 8 bir üçgen oluşturuyor.','Die 8 löst sich seitlich aus dem Schatten. IV, 6 und 8 bilden ein Dreieck.','The 8 slides out of the shadow. Centre-back, 6 and 8 form a triangle.','Le 8 glisse pour sortir de l’ombre. Central, 6 et 8 forment un triangle.')},
+  {ball:'8',arrows:[[44,70,53,53,'pass']],txt:L('Pas çizgisi temiz. 8 numara topu açık vücutla, ileriye dönük alıyor.','Der Passweg ist frei. Die 8 nimmt den Ball offen, mit Blick nach vorn an.','The lane is clear. The 8 receives with an open body, facing forward.','La ligne est libre. Le 8 reçoit corps ouvert, orienté vers l’avant.')},
+  {ball:'9',arrows:[[53,53,36,30,'pass']],txt:L('Dönmek zorunda kalmadığı için hemen ileri oynayabiliyor.','Weil er sich nicht drehen muss, spielt er sofort nach vorn.','Because he doesn’t have to turn, he plays forward at once.','Comme il n’a pas à se retourner, il joue vers l’avant aussitôt.')}],
+ bad:[
+  {zone:[44,54,5,'bad'],txt:L('Hata: 8 numara yerinde kalıyor. Stoperden bakınca rakibin arkasında görünmüyor.','Fehler: Die 8 bleibt stehen. Vom IV aus ist sie hinter dem Gegner unsichtbar.','Mistake: the 8 stays put. From the centre-back he is hidden behind the opponent.','Erreur : le 8 reste là. Depuis le central, il est caché derrière l’adversaire.')},
+  {p:{X:[43,66]},arrows:[[38,63,43,66,'press']],txt:L('İki seçenek de kapalı ve forvet stopere baskı yapıyor.','Beide Optionen sind zu und der Stürmer läuft den IV an.','Both options are shut and the striker presses the centre-back.','Les deux options sont fermées et l’attaquant presse le central.')},
+  {ball:[34,82],arrows:[[44,70,34,82,'pass']],txt:L('Top geriye dönüyor; oyun ileri gidemiyor.','Der Ball geht zurück, das Spiel kommt nicht nach vorn.','The ball goes back; play can’t progress.','Le ballon revient ; le jeu n’avance pas.')}]},
+
+{id:'ucuncu-adam',phase:'att',lvl:3,tags:['CM','ST'],view:'mid',
+ title:L('Üçüncü adam koşusu','Der Lauf des dritten Mannes','The third-man run','La course du troisième homme'),
+ sum:L('Pas 9’a giderken 8 koşuya başlar; 9 tek dokunuşla koşan oyuncuya verir.','Während der Pass zur 9 geht, startet die 8; die 9 legt direkt ab.','As the ball goes to the 9, the 8 starts running; the 9 lays it off first time.','Quand le ballon va au 9, le 8 démarre ; le 9 remet en une touche.'),
+ actors:[['5','us',40,72],['9','us',34,40],['8','us',46,54],['C','op',34,36],['O','op',47,48]],ball:'5',
+ intro:{txt:L('Top stoperde. 9 numaranın arkasında rakip stoper (C) var.','Der Ball ist beim IV. Hinter der 9 steht der gegnerische IV.','The centre-back has the ball. Their centre-back is behind our 9.','Le central a le ballon. Leur central est derrière notre 9.')},
+ good:[
+  {p:{'9':[36,52],C:[36,47]},arrows:[[34,40,36,52,'run']],txt:L('9 numara top almak için aşağı geliyor. Rakip stoper onu takip ediyor ve arkasını boşaltıyor.','Die 9 kommt entgegen. Der gegnerische IV folgt und öffnet den Raum hinter sich.','The 9 drops short. Their centre-back follows and leaves space behind him.','Le 9 décroche. Leur central le suit et libère l’espace derrière lui.')},
+  {ball:'9',p:{'8':[44,44]},arrows:[[40,72,36,52,'pass'],[46,54,44,44,'run']],txt:L('Stoper 9’a veriyor. Aynı anda 8 numara boşalan alana koşuya başlıyor.','Der IV spielt die 9 an. Gleichzeitig startet die 8 in den freien Raum.','The centre-back finds the 9. At the same moment the 8 starts into the free space.','Le central trouve le 9. Au même moment, le 8 attaque l’espace libéré.')},
+  {p:{'8':[40,30]},ball:'8',arrows:[[36,52,40,30,'pass']],txt:L('9 tek dokunuşla koşan 8’e veriyor. Savunmanın arkası açık.','Die 9 legt direkt auf die startende 8 ab. Der Raum hinter der Abwehr ist offen.','The 9 lays it off first time to the running 8. Space opens behind the defence.','Le 9 remet en une touche au 8 lancé. L’espace s’ouvre dans le dos.')}],
+ bad:[
+  {p:{'9':[36,52],C:[36,47]},arrows:[[34,40,36,52,'run']],txt:L('9 numara aşağı geliyor, rakip stoper takip ediyor.','Die 9 kommt entgegen, der IV folgt.','The 9 drops, their centre-back follows.','Le 9 décroche, le central suit.')},
+  {ball:'9',p:{C:[36,50]},arrows:[[40,72,36,52,'pass']],txt:L('Hata: 8 numara durduğu yerde. 9 sırtı dönük ve baskı altında.','Fehler: Die 8 bleibt stehen. Die 9 steht mit dem Rücken zum Tor unter Druck.','Mistake: the 8 stands still. The 9 has his back to goal under pressure.','Erreur : le 8 reste immobile. Le 9 est dos au but sous pression.')},
+  {ball:'C',txt:L('Tek seçenek geri pas ya da top kaybı.','Nur Rückpass oder Ballverlust.','Only a back pass or losing the ball.','Seule option : passe en retrait ou perte du ballon.')}]},
+
+{id:'derinlik',phase:'att',lvl:2,tags:['ST','W'],view:'att',
+ title:L('Derinlik koşusu: ne zaman koşmalı?','Lauf in die Tiefe: wann starten?','Running in behind: when to go?','Appel en profondeur : quand partir ?'),
+ sum:L('Topçunun başı yukarıdaysa ve baskı yoksa koş; çizgide kal, kavisli başla.','Kopf oben, kein Druck: starten. Auf der Linie bleiben, im Bogen anlaufen.','Head up and no pressure: go. Stay on the line, start with a curve.','Tête levée, pas de pression : pars. Reste sur la ligne, course courbée.'),
+ actors:[['8','us',40,48],['9','us',34,27],['C','op',30,24],['D','op',42,24],['O','op',44,40]],ball:'8',
+ intro:{line:[24,'good'],txt:L('Top 8 numarada. Rakip savunma hattı kesik çizgide.','Der Ball ist bei der 8. Die Abwehrlinie ist gestrichelt.','The 8 has the ball. Their defensive line is dashed.','Le 8 a le ballon. La ligne défensive est en pointillé.')},
+ good:[
+  {p:{'9':[37,25.5]},line:[24,'good'],txt:L('Topçu baskı altında değil ve başı yukarıda. Bu, koşu sinyali. 9 numara çizgide kalıyor.','Kein Druck, Kopf oben: das ist das Signal. Die 9 bleibt auf der Linie.','No pressure, head up: that is the signal. The 9 stays on the line.','Pas de pression, tête levée : c’est le signal. Le 9 reste sur la ligne.')},
+  {p:{'9':[40,10]},ball:'9',line:[24,'good'],arrows:[[37,25.5,40,10,'run'],[40,48,40,10,'pass']],txt:L('Pas anında 9 onsayt; iki stoperin arasından kavisli koşuyla arkaya sızıyor.','Beim Pass ist die 9 nicht im Abseits und startet im Bogen zwischen den IV durch.','At the pass the 9 is onside and curves in behind between the centre-backs.','Au moment de la passe, le 9 est en jeu et passe dans le dos entre les centraux.')},
+  {ball:[34,0],txt:L('Kaleciyle karşı karşıya.','Allein vor dem Torwart.','One-on-one with the keeper.','Seul face au gardien.')}],
+ bad:[
+  {p:{'9':[38,18],O:[41,45]},line:[24,'bad'],arrows:[[44,40,41,45,'press']],txt:L('Hata: topçu baskı altındayken 9 numara erken koşuyor ve çizgiyi çoktan geçmiş.','Fehler: Der Ballführende ist unter Druck, die 9 startet zu früh und steht schon im Abseits.','Mistake: the passer is under pressure, the 9 runs too early and is already past the line.','Erreur : le porteur est sous pression, le 9 part trop tôt et a déjà dépassé la ligne.')},
+  {p:{'9':[38,8]},ball:'9',line:[24,'bad'],arrows:[[40,48,38,8,'pass']],txt:L('Pas geldiğinde ofsayt. Atak bitiyor.','Beim Pass Abseits. Der Angriff ist vorbei.','Offside when the pass comes. The attack is over.','Hors-jeu au moment de la passe. L’attaque est finie.')}]},
+
+{id:'kontra-pres',phase:'trans',lvl:2,tags:['CM','W','ST','DM'],view:'mid',
+ title:L('Top kaybından sonra hızlı reaksiyon','Sofortige Reaktion nach Ballverlust','React at once after losing the ball','Réagir tout de suite après la perte'),
+ sum:L('İlk 5 saniye: en yakın oyuncu baskı yapar, diğerleri pas yollarını kapatır.','Die ersten 5 Sekunden: der Nächste presst, die anderen schließen Passwege.','First 5 seconds: the nearest player presses, the others close passing lanes.','5 premières secondes : le plus proche presse, les autres ferment les lignes.'),
+ actors:[['8','us',40,40],['10','us',30,36],['7','us',54,38],['6','us',36,56],['O','op',40,43],['P','op',24,50],['Q','op',52,54]],ball:'O',
+ intro:{txt:L('Takım arkadaşımız (8) topu kaptırdı. İlk 5 saniye kritik.','Unser Spieler (8) hat den Ball verloren. Die ersten 5 Sekunden zählen.','Our 8 has lost the ball. The first 5 seconds are critical.','Notre 8 a perdu le ballon. Les 5 premières secondes sont décisives.')},
+ good:[
+  {p:{'8':[40,46],'10':[30,47],'7':[49,50],'6':[39,52]},arrows:[[40,40,40,46,'press'],[30,36,30,47,'run'],[54,38,49,50,'run']],txt:L('En yakın oyuncu (8) hemen baskı yapıyor. 10 ve 7 iki pas yolunu kesiyor, 6 öne çıkıyor.','Der Nächste (8) presst sofort. 10 und 7 schneiden beide Passwege ab, die 6 rückt vor.','The nearest player (8) presses at once. The 10 and 7 cut both lanes, the 6 steps in.','Le plus proche (8) presse aussitôt. Le 10 et le 7 coupent les lignes, le 6 avance.')},
+  {ball:'6',p:{O:[42,49]},txt:L('Rakip sıkıştı ve top geri kazanıldı.','Der Gegner ist eingeklemmt, der Ball ist zurückerobert.','The opponent is trapped and the ball is won back.','L’adversaire est piégé, le ballon est récupéré.')},
+  {ball:'10',arrows:[[39,52,30,47,'pass']],p:{'10':[28,40]},txt:L('Rakip yerleşmeden hemen ileri: savunmaları hâlâ açık.','Sofort nach vorn, bevor sich der Gegner ordnet.','Straight forward, before they can reorganise.','Vers l’avant tout de suite, avant qu’ils ne se replacent.')}],
+ bad:[
+  {p:{'10':[30,42],'7':[55,45]},txt:L('Hata: top kaybına tepki yok. Oyuncular duruyor ya da yavaşça geri yürüyor.','Fehler: Keine Reaktion. Die Spieler bleiben stehen oder traben zurück.','Mistake: no reaction. Players stop or jog back slowly.','Erreur : aucune réaction. Les joueurs s’arrêtent ou reviennent en trottinant.')},
+  {p:{Q:[54,60]},ball:'Q',arrows:[[40,43,54,60,'pass']],txt:L('Rakip rahatça ilk pası atıyor.','Der Gegner spielt ungestört den ersten Pass.','They play the first pass without pressure.','Ils jouent la première passe sans pression.')},
+  {p:{Q:[56,76]},arrows:[[54,60,56,76,'run']],txt:L('Kontra atak: savunmamız dengesiz yakalanıyor.','Konter: unsere Abwehr ist nicht geordnet.','Counter-attack: our defence is caught unbalanced.','Contre-attaque : notre défense est prise déséquilibrée.')}]},
+
+{id:'hizli-hucum',phase:'trans',lvl:2,tags:['W','ST','DM'],view:'full',
+ title:L('Top kazanınca hızlı hücum','Schnell umschalten nach Ballgewinn','Fast break after winning the ball','Transition rapide après récupération'),
+ sum:L('Kanatlar hemen koşar, ilk pas ileri gider; rakip yerleşmeden bitir.','Flügel starten sofort, erster Pass nach vorn, abschließen bevor der Gegner steht.','Wingers sprint at once, the first pass goes forward, finish before they set.','Les ailiers partent, première passe vers l’avant, finir avant qu’ils se replacent.'),
+ actors:[['6','us',34,62],['5','us',44,74],['7','us',58,56],['11','us',10,56],['9','us',34,46],['A','op',20,40],['B','op',34,36],['C','op',48,40],['D','op',26,70],['E','op',42,70]],ball:'6',
+ intro:{txt:L('6 numara topu kazandı. Rakibin birçok oyuncusu hâlâ bizim yarı sahada.','Die 6 hat den Ball gewonnen. Viele Gegner sind noch in unserer Hälfte.','The 6 has won the ball. Many opponents are still in our half.','Le 6 a récupéré le ballon. Beaucoup d’adversaires sont encore dans notre moitié.')},
+ good:[
+  {p:{'7':[60,40],'11':[8,40],'9':[36,40]},arrows:[[58,56,60,40,'run'],[10,56,8,40,'run']],txt:L('Kanatlar hemen genişte ileri koşuyor. Hücum alanı büyüyor.','Die Flügel sprinten sofort breit nach vorn. Das Feld wird groß.','The wingers sprint forward wide at once. The pitch gets big.','Les ailiers partent large immédiatement. Le terrain s’agrandit.')},
+  {ball:'9',arrows:[[34,62,36,41,'pass']],txt:L('İlk pas ileri: rakip yerleşmeden hatları geç.','Der erste Pass geht nach vorn: Linien überspielen, bevor der Gegner steht.','The first pass goes forward: beat the lines before they set.','La première passe va vers l’avant : dépasser les lignes avant qu’ils se placent.')},
+  {p:{'7':[62,22],A:[22,30],B:[34,28],C:[46,28],D:[26,60],E:[42,60]},ball:'7',arrows:[[36,40,62,22,'pass']],txt:L('9 numara koşan kanada açıyor. Rakip geriye koşarken savunmak zorunda.','Die 9 spielt auf den startenden Flügel. Der Gegner muss rückwärts verteidigen.','The 9 releases the running winger. They have to defend running backwards.','Le 9 lance l’ailier. Ils doivent défendre en courant vers leur but.')}],
+ bad:[
+  {txt:L('Hata: kanatlar koşmuyor, herkes yerinde.','Fehler: Die Flügel starten nicht, alle bleiben stehen.','Mistake: the wingers don’t run; everyone stays put.','Erreur : les ailiers ne partent pas ; personne ne bouge.')},
+  {ball:'5',arrows:[[34,62,44,74,'pass']],txt:L('İlk pas geriye. Rakip zaman kazanıyor.','Der erste Pass geht zurück. Der Gegner gewinnt Zeit.','The first pass goes backwards. They gain time.','La première passe part en arrière. Ils gagnent du temps.')},
+  {p:{D:[26,46],E:[42,46]},arrows:[[26,70,26,46,'run'],[42,70,42,46,'run']],txt:L('Rakip geri dönüp yerleşiyor. Hızlı hücum fırsatı kaçtı.','Der Gegner ist zurück und geordnet. Die Chance ist weg.','They get back into shape. The chance has gone.','Ils sont revenus et organisés. L’occasion est passée.')}]},
+
+{id:'korner',phase:'set',lvl:2,tags:['CB','DM','GK'],view:'def',
+ title:L('Korner savunması: karışık sistem','Eckball verteidigen: gemischtes System','Defending corners: mixed system','Défendre un corner : système mixte'),
+ sum:L('Üç oyuncu altıpas çizgisinde alanı tutar, iki oyuncu tehlikeli rakipleri adam adama alır.','Drei verteidigen den Raum am Fünfer, zwei decken die gefährlichsten Gegner.','Three hold the zone on the six-yard line, two mark the most dangerous opponents.','Trois tiennent la zone des six mètres, deux marquent les plus dangereux.'),
+ actors:[['1','us',35,104],['2','us',31,103],['4','us',28,99],['5','us',34,99],['3','us',40,99],['6','us',31,93],['8','us',41,93],['K','op',68,105],['H1','op',30,90],['H2','op',41,90],['H3','op',48,94]],ball:'K',
+ intro:{txt:L('Korner sağdan. Üç oyuncu (4, 5, 3) alanda, iki oyuncu (6, 8) adam adama, bir oyuncu (2) ön direkte.','Ecke von rechts. Drei (4, 5, 3) im Raum, zwei (6, 8) in Manndeckung, einer (2) am ersten Pfosten.','Corner from the right. Three (4, 5, 3) in the zone, two (6, 8) man-marking, one (2) at the near post.','Corner à droite. Trois (4, 5, 3) en zone, deux (6, 8) en individuelle, un (2) au premier poteau.')},
+ good:[
+  {p:{H1:[32,97],'6':[32,96],H2:[40,96],'8':[40,97],H3:[44,100]},arrows:[[30,90,32,97,'run'],[41,90,40,96,'run'],[48,94,44,100,'run']],txt:L('Rakipler koşuya başlıyor. İşaretçiler adamını bırakmıyor, alan oyuncuları yerinde kalıyor.','Die Gegner starten. Die Manndecker bleiben dran, die Raumspieler bleiben stehen.','They start their runs. The markers stay tight, the zonal players hold.','Ils lancent leurs courses. Les marqueurs restent collés, les joueurs de zone tiennent.')},
+  {p:{'5':[35,97]},ball:'5',arrows:[[68,105,35,97,'pass']],txt:L('Top alana gelince alan oyuncusu (5) öne çıkıp topa ilk dokunan oluyor.','Kommt der Ball in den Raum, attackiert der Raumspieler (5) ihn als Erster.','When the ball enters the zone, the zonal player (5) attacks it first.','Quand le ballon arrive dans la zone, le joueur de zone (5) l’attaque le premier.')},
+  {ball:[56,74],p:{'4':[28,92],'5':[35,92],'3':[40,92],'6':[32,90],'8':[40,90]},arrows:[[35,97,56,74,'pass']],txt:L('Uzaklaştırma yüksek ve kenara. Sonra hep birlikte dışarı çıkılır.','Klären hoch und nach außen. Danach rücken alle gemeinsam heraus.','Clear it high and wide. Then everyone steps out together.','Dégagement haut et sur le côté. Puis tout le monde remonte ensemble.')}],
+ bad:[
+  {p:{H1:[32,97],'6':[32,96],H2:[40,96],'8':[38,95],H3:[46,100],'3':[37,99]},arrows:[[48,94,46,100,'run']],zone:[46,100,4,'bad'],txt:L('Hata: herkes topa bakıyor. 3 numara topa doğru kaydı, arka direğe koşan rakip boş.','Fehler: Alle schauen zum Ball. Die 3 rückt zum Ball, der Läufer am zweiten Pfosten ist frei.','Mistake: everyone watches the ball. The 3 drifts towards it and the back-post runner is free.','Erreur : tout le monde regarde le ballon. Le 3 se décale et le coureur au second poteau est libre.')},
+  {ball:'H3',arrows:[[68,105,46,100,'pass']],txt:L('Top arka direğe; rakip boşta kafa vuruyor.','Der Ball geht an den zweiten Pfosten, der Gegner köpft frei.','The ball goes to the back post; he heads it unmarked.','Le ballon arrive au second poteau ; il reprend seul de la tête.')},
+  {ball:[37,105.5],txt:L('Gol. Alan savunmasında yerini korumak, adam adamada adamı bırakmamak şart.','Tor. In der Raumdeckung die Position halten, in der Manndeckung den Mann nicht verlieren.','Goal. Zonal players must hold their spot; markers must not lose their man.','But. En zone, garde ta place ; en individuelle, ne lâche pas ton joueur.')}]},
+{id:'kaleci-aci',phase:'def',lvl:1,tags:['GK'],view:'def',
+ title:L('Kaleci: açıyı kapat','Torwart: den Winkel verkürzen','Goalkeeper: narrow the angle','Gardien : fermer l’angle'),
+ sum:L('Topla iki direk arasındaki açının ortasında dur, top yaklaştıkça öne çık.','In der Mitte des Winkels zwischen Ball und Pfosten stehen, bei Annäherung herauskommen.','Stand on the middle of the angle between ball and posts; step out as it gets closer.','Place-toi au milieu de l’angle entre ballon et poteaux ; avance quand il approche.'),
+ actors:[['1','us',34,103],['5','us',44,88],['A','op',40,76]],ball:'A',
+ intro:{txt:L('Top ortada. Kaleci çizginin biraz önünde, tam ortada.','Der Ball ist zentral. Der Torwart steht knapp vor der Linie in der Mitte.','The ball is central. The keeper is just off his line, in the middle.','Le ballon est dans l’axe. Le gardien est juste devant sa ligne, au centre.')},
+ good:[
+  {p:{A:[54,88],'1':[36.4,102.4]},arrows:[[54,88,30.3,105,'guide'],[54,88,37.7,105,'guide']],txt:L('Top kanada gidince kaleci ön direğe kayıyor ve açının ortasında duruyor.','Geht der Ball nach außen, verschiebt der Torwart zum ersten Pfosten in die Winkelmitte.','As the ball goes wide, the keeper shifts towards the near post, on the middle of the angle.','Quand le ballon s’écarte, le gardien glisse vers le premier poteau, au milieu de l’angle.')},
+  {p:{A:[50,96],'1':[38,100]},arrows:[[54,88,50,96,'run']],txt:L('Rakip yaklaştıkça kaleci öne çıkıp açıyı daraltıyor; kale küçülüyor.','Kommt der Gegner näher, tritt der Torwart heraus und verkürzt den Winkel.','As he gets closer, the keeper steps out and narrows the angle; the goal shrinks.','Quand il se rapproche, le gardien sort et réduit l’angle ; le but rétrécit.')},
+  {ball:'1',arrows:[[50,96,38,100,'pass']],txt:L('Şut kalecinin üzerine geliyor.','Der Schuss kommt auf den Torwart.','The shot comes straight at the keeper.','La frappe arrive sur le gardien.')}],
+ bad:[
+  {p:{A:[54,88]},zone:[36.8,104,2.2,'bad'],arrows:[[54,88,30.3,105,'guide'],[54,88,37.7,105,'guide']],txt:L('Hata: kaleci ortada ve çizgide kalıyor. Ön direk açık.','Fehler: Der Torwart bleibt mittig auf der Linie. Der erste Pfosten ist offen.','Mistake: the keeper stays central on his line. The near post is open.','Erreur : le gardien reste au centre sur sa ligne. Le premier poteau est ouvert.')},
+  {ball:[37,105.6],arrows:[[54,88,37,105,'pass']],txt:L('Şut ön direkten gol oluyor.','Der Schuss geht am ersten Pfosten rein.','The shot goes in at the near post.','La frappe entre au premier poteau.')}]},
+
+{id:'kaleci-supurucu',phase:'def',lvl:2,tags:['GK','CB'],view:'def',
+ title:L('Süpürücü kaleci','Mitspielender Torwart (Libero)','The sweeper-keeper','Le gardien libéro'),
+ sum:L('Hat yükseldikçe kaleci de öne çıkar ve savunma arkasındaki alanı kontrol eder.','Rückt die Kette vor, rückt auch der Torwart vor und sichert den Raum dahinter.','As the line steps up, the keeper steps up too and guards the space behind.','Quand la ligne monte, le gardien monte aussi et couvre l’espace dans le dos.'),
+ actors:[['1','us',34,103],['4','us',28,78],['5','us',40,78],['X','op',36,74],['M','op',34,54]],ball:'M',
+ intro:{txt:L('Savunma hattı yüksekte, ceza sahasının çok önünde.','Die Abwehrkette steht hoch, weit vor dem Strafraum.','The back line is high, well in front of the box.','La ligne défensive est haute, loin devant la surface.')},
+ good:[
+  {p:{'1':[34,90]},arrows:[[34,103,34,90,'run']],txt:L('Kaleci de ceza sahası kenarına çıkıyor. Savunma ile arasındaki mesafe kısalıyor.','Der Torwart rückt bis zur Strafraumkante vor. Der Abstand zur Kette wird klein.','The keeper moves up to the edge of the box. The gap to his defence closes.','Le gardien monte au bord de la surface. L’écart avec sa défense se réduit.')},
+  {p:{X:[36,85],'1':[36,88.5]},ball:'1',arrows:[[34,54,36,88,'pass'],[36,74,36,85,'run']],txt:L('Savunma arkasına top atılınca kaleci forvetten önce topa ulaşıyor.','Kommt der Ball hinter die Kette, ist der Torwart vor dem Stürmer da.','When the ball goes in behind, the keeper gets there before the striker.','Quand le ballon passe dans le dos, le gardien arrive avant l’attaquant.')},
+  {ball:[60,70],arrows:[[36,88.5,60,70,'pass']],txt:L('Uzaklaştırıyor ya da kontrol edip oyunu başlatıyor.','Er klärt oder nimmt an und baut auf.','He clears it or controls and restarts play.','Il dégage ou contrôle et relance.')}],
+ bad:[
+  {zone:[36,90,6,'bad'],txt:L('Hata: hat yüksekte ama kaleci çizgide. Arada büyük bir boşluk var.','Fehler: Die Kette steht hoch, der Torwart auf der Linie. Dazwischen ist ein großer Raum.','Mistake: the line is high, the keeper on his line. There is a huge gap between.','Erreur : ligne haute, gardien sur sa ligne. Un énorme espace entre les deux.')},
+  {p:{X:[36,90]},ball:'X',arrows:[[34,54,36,90,'pass'],[36,74,36,90,'run']],txt:L('Top bu boşluğa atılınca forvet önce ulaşıyor.','Der Ball kommt in diesen Raum, der Stürmer ist zuerst dran.','The ball is played into that space and the striker gets there first.','Le ballon arrive dans cet espace, l’attaquant est le premier.')},
+  {p:{X:[36,97]},ball:[34,105.6],txt:L('Kaleciyle karşı karşıya kalıp gol atıyor.','Allein vor dem Torwart, Tor.','One-on-one with the keeper, and he scores.','Seul face au gardien, il marque.')}]},
+
+{id:'kaleci-baslatma',phase:'trans',lvl:2,tags:['GK','FB'],view:'full',
+ title:L('Kaleci topu tutunca hızlı başlat','Torwart fängt: schnell einleiten','Keeper catches: start the attack fast','Le gardien capte : relancer vite'),
+ sum:L('Rakip ceza sahamızdayken bekletme; atışla kenara açılan beke ver.','Solange der Gegner in unserem Strafraum ist: nicht warten, schnell zum AV werfen.','While they are still in our box, don’t wait: throw it to the full-back.','Tant qu’ils sont dans notre surface : n’attends pas, relance à la main vers le latéral.'),
+ actors:[['1','us',34,100],['2','us',58,84],['3','us',10,84],['7','us',58,62],['X','op',32,95],['Y','op',38,94],['Z','op',26,90],['A','op',40,42],['B','op',26,44]],ball:'1',
+ intro:{txt:L('Kaleci ortayı tuttu. Rakibin üç oyuncusu hâlâ ceza sahamızda.','Der Torwart hat die Flanke gefangen. Drei Gegner sind noch in unserem Strafraum.','The keeper has claimed the cross. Three opponents are still in our box.','Le gardien a capté le centre. Trois adversaires sont encore dans notre surface.')},
+ good:[
+  {p:{'2':[62,74]},arrows:[[58,84,62,74,'run']],txt:L('Bek hemen kenara ve ileri açılıyor.','Der AV löst sich sofort breit und nach vorn.','The full-back immediately moves wide and forward.','Le latéral s’écarte et monte aussitôt.')},
+  {ball:'2',arrows:[[34,100,62,74,'pass']],txt:L('Kaleci beklemeden atışla veriyor. Rakip üç oyuncusunu geride bırakmış oldu.','Der Torwart wirft sofort ab. Drei Gegner sind jetzt aus dem Spiel.','The keeper throws it at once. Three opponents are now out of the game.','Le gardien relance tout de suite. Trois adversaires sont hors du jeu.')},
+  {p:{'7':[62,46]},ball:'7',arrows:[[62,74,62,46,'pass'],[58,62,62,46,'run']],txt:L('İki pasla orta saha geçildi; hızlı hücum başlıyor.','Zwei Pässe, das Mittelfeld ist überspielt. Der Konter läuft.','Two passes and midfield is bypassed. The fast break is on.','Deux passes et le milieu est dépassé. La contre-attaque est lancée.')}],
+ bad:[
+  {p:{X:[32,80],Y:[40,78],Z:[24,76]},arrows:[[32,95,32,80,'run'],[38,94,40,78,'run'],[26,90,24,76,'run']],txt:L('Hata: kaleci topu bekletiyor. Rakip oyuncular yerlerine dönüyor.','Fehler: Der Torwart hält den Ball. Die Gegner laufen zurück.','Mistake: the keeper holds on to it. The opponents get back.','Erreur : le gardien garde le ballon. Les adversaires se replacent.')},
+  {ball:'A',arrows:[[34,100,40,42,'pass']],txt:L('Sonunda uzun vuruş; havada top rakibe geçiyor.','Am Ende ein langer Ball, das Kopfballduell geht verloren.','In the end a long kick, and the header is lost.','Finalement un long dégagement, et le duel aérien est perdu.')}]},
+
+{id:'hatlar-arasi',phase:'att',lvl:2,tags:['AM','CM'],view:'mid',
+ title:L('10 numara: hatlar arasında top iste','Zehner: zwischen den Linien anbieten','Number 10: receive between the lines','Le 10 : recevoir entre les lignes'),
+ sum:L('Rakibin orta saha ve savunma hattı arasındaki cebe gir, yarı dönük al.','In die Tasche zwischen Mittelfeld- und Abwehrlinie, halb offen annehmen.','Find the pocket between their midfield and back line, receive half-turned.','Trouve la poche entre milieu et défense, reçois de trois-quarts.'),
+ actors:[['6','us',34,66],['10','us',34,52],['9','us',34,30],['M1','op',24,50],['M2','op',35,50],['M3','op',46,50],['D1','op',27,35],['D2','op',41,35]],ball:'6',
+ intro:{txt:L('Top 6 numarada. 10 numara rakip orta saha hattıyla aynı hizada.','Der Ball ist bei der 6. Der Zehner steht auf Höhe der gegnerischen Mittelfeldlinie.','The 6 has the ball. The 10 is level with their midfield line.','Le 6 a le ballon. Le 10 est à hauteur de leur ligne de milieu.')},
+ good:[
+  {p:{'10':[41,42]},zone:[41,42,4,'good'],arrows:[[34,52,41,42,'run']],txt:L('10 numara iki hattın arasındaki cebe ve iki rakibin arasına giriyor.','Der Zehner geht in die Tasche zwischen den Linien und zwischen zwei Gegnern.','The 10 moves into the pocket between the lines and between two opponents.','Le 10 entre dans la poche, entre les lignes et entre deux adversaires.')},
+  {ball:'10',arrows:[[34,66,41,42,'pass']],txt:L('Pas iki rakibin arasından geçiyor. 10 numara vücudu yarı açık alıyor.','Der Pass geht zwischen zwei Gegnern durch. Die 10 nimmt halb offen an.','The pass splits two opponents. The 10 receives half-turned.','La passe passe entre deux adversaires. Le 10 reçoit de trois-quarts.')},
+  {p:{'9':[38,24]},ball:'9',arrows:[[34,30,38,24,'run'],[41,42,38,24,'pass']],txt:L('Dönüp savunma arkasına koşan 9’a oynuyor.','Er dreht auf und spielt die startende 9 in die Tiefe.','He turns and plays the 9 running in behind.','Il se retourne et sert le 9 dans la profondeur.')}],
+ bad:[
+  {p:{'10':[36,60]},arrows:[[34,52,36,60,'run']],txt:L('Hata: 10 numara topa çok yaklaşıyor ve rakibin önüne düşüyor.','Fehler: Der Zehner kommt zu nah zum Ball und steht vor dem Gegner.','Mistake: the 10 comes too close to the ball and ends up in front of their line.','Erreur : le 10 se rapproche trop et se retrouve devant leur ligne.')},
+  {p:{M2:[35,57]},zone:[41,42,5,'bad'],arrows:[[35,50,35,57,'press']],txt:L('Hatlar arasındaki cep boş kaldı. Rakip orta saha rahatça baskı yapıyor.','Die Tasche bleibt leer. Das gegnerische Mittelfeld presst ungestört.','The pocket stays empty. Their midfield presses freely.','La poche reste vide. Leur milieu presse tranquillement.')},
+  {ball:[34,80],arrows:[[34,66,34,80,'pass']],txt:L('Top yine geriye dönüyor.','Der Ball geht wieder zurück.','The ball goes back again.','Le ballon revient encore en arrière.')}]},
+
+{id:'golge-pres',phase:'def',lvl:2,tags:['AM','ST','W'],view:'mid',
+ title:L('Gölge baskısı: 6 numarayı kapat','Deckungsschatten: den Sechser zustellen','Cover shadow: shut out their 6','L’ombre portée : fermer leur 6'),
+ sum:L('9 stopere baskı yaparken 10, rakibin 6’sını gölgesinde tutar; top kenara zorlanır.','Die 9 läuft an, der Zehner hält den Sechser im Schatten; der Ball muss nach außen.','The 9 presses, the 10 keeps their 6 in his shadow; the ball is forced wide.','Le 9 presse, le 10 garde leur 6 dans son ombre ; le ballon part sur le côté.'),
+ actors:[['9','us',34,40],['10','us',34,52],['7','us',56,50],['A','op',44,28],['B','op',24,28],['S','op',34,42],['F','op',62,38]],ball:'A',
+ intro:{txt:L('Top rakip stoperde (A). Onların 6 numarası (S) ortada top bekliyor.','Der gegnerische IV hat den Ball. Ihr Sechser wartet zentral.','Their centre-back has the ball. Their 6 waits in the middle.','Leur central a le ballon. Leur 6 attend dans l’axe.')},
+ good:[
+  {p:{'9':[40,32],'10':[39,38]},arrows:[[34,40,40,32,'press'],[34,52,39,38,'run']],txt:L('9 baskı yapıyor. 10 numara stoperle 6 arasına giriyor; 6’ya pas yolu gölgede kalıyor.','Die 9 presst. Der Zehner stellt sich zwischen IV und Sechser; der Passweg liegt im Schatten.','The 9 presses. The 10 steps between centre-back and 6; that lane is now in his shadow.','Le 9 presse. Le 10 se place entre le central et le 6 ; la ligne est dans son ombre.')},
+  {p:{'7':[60,42]},ball:'F',arrows:[[44,28,62,38,'pass'],[56,50,60,42,'press']],txt:L('Merkez kapalı, top kenara gidiyor. Kenar bizim için bir tuzak.','Das Zentrum ist zu, der Ball geht nach außen. Die Seitenlinie wird zur Falle.','The middle is shut, the ball goes wide. The touchline becomes a trap.','L’axe est fermé, le ballon part sur le côté. La ligne de touche devient un piège.')},
+  {ball:'7',txt:L('Kanatta sıkıştırıp topu kazanıyoruz.','Am Flügel festgesetzt, Ball gewonnen.','Trapped on the flank, ball won.','Piégé sur l’aile, ballon récupéré.')}],
+ bad:[
+  {p:{'9':[40,32],'10':[42,32]},zone:[34,42,4,'bad'],arrows:[[34,52,42,32,'run']],txt:L('Hata: 10 numara da stopere koşuyor. Rakibin 6’sı boşta kalıyor.','Fehler: Auch der Zehner läuft den IV an. Der Sechser ist frei.','Mistake: the 10 also runs at the centre-back. Their 6 is free.','Erreur : le 10 presse aussi le central. Leur 6 est libre.')},
+  {p:{S:[34,46]},ball:'S',arrows:[[44,28,34,44,'pass']],txt:L('Pas 6 numaraya; baskının arkasından çıkıyorlar.','Pass auf den Sechser, sie spielen sich aus dem Pressing.','The ball goes into their 6; they play out of our press.','Le ballon arrive à leur 6 ; ils sortent du pressing.')},
+  {ball:[34,72],arrows:[[34,46,34,72,'pass']],txt:L('Tek pasla iki hattımız geçildi.','Ein Pass, und zwei unserer Linien sind überspielt.','One pass and two of our lines are beaten.','Une passe et deux de nos lignes sont dépassées.')}]},
+
+{id:'yonlendir-pres',phase:'def',lvl:1,tags:['ST','W'],view:'mid',
+ title:L('Forvet baskısı: kavisli koş, yönlendir','Stürmerpressing: im Bogen anlaufen, lenken','Striker pressing: curve your run, steer play','Pressing de l’attaquant : course courbée, orienter'),
+ sum:L('Düz koşma; vücudunla diğer stopere giden pası kapat ve topu kenara zorla.','Nicht gerade anlaufen: mit dem Körper den Pass zum anderen IV schließen, nach außen zwingen.','Don’t run straight: block the pass to the other centre-back with your body and force it wide.','Ne cours pas droit : ferme la passe vers l’autre central avec ton corps, force vers le côté.'),
+ actors:[['9','us',34,42],['11','us',14,50],['8','us',26,54],['A','op',24,28],['B','op',44,28],['S','op',34,38],['F','op',8,36]],ball:'A',
+ intro:{txt:L('Top rakip stoperde (A). Diğer stoper (B) ve 6 numara pas bekliyor.','Der IV (A) hat den Ball. Der andere IV und der Sechser bieten sich an.','Their centre-back (A) has the ball. The other centre-back and their 6 are options.','Leur central (A) a le ballon. L’autre central et leur 6 sont des options.')},
+ good:[
+  {p:{'9':[29,31]},arrows:[[34,42,29,31,'press']],zone:[34,28,4,'good'],txt:L('9 numara kavisli koşuyla geliyor ve vücuduyla diğer stopere giden pası kesiyor.','Die 9 läuft im Bogen an und schneidet mit dem Körper den Pass zum anderen IV ab.','The 9 comes with a curved run and cuts off the pass to the other centre-back.','Le 9 arrive en courbe et coupe avec son corps la passe vers l’autre central.')},
+  {p:{'11':[10,40]},ball:'F',arrows:[[24,28,8,36,'pass'],[14,50,10,40,'press']],txt:L('Tek seçenek kalıyor: kenara pas. 11 numara hemen bekin üzerine çıkıyor.','Einzige Option: der Pass nach außen. Die 11 läuft sofort den AV an.','The only option left is wide. The 11 jumps on their full-back at once.','Seule option : la passe sur le côté. Le 11 saute aussitôt sur le latéral.')},
+  {p:{'8':[14,42]},ball:'11',arrows:[[26,54,14,42,'run']],txt:L('Çizgiyi de kullanarak sıkıştırıp topu kazanıyoruz.','Mit der Seitenlinie als Helfer gewinnen wir den Ball.','Using the touchline as an extra defender, we win the ball.','En utilisant la ligne de touche, on récupère le ballon.')}],
+ bad:[
+  {p:{'9':[25,31]},arrows:[[34,42,25,31,'press']],txt:L('Hata: 9 numara topa düz koşuyor. Her iki pas yolu da açık.','Fehler: Die 9 läuft gerade auf den Ball. Beide Passwege sind offen.','Mistake: the 9 runs straight at the ball. Both passing lanes are open.','Erreur : le 9 court droit sur le ballon. Les deux lignes sont ouvertes.')},
+  {ball:'B',arrows:[[24,28,44,28,'pass']],txt:L('Top diğer stopere gidiyor; koşu boşa gitti.','Der Ball geht zum anderen IV, der Lauf war umsonst.','The ball goes across to the other centre-back; the run was wasted.','Le ballon passe à l’autre central ; la course est perdue.')},
+  {ball:[44,64],arrows:[[44,28,44,64,'pass']],txt:L('Rakip rahatça ileri oynuyor.','Der Gegner spielt ungestört nach vorn.','They play forward without pressure.','Ils jouent vers l’avant sans pression.')}]},
+
+{id:'uzun-top',phase:'def',lvl:1,tags:['CB'],view:'def',
+ title:L('Uzun topa karşı: biri çıkar, biri kapatır','Gegen lange Bälle: einer attackiert, einer sichert','Against long balls: one attacks, one covers','Contre le jeu long : un attaque, un couvre'),
+ sum:L('Bir stoper topa çıkar, diğeri çapraz arkasına düşer; seken top ona gelir.','Ein IV geht zum Ball, der andere sichert diagonal dahinter ab.','One centre-back goes for the ball, the other drops diagonally behind.','Un central va au ballon, l’autre se place en diagonale derrière.'),
+ actors:[['4','us',30,80],['5','us',40,80],['X','op',36,78],['Y','op',24,74]],ball:[34,50],
+ intro:{txt:L('Rakip uzun top atıyor. Hedefte uzun forvet (X).','Der Gegner schlägt lang. Ziel ist der große Stürmer.','They go long. The target is their tall striker.','Ils jouent long. La cible est leur grand attaquant.')},
+ good:[
+  {p:{'5':[37,77],'4':[33,86]},arrows:[[40,80,37,77,'press'],[30,80,33,86,'run']],txt:L('5 numara topa çıkıyor. 4 numara çapraz arkasına düşüp kapatıyor.','Die 5 attackiert den Ball. Die 4 fällt diagonal dahinter ab.','The 5 attacks the ball. The 4 drops diagonally behind him.','Le 5 attaque le ballon. Le 4 se place en diagonale derrière.')},
+  {ball:'5',p:{Y:[29,84]},arrows:[[34,50,37,77,'pass'],[24,74,29,84,'run']],txt:L('5 numara kafa mücadelesine giriyor. Arkaya koşan rakip var ama 4 numara orada.','Die 5 geht ins Kopfballduell. Ein Gegner läuft in die Tiefe, aber die 4 ist da.','The 5 contests the header. A runner goes in behind, but the 4 is there.','Le 5 dispute le duel aérien. Un adversaire file dans le dos, mais le 4 est là.')},
+  {ball:'4',p:{'4':[32,86]},txt:L('Seken top 4 numaranın önüne düşüyor.','Der abgefälschte Ball landet bei der 4.','The knock-down drops in front of the 4.','Le ballon dévié tombe devant le 4.')}],
+ bad:[
+  {p:{'5':[37,77],'4':[35,78]},arrows:[[40,80,37,77,'press'],[30,80,35,78,'press']],zone:[30,88,5,'bad'],txt:L('Hata: iki stoper de aynı topa çıkıyor. Arkada kimse yok.','Fehler: Beide IV gehen zum selben Ball. Dahinter ist niemand.','Mistake: both centre-backs go for the same ball. Nobody is behind.','Erreur : les deux centraux vont au même ballon. Personne derrière.')},
+  {p:{Y:[30,88]},ball:'Y',arrows:[[24,74,30,88,'run']],txt:L('Forvet topu arkaya indiriyor; koşan rakip boşta.','Der Stürmer verlängert, der Läufer ist frei.','The striker flicks it on and the runner is free.','L’attaquant prolonge, le coureur est seul.')},
+  {p:{Y:[32,97]},ball:[33,105.6],txt:L('Gol.','Tor.','Goal.','But.')}]},
+
+{id:'orta-pres',phase:'def',lvl:3,tags:['CM','DM','AM'],view:'mid',
+ title:L('Orta saha baskısı: sinyali yakala','Mittelfeldpressing: den Auslöser erkennen','Midfield press: read the trigger','Pressing au milieu : lire le signal'),
+ sum:L('Rakip sırtı dönük alınca bir kişi baskıya çıkar, diğerleri yan pasları kapatır.','Nimmt der Gegner mit dem Rücken zum Tor an, presst einer, die anderen schließen die Seiten.','When they receive facing their own goal, one presses and the others shut the side passes.','Quand l’adversaire reçoit dos au jeu, un presse et les autres ferment les côtés.'),
+ actors:[['8','us',40,58],['10','us',28,52],['7','us',56,54],['6','us',34,64],['P','op',40,30],['O','op',40,46],['Q','op',26,44],['R','op',54,44]],ball:'P',
+ intro:{txt:L('Top rakip savunmada. Onların orta saha oyuncusu (O) top istiyor.','Der Ball ist in der gegnerischen Abwehr. Ihr Mittelfeldspieler bietet sich an.','The ball is with their defence. Their midfielder offers himself.','Le ballon est dans leur défense. Leur milieu se propose.')},
+ good:[
+  {ball:'O',p:{O:[40,48]},arrows:[[40,30,40,48,'pass']],txt:L('Rakip topu sırtı dönük alıyor. Bu, baskı sinyali.','Er nimmt mit dem Rücken zum Spiel an. Das ist der Auslöser.','He receives with his back to play. That is the trigger.','Il reçoit dos au jeu. C’est le signal.')},
+  {p:{'8':[40,52],'10':[31,47],'7':[51,48],'6':[40,58]},arrows:[[40,58,40,52,'press'],[28,52,31,47,'run'],[56,54,51,48,'run'],[34,64,40,58,'run']],txt:L('8 arkadan baskıya çıkıyor. 10 ve 7 yan pasları kesiyor, 6 arkayı tutuyor.','Die 8 presst von hinten. 10 und 7 schneiden die Seitenpässe ab, die 6 sichert.','The 8 presses from behind. The 10 and 7 cut the side passes, the 6 covers.','Le 8 presse dans le dos. Le 10 et le 7 coupent les passes latérales, le 6 couvre.')},
+  {ball:'8',txt:L('Rakip dönemiyor ve top kazanılıyor.','Er kann nicht aufdrehen, der Ball ist gewonnen.','He can’t turn, and the ball is won.','Il ne peut pas se retourner, ballon récupéré.')}],
+ bad:[
+  {ball:'O',p:{O:[40,48]},arrows:[[40,30,40,48,'pass']],txt:L('Rakip topu sırtı dönük alıyor.','Er nimmt mit dem Rücken zum Spiel an.','He receives with his back to play.','Il reçoit dos au jeu.')},
+  {p:{'8':[40,52]},arrows:[[40,58,40,52,'press']],zone:[26,46,4,'bad'],txt:L('Hata: 8 tek başına baskıya çıkıyor. Diğerleri yerinde kalıyor.','Fehler: Die 8 presst allein. Die anderen bleiben stehen.','Mistake: the 8 presses alone. The others stay where they are.','Erreur : le 8 presse seul. Les autres ne bougent pas.')},
+  {p:{Q:[24,52]},ball:'Q',arrows:[[40,48,26,46,'pass'],[26,44,24,52,'run']],txt:L('Rakip yana oynuyor. 8 oyun dışı kaldı, arkasında boşluk var.','Er legt zur Seite ab. Die 8 ist überspielt, dahinter ist Platz.','He lays it off to the side. The 8 is beaten and there is space behind.','Il remet sur le côté. Le 8 est éliminé, il y a de l’espace derrière.')}]},
+
+{id:'arka-denge',phase:'trans',lvl:3,tags:['DM','CB','FB'],view:'full',
+ title:L('Bek hücuma çıkınca arka dengeyi koru','Rückt der AV auf: hinten absichern','When the full-back goes forward: keep rest defence','Quand le latéral monte : garder l’équilibre derrière'),
+ sum:L('Bek ileri gidince 6 ve stoper o tarafa kayar; top kaybında kontra hemen durur.','Geht der AV mit, schieben Sechser und IV rüber; bei Ballverlust wird der Konter sofort gestoppt.','When the full-back pushes on, the 6 and centre-back shift across; a counter is stopped at once.','Quand le latéral monte, le 6 et le central glissent ; la contre-attaque est stoppée.'),
+ actors:[['2','us',58,72],['8','us',44,44],['6','us',34,60],['5','us',42,80],['4','us',26,80],['3','us',12,76],['W','op',56,52],['N','op',34,58]],ball:'8',
+ intro:{txt:L('Top 8 numarada. Bek (2) hücuma çıkmak üzere. Rakip kanat (W) önde bekliyor.','Die 8 hat den Ball. Der AV (2) will aufrücken. Ihr Flügel lauert vorn.','The 8 has the ball. Full-back (2) is about to push on. Their winger waits high.','Le 8 a le ballon. Le latéral (2) va monter. Leur ailier attend devant.')},
+ good:[
+  {p:{'2':[64,36],'5':[48,76],'6':[46,64],'4':[32,79],'3':[20,77]},arrows:[[58,72,64,36,'run'],[34,60,46,64,'run'],[42,80,48,76,'run']],txt:L('Bek ileri gidiyor. 6 numara ve stoper sağa kayıyor; geride dengeli bir yapı kalıyor.','Der AV rückt auf. Sechser und IV schieben nach rechts; hinten bleibt eine stabile Struktur.','The full-back goes forward. The 6 and centre-back shift right; a stable structure stays behind.','Le latéral monte. Le 6 et le central glissent à droite ; une structure stable reste derrière.')},
+  {ball:'W',arrows:[[44,44,56,52,'pass']],txt:L('Top kaybedildi ve rakip kanadına ulaştı.','Ballverlust, der Ball landet bei ihrem Flügel.','We lose it and the ball reaches their winger.','Ballon perdu, il arrive à leur ailier.')},
+  {p:{W:[57,60],'6':[55,63]},ball:'6',arrows:[[46,64,55,63,'press']],txt:L('Bekin boşalttığı alanı 6 numara tutuyordu. Kontra hemen duruyor.','Den Raum des AV hielt die 6. Der Konter ist sofort gestoppt.','The 6 was holding the full-back’s space. The counter is stopped at once.','Le 6 tenait l’espace du latéral. La contre-attaque est stoppée net.')}],
+ bad:[
+  {p:{'2':[64,36],'6':[40,48]},arrows:[[58,72,64,36,'run'],[34,60,40,48,'run']],zone:[58,70,7,'bad'],txt:L('Hata: bek hücuma çıktı, 6 numara da ileri gitti. Sağ arka bomboş.','Fehler: Der AV ist vorn, die Sechs auch. Hinten rechts ist alles leer.','Mistake: the full-back went forward and so did the 6. The right side behind is empty.','Erreur : le latéral est monté, le 6 aussi. Le côté droit derrière est vide.')},
+  {ball:'W',arrows:[[44,44,56,52,'pass']],txt:L('Top kaybı; rakip kanat boş alana dönüyor.','Ballverlust, ihr Flügel dreht in den freien Raum.','Ball lost; their winger turns into the empty space.','Ballon perdu ; leur ailier se retourne vers l’espace libre.')},
+  {p:{W:[60,82],'5':[52,84]},arrows:[[56,52,60,82,'run'],[42,80,52,84,'run']],txt:L('Kontra atak. Stoper kenara çekiliyor ve ceza sahası boşalıyor.','Konter. Der IV wird nach außen gezogen, der Strafraum ist leer.','Counter-attack. The centre-back is pulled wide and the box empties.','Contre-attaque. Le central est attiré sur le côté, la surface se vide.')}]},
+
+{id:'korner-hucum',phase:'set',lvl:3,tags:['CB','ST'],view:'att',
+ title:L('Korner hücumu: çeken, engelleyen, bitiren','Eckball offensiv: ziehen, blocken, abschließen','Attacking corners: decoy, screen, finish','Corner offensif : leurrer, bloquer, finir'),
+ sum:L('Ön direk koşusu savunmayı çeker, bir oyuncu markajı engeller, bitirici ikinci bölgeye koşar.','Ein Lauf zum ersten Pfosten zieht, einer blockt, der Vollstrecker kommt in die zweite Zone.','A near-post run drags defenders, one screens a marker, the finisher arrives in the second zone.','Un appel au premier poteau attire, un bloque un marqueur, le finisseur arrive en deuxième zone.'),
+ actors:[['7','us',68,0],['9','us',36,16],['4','us',30,15],['5','us',44,18],['Z1','op',30,5.5],['Z2','op',34,5.5],['Z3','op',38,5.5],['M1','op',43,14],['M2','op',30,12]],ball:'7',
+ intro:{txt:L('Korner sağdan bizim. Rakip üç oyuncuyla alan, iki oyuncuyla adam adama savunuyor.','Ecke von rechts für uns. Der Gegner verteidigt mit drei im Raum und zwei Manndeckern.','Our corner from the right. They defend with three in a zone and two markers.','Corner pour nous à droite. Ils défendent avec trois en zone et deux marqueurs.')},
+ good:[
+  {p:{'9':[31,4],Z1:[31,6],'4':[41,13],'5':[42,9]},arrows:[[36,16,31,4,'run'],[30,15,41,13,'run'],[44,18,42,9,'run']],txt:L('9 ön direğe koşup alan savunmacısını çekiyor. 4 numara 5’i tutan rakibin yolunu kesiyor.','Die 9 zieht zum ersten Pfosten. Die 4 stellt dem Manndecker der 5 den Weg zu.','The 9 runs to the near post and drags a defender. The 4 blocks the path of the 5’s marker.','Le 9 attaque le premier poteau et attire un défenseur. Le 4 bloque le marqueur du 5.')},
+  {ball:'5',arrows:[[68,0,42,9,'pass']],txt:L('Top ikinci bölgeye; 5 numara koşu ile geliyor ve serbest vuruyor.','Der Ball kommt in die zweite Zone, die 5 kommt mit Anlauf und köpft frei.','The ball arrives in the second zone; the 5 attacks it at full speed, unmarked.','Le ballon arrive en deuxième zone ; le 5 arrive lancé et reprend seul.')},
+  {ball:[37,-0.6],txt:L('Gol. Korner ezberle değil, rollerle oynanır.','Tor. Ecken spielt man mit klaren Rollen, nicht mit Zufall.','Goal. Corners are played with clear roles, not hope.','But. Un corner se joue avec des rôles clairs, pas au hasard.')}],
+ bad:[
+  {zone:[42,9,4,'bad'],txt:L('Hata: herkes yerinde bekliyor. Kimse koşu yapmıyor, kimse engellemiyor.','Fehler: Alle stehen. Niemand läuft, niemand blockt.','Mistake: everyone stands still. Nobody runs, nobody screens.','Erreur : tout le monde est immobile. Personne ne court, personne ne bloque.')},
+  {ball:'Z2',arrows:[[68,0,34,6,'pass']],txt:L('Top alan savunmacısının önüne geliyor; rahatça uzaklaştırılıyor.','Der Ball kommt zum Raumverteidiger und wird einfach geklärt.','The ball comes to a zonal defender and is easily cleared.','Le ballon arrive au défenseur de zone, dégagé facilement.')}]},
+{id:'kaleci-uc-iki',phase:'att',lvl:3,tags:['GK','CB'],view:'def',
+ title:L('Kaleciyle oyun kurma: üçe iki','Aufbau mit dem Torwart: drei gegen zwei','Building with the keeper: three against two','Relance avec le gardien : trois contre deux'),
+ sum:L('İki forvet baskı yapınca kaleci stoperlerin arasına çıkar ve sayısal üstünlük kurar.','Pressen zwei Stürmer, kommt der Torwart zwischen die IV und schafft Überzahl.','When two strikers press, the keeper steps between the centre-backs to create an extra man.','Quand deux attaquants pressent, le gardien vient entre les centraux pour créer le surnombre.'),
+ actors:[['1','us',34,100],['4','us',24,94],['5','us',44,94],['6','us',34,82],['X1','op',28,90],['X2','op',40,90],['P','op',34,78]],ball:'1',
+ intro:{txt:L('Rakip iki forvetle stoperlerimize baskı yapıyor. 6 numara da markajlı.','Der Gegner presst unsere IV mit zwei Stürmern. Die 6 ist gedeckt.','They press our centre-backs with two strikers. The 6 is marked.','Ils pressent nos centraux avec deux attaquants. Le 6 est marqué.')},
+ good:[
+  {p:{'1':[34,95],'4':[16,92],'5':[52,92],X1:[21,90],X2:[47,90]},arrows:[[24,94,16,92,'run'],[44,94,52,92,'run']],txt:L('Kaleci iki stoperin arasına çıkıyor, stoperler genişliyor. Artık üçe iki üstünlük var.','Der Torwart rückt zwischen die IV, die IV gehen breit. Jetzt steht es drei gegen zwei.','The keeper steps between the centre-backs and they split wide. Now it is three against two.','Le gardien monte entre les centraux, qui s’écartent. C’est maintenant trois contre deux.')},
+  {p:{X1:[29,94]},ball:'4',arrows:[[21,90,29,94,'press'],[34,95,16,92,'pass']],txt:L('Bir forvet kaleciye çıkınca stoperlerden biri boşalıyor. Pas boştaki stopere.','Läuft ein Stürmer den Torwart an, wird ein IV frei. Der Pass geht zu ihm.','When one striker goes to the keeper, a centre-back is free. The pass goes to him.','Quand un attaquant presse le gardien, un central se libère. La passe va vers lui.')},
+  {p:{'4':[16,80]},arrows:[[16,92,16,80,'run']],txt:L('Stoper ilk baskıyı geçti; önünde alan var ve topu sürüyor.','Der IV hat die erste Pressinglinie überspielt und dribbelt an.','The centre-back has beaten the first line and carries the ball forward.','Le central a passé la première ligne et conduit le ballon.')}],
+ bad:[
+  {p:{'1':[34,103]},txt:L('Hata: kaleci kalesinde kalıyor. İkiye iki ve herkes markajlı.','Fehler: Der Torwart bleibt auf der Linie. Zwei gegen zwei, alle gedeckt.','Mistake: the keeper stays on his line. Two against two, everyone marked.','Erreur : le gardien reste sur sa ligne. Deux contre deux, tout le monde est marqué.')},
+  {p:{X1:[25,92]},ball:'4',arrows:[[34,103,24,94,'pass'],[28,90,25,92,'press']],txt:L('Pas baskı altındaki stopere gidiyor.','Der Pass geht zum bedrängten IV.','The pass goes to a centre-back under pressure.','La passe va à un central sous pression.')},
+  {ball:'X1',txt:L('Top kaybı, hem de kalemizin önünde.','Ballverlust direkt vor unserem Tor.','Ball lost, right in front of our goal.','Ballon perdu, juste devant notre but.')}]},
+
+{id:'cevre-kontrol',phase:'att',lvl:1,tags:['CM','AM','DM'],view:'mid',
+ title:L('Çevre kontrolü: topu almadan önce bak','Scanning: vor der Ballannahme schauen','Scanning: look before you receive','Scanning : regarder avant de recevoir'),
+ sum:L('Pas gelmeden omzunun üstünden bak; baskının nereden geldiğini bil, boşluğa dön.','Vor dem Pass über die Schulter schauen; wissen, woher der Druck kommt, in den freien Raum drehen.','Check your shoulder before the pass; know where pressure comes from, turn into space.','Regarde par-dessus l’épaule avant la passe ; sache d’où vient la pression, tourne vers l’espace.'),
+ actors:[['6','us',30,66],['8','us',42,54],['9','us',40,30],['O','op',35,44]],ball:'6',
+ intro:{txt:L('Top 6 numarada, pas 8’e gelecek. 8 numara topa dönük duruyor.','Die 6 hat den Ball, der Pass kommt zur 8. Die 8 steht zum Ball gedreht.','The 6 has the ball; the pass will go to the 8, who is facing the ball.','Le 6 a le ballon ; la passe ira au 8, qui fait face au ballon.')},
+ good:[
+  {zone:[54,46,5,'good'],arrows:[[42,54,35,44,'guide'],[42,54,54,46,'guide']],txt:L('Pas gelmeden önce 8 omzunun üstünden bakıyor: sol arkadan rakip geliyor, sağda boşluk var.','Vor dem Pass schaut die 8 über die Schulter: links hinten kommt ein Gegner, rechts ist Platz.','Before the pass the 8 checks his shoulder: an opponent comes from behind-left, space is on the right.','Avant la passe, le 8 regarde : un adversaire arrive derrière à gauche, l’espace est à droite.')},
+  {ball:'8',p:{O:[39,49]},arrows:[[30,66,42,54,'pass']],txt:L('Ne olduğunu bildiği için topu açık vücutla karşılıyor.','Weil er das Bild kennt, nimmt er den Ball mit offenem Körper an.','Because he knows the picture, he receives with an open body.','Comme il connaît la situation, il reçoit corps ouvert.')},
+  {p:{'8':[52,47],O:[43,52]},arrows:[[42,54,52,47,'run']],txt:L('İlk dokunuşla baskıdan uzağa, boşluğa dönüyor.','Mit der ersten Berührung dreht er weg vom Druck in den Raum.','With his first touch he turns away from pressure into space.','Dès le premier contact, il se retourne loin de la pression, vers l’espace.')},
+  {ball:'9',arrows:[[52,47,40,30,'pass']],txt:L('Önü açık; hemen ileri oynuyor.','Der Weg ist frei, sofort nach vorn.','The way is open; he plays forward straight away.','La voie est libre ; il joue vers l’avant aussitôt.')}],
+ bad:[
+  {txt:L('Hata: 8 numara sadece topa bakıyor. Arkasından gelen rakibi görmüyor.','Fehler: Die 8 schaut nur auf den Ball und sieht den Gegner hinter sich nicht.','Mistake: the 8 only looks at the ball and doesn’t see the opponent behind him.','Erreur : le 8 ne regarde que le ballon et ne voit pas l’adversaire derrière lui.')},
+  {ball:'8',p:{O:[40,50]},arrows:[[30,66,42,54,'pass']],txt:L('Topu alıyor ve rakibin olduğu tarafa dönmeye çalışıyor.','Er nimmt an und will genau zur Seite des Gegners drehen.','He receives and tries to turn exactly towards the opponent.','Il reçoit et veut se retourner du côté de l’adversaire.')},
+  {p:{'8':[40,53]},ball:'O',txt:L('Rakip arkadan topa müdahale ediyor. Top kaybı.','Der Gegner kommt von hinten an den Ball. Ballverlust.','The opponent nicks it from behind. Ball lost.','L’adversaire intervient par derrière. Ballon perdu.')}]},
+
+{id:'ilk-dokunus',phase:'att',lvl:1,tags:['DM','CM','CB'],view:'mid',
+ title:L('İlk dokunuş: baskıdan uzağa','Erste Ballberührung: weg vom Druck','First touch: away from pressure','Premier contact : loin de la pression'),
+ sum:L('Topu ayağının altında durdurma; ilk dokunuşla rakipten uzağa, ileriye al.','Den Ball nicht stoppen; mit der ersten Berührung weg vom Gegner und nach vorn.','Don’t stop the ball dead; take it away from the opponent and forward.','N’arrête pas le ballon ; emmène-le loin de l’adversaire et vers l’avant.'),
+ actors:[['5','us',42,72],['6','us',32,58],['8','us',50,40],['X','op',22,54]],ball:'5',
+ intro:{txt:L('Stoper 6 numaraya pas verecek. Rakip soldan geliyor.','Der IV spielt gleich die 6 an. Von links kommt ein Gegner.','The centre-back is about to pass to the 6. An opponent comes from the left.','Le central va servir le 6. Un adversaire arrive par la gauche.')},
+ good:[
+  {ball:'6',p:{X:[26,56]},arrows:[[42,72,32,58,'pass'],[22,54,26,56,'press']],txt:L('Pas 6 numaraya geliyor; rakip soldan baskıya çıkıyor.','Der Pass kommt zur 6, der Gegner presst von links.','The pass reaches the 6 and the opponent presses from the left.','La passe arrive au 6, l’adversaire presse par la gauche.')},
+  {p:{'6':[38,53],X:[31,56]},arrows:[[32,58,38,53,'run']],txt:L('İlk dokunuş sağa ve ileri, baskıdan uzağa. Rakip bir adım geride kalıyor.','Erste Berührung nach rechts vorn, weg vom Druck. Der Gegner ist einen Schritt zu spät.','First touch forward and to the right, away from pressure. The opponent is a step behind.','Premier contact vers l’avant et à droite, loin de la pression. L’adversaire a un temps de retard.')},
+  {ball:'8',arrows:[[38,53,50,40,'pass']],txt:L('Kazandığı zamanla ileri pas atıyor.','Mit der gewonnenen Zeit spielt er nach vorn.','With the time he gained, he plays forward.','Avec le temps gagné, il joue vers l’avant.')}],
+ bad:[
+  {ball:'6',p:{X:[26,56]},arrows:[[42,72,32,58,'pass'],[22,54,26,56,'press']],txt:L('Pas 6 numaraya geliyor; rakip soldan baskıya çıkıyor.','Der Pass kommt zur 6, der Gegner presst von links.','The pass reaches the 6 and the opponent presses from the left.','La passe arrive au 6, l’adversaire presse par la gauche.')},
+  {p:{X:[30,57]},txt:L('Hata: 6 numara topu ayağının altında durduruyor. Rakip yaklaşmaya devam ediyor.','Fehler: Die 6 stoppt den Ball unter dem Fuß. Der Gegner kommt näher.','Mistake: the 6 stops the ball dead under his foot. The opponent keeps coming.','Erreur : le 6 bloque le ballon sous le pied. L’adversaire continue d’arriver.')},
+  {ball:'X',txt:L('Rakip topu kapıyor.','Der Gegner erobert den Ball.','The opponent wins the ball.','L’adversaire récupère le ballon.')}]},
+
+{id:'gec-kosu',phase:'att',lvl:2,tags:['AM','CM'],view:'att',
+ title:L('Ceza sahasına geç koşu','Der späte Lauf in den Strafraum','The late run into the box','L’appel tardif dans la surface'),
+ sum:L('Direklere koşanlar savunmayı geri iter; 10 numara geç gelip geri pası penaltı noktasında karşılar.','Die Läufe zu den Pfosten drücken die Abwehr zurück; der Zehner kommt spät zum Elfmeterpunkt.','Runs to the posts push the defence back; the 10 arrives late at the penalty spot for the cut-back.','Les appels aux poteaux repoussent la défense ; le 10 arrive tard au point de penalty.'),
+ actors:[['7','us',62,12],['9','us',34,14],['11','us',44,16],['10','us',36,32],['D1','op',33,10],['D2','op',39,10],['D3','op',45,12],['M','op',38,24]],ball:'7',
+ intro:{txt:L('7 numara sağ kanatta çizgiye indi. 10 numara ceza sahasının dışında.','Die 7 ist rechts an der Grundlinie. Der Zehner wartet vor dem Strafraum.','The 7 has reached the byline on the right. The 10 waits outside the box.','Le 7 est au bout sur la droite. Le 10 attend hors de la surface.')},
+ good:[
+  {p:{'9':[31,5],'11':[44,6],D1:[32,6],D3:[44,7]},arrows:[[34,14,31,5,'run'],[44,16,44,6,'run']],txt:L('9 ve 11 direklere koşup savunmacıları kaleye doğru çekiyor. 10 numara henüz bekliyor.','9 und 11 laufen zu den Pfosten und ziehen die Verteidiger zum Tor. Der Zehner wartet noch.','The 9 and 11 run to the posts and drag defenders towards goal. The 10 waits.','Le 9 et le 11 attaquent les poteaux et attirent les défenseurs. Le 10 attend encore.')},
+  {p:{'10':[36,16]},ball:'10',arrows:[[36,32,36,16,'run'],[62,12,36,16,'pass']],zone:[36,16,4,'good'],txt:L('7 geri pas veriyor; 10 numara geç koşuyla penaltı noktasına geliyor ve boş.','Die 7 legt zurück; der Zehner kommt spät zum Elfmeterpunkt und ist frei.','The 7 cuts it back; the 10 arrives late at the spot and is free.','Le 7 centre en retrait ; le 10 arrive tard au point de penalty, seul.')},
+  {ball:[35,-0.6],txt:L('Gol. Geç koşu, savunmanın en zor takip ettiği koşudur.','Tor. Der späte Lauf ist für Verteidiger am schwersten zu verfolgen.','Goal. The late run is the hardest one for defenders to track.','But. L’appel tardif est le plus difficile à suivre pour les défenseurs.')}],
+ bad:[
+  {p:{'9':[31,5],'11':[44,6],'10':[37,8],D1:[32,6],D3:[44,7]},arrows:[[36,32,37,8,'run']],txt:L('Hata: 10 numara erken koşup kalabalığın içine giriyor.','Fehler: Der Zehner läuft zu früh in das Gedränge.','Mistake: the 10 runs in too early, into the crowd.','Erreur : le 10 entre trop tôt dans la cohue.')},
+  {p:{M:[36,17]},ball:'M',arrows:[[62,12,36,17,'pass']],zone:[36,17,4,'bad'],txt:L('Geri pas boş alana gidiyor ve rakibe geçiyor.','Der Rückpass geht in den leeren Raum, zum Gegner.','The cut-back goes into empty space and to an opponent.','Le centre en retrait arrive dans le vide, chez l’adversaire.')}]},
+
+{id:'serbest-vurus',phase:'set',lvl:2,tags:['CB','GK','FB'],view:'def',
+ title:L('Kenardan serbest vuruş savunması','Freistoß von der Seite verteidigen','Defending a wide free kick','Défendre un coup franc excentré'),
+ sum:L('Hattı ceza sahası çizgisinde tut; kaleci önündeki alanı alabilsin.','Die Kette an der Strafraumlinie halten, damit der Torwart den Raum davor nehmen kann.','Hold the line at the edge of the box so the keeper can claim the space in front of him.','Tiens la ligne au bord de la surface pour que le gardien prenne l’espace devant lui.'),
+ actors:[['1','us',34,102],['3','us',24,88],['4','us',30,88],['5','us',36,88],['6','us',42,88],['K','op',10,78],['A1','op',28,86],['A2','op',35,86],['A3','op',43,86]],ball:'K',
+ intro:{line:[88,'good'],txt:L('Sol kenardan serbest vuruş. Savunma hattı ceza sahası çizgisinde.','Freistoß von links. Die Kette steht an der Strafraumlinie.','A free kick from the left. Our line is on the edge of the box.','Coup franc à gauche. La ligne est au bord de la surface.')},
+ good:[
+  {line:[88,'good'],zone:[34,96,5,'good'],txt:L('Hat yüksek kaldığı için hat ile kaleci arasında geniş bir alan var. Bu alan kalecinin.','Weil die Kette hoch steht, gibt es Raum zwischen Kette und Torwart. Dieser Raum gehört dem Torwart.','With the line held high, there is space between it and the keeper. That space is the keeper’s.','Avec la ligne haute, il y a de l’espace entre elle et le gardien. Cet espace est au gardien.')},
+  {p:{A1:[30,94],A2:[37,94],'4':[31,95],'5':[36,96],'1':[34,96]},ball:'1',arrows:[[10,78,34,96,'pass'],[34,102,34,96,'run']],txt:L('Top o alana gelince kaleci çıkıp alıyor. Savunmacılar koşucularla birlikte dönüyor.','Kommt der Ball dorthin, fängt ihn der Torwart. Die Verteidiger laufen mit ihren Gegnern zurück.','When the ball comes there, the keeper claims it. Defenders run back with their men.','Quand le ballon arrive là, le gardien le capte. Les défenseurs reviennent avec leurs joueurs.')}],
+ bad:[
+  {p:{'3':[24,99],'4':[30,99],'5':[36,99],'6':[42,99],A1:[28,97],A2:[35,97],A3:[43,97]},line:[99,'bad'],txt:L('Hata: hat altıpasa kadar düşüyor. Kalecinin önü kalabalık.','Fehler: Die Kette fällt bis zum Fünfer zurück. Vor dem Torwart ist es voll.','Mistake: the line drops back to the six-yard box. It is crowded in front of the keeper.','Erreur : la ligne recule jusqu’aux six mètres. C’est bondé devant le gardien.')},
+  {p:{A2:[36,97]},ball:'A2',line:[99,'bad'],arrows:[[10,78,36,97,'pass']],txt:L('Kaleci çıkamıyor; rakip kale dibinde kafa vuruyor.','Der Torwart kommt nicht raus; der Gegner köpft direkt vor dem Tor.','The keeper can’t come out; the opponent heads it from close range.','Le gardien ne peut pas sortir ; l’adversaire reprend de près.')},
+  {ball:[35,105.6],txt:L('Gol.','Tor.','Goal.','But.')}]},
+
+{id:'tac',phase:'set',lvl:1,tags:['FB','W','CM'],view:'mid',
+ title:L('Taç atışı: biri uzağa, biri kısaya','Einwurf: einer lang, einer kurz','Throw-in: one goes long, one comes short','Touche : un appel long, un appel court'),
+ sum:L('Bir oyuncu uzun koşup markajını çeker, diğeri kısa gelip boşalır; atan hemen oyuna girer.','Einer läuft lang und zieht seinen Gegner mit, einer kommt kurz; der Werfer geht sofort ins Spiel.','One runs long and takes his marker, one comes short and gets free; the thrower steps straight back in.','Un appel long emmène son marqueur, un appel court se libère ; le lanceur rentre aussitôt.'),
+ actors:[['2','us',68,50],['7','us',60,44],['8','us',54,54],['A','op',61,42],['B','op',53,52]],ball:'2',
+ intro:{txt:L('Sağdan taç bizim. 7 ve 8 numara markajlı.','Einwurf rechts für uns. 7 und 8 sind gedeckt.','Our throw-in on the right. The 7 and 8 are marked.','Touche pour nous à droite. Le 7 et le 8 sont marqués.')},
+ good:[
+  {p:{'7':[64,30],A:[63,32],'8':[62,56]},arrows:[[60,44,64,30,'run'],[54,54,62,56,'run']],txt:L('7 uzun koşup markajını çekiyor. 8 numara kısa gelip boşalıyor.','Die 7 läuft lang und nimmt ihren Gegner mit. Die 8 kommt kurz und ist frei.','The 7 runs long and takes his marker. The 8 comes short and is free.','Le 7 fait un appel long et emmène son marqueur. Le 8 vient court et se libère.')},
+  {ball:'8',arrows:[[68,50,62,56,'pass']],txt:L('Atış boştaki 8 numaraya.','Der Einwurf geht zur freien 8.','The throw goes to the free 8.','La touche va au 8 libre.')},
+  {p:{'2':[63,50]},ball:'2',arrows:[[62,56,63,50,'pass']],txt:L('Atan oyuncu hemen sahaya giriyor. 8 ona geri veriyor ve oyun açılıyor.','Der Werfer geht sofort ins Feld. Die 8 spielt zurück, das Spiel ist eröffnet.','The thrower steps straight onto the pitch. The 8 plays it back and play opens up.','Le lanceur rentre aussitôt. Le 8 lui remet et le jeu s’ouvre.')}],
+ bad:[
+  {txt:L('Hata: herkes yerinde duruyor ve markajlı.','Fehler: Alle stehen still und sind gedeckt.','Mistake: everyone stands still and is marked.','Erreur : tout le monde est immobile et marqué.')},
+  {p:{A:[61,45]},ball:'A',arrows:[[68,50,61,45,'pass']],txt:L('Atış markajlı oyuncuya gidiyor; rakip öne girip topu kapıyor.','Der Einwurf geht zum gedeckten Spieler; der Gegner geht dazwischen.','The throw goes to a marked player; the opponent steps in front and wins it.','La touche va au joueur marqué ; l’adversaire passe devant et récupère.')}]},
+
+{id:'yuksek-pres',phase:'def',lvl:3,tags:['ST','W','CM','AM'],view:'att',
+ title:L('Takım halinde yüksek baskı','Hohes Pressing als Team','High pressing as a team','Pressing haut collectif'),
+ sum:L('Ön üçlü stoperleri ve 6’yı kapatır, tüm takım yukarı çıkar; bek tarafına pas tuzaktır.','Die vordere Reihe stellt IV und Sechser zu, alle rücken auf; der Pass zum AV ist die Falle.','The front three block the centre-backs and the 6, the team pushes up; the pass to the full-back is the trap.','Les trois de devant ferment les centraux et le 6, l’équipe monte ; la passe au latéral est le piège.'),
+ actors:[['9','us',34,24],['11','us',16,28],['7','us',52,28],['10','us',28,34],['8','us',42,36],['G','op',34,2],['A','op',22,8],['B','op',46,8],['F1','op',6,18],['F2','op',62,18],['S','op',34,18]],ball:'G',
+ intro:{txt:L('Rakip kaleden oyun başlatıyor.','Der Gegner baut vom Torwart aus auf.','They are building from their keeper.','Ils relancent depuis leur gardien.')},
+ good:[
+  {p:{'9':[34,12],'11':[20,13],'7':[48,13],'10':[34,22],'8':[46,26]},arrows:[[34,24,34,12,'run'],[16,28,20,13,'run'],[52,28,48,13,'run'],[28,34,34,22,'run'],[42,36,46,26,'run']],txt:L('Ön üçlü stoperleri kapatıyor, 10 numara 6’yı alıyor. Tüm takım birlikte yukarı çıkıyor.','Die vordere Reihe stellt die IV zu, der Zehner nimmt die Sechs. Das ganze Team rückt auf.','The front three block the centre-backs, the 10 takes their 6. The whole team pushes up.','Les trois de devant ferment les centraux, le 10 prend le 6. Toute l’équipe monte.')},
+  {p:{'7':[58,17],'8':[52,22]},ball:'F2',arrows:[[34,2,62,18,'pass'],[48,13,58,17,'press'],[46,26,52,22,'run']],txt:L('Tek açık seçenek bek. Pas oraya gidince baskı başlıyor; 7 içeriyi kapatarak çıkıyor.','Einzige Option ist der AV. Kommt der Pass, wird gepresst; die 7 läuft an und schließt innen.','The only option is the full-back. When the pass goes there, the press is on; the 7 closes the inside.','Seule option : le latéral. Quand la passe part, le pressing est lancé ; le 7 ferme l’intérieur.')},
+  {ball:'7',txt:L('Çizgiye sıkışan bek topu kaybediyor. Kaleye 25 metre kala top bizde.','Der AV an der Linie verliert den Ball. Ballgewinn 25 Meter vor dem Tor.','Trapped on the line, the full-back loses it. We win the ball 25 metres from goal.','Coincé sur la ligne, le latéral perd le ballon. Récupération à 25 mètres du but.')}],
+ bad:[
+  {p:{'9':[34,6]},arrows:[[34,24,34,6,'press']],txt:L('Hata: 9 numara tek başına kaleciye koşuyor, arkası gelmiyor.','Fehler: Die 9 läuft allein auf den Torwart, niemand rückt nach.','Mistake: the 9 runs at the keeper alone; nobody follows.','Erreur : le 9 presse seul le gardien ; personne ne suit.')},
+  {p:{S:[34,24]},ball:'S',arrows:[[34,2,34,22,'pass']],txt:L('Rakibin 6’sı boşta. Tek pasla baskı geçiliyor.','Ihr Sechser ist frei. Ein Pass, und das Pressing ist überspielt.','Their 6 is free. One pass beats the press.','Leur 6 est libre. Une passe et le pressing est battu.')},
+  {ball:[34,56],arrows:[[34,24,34,56,'pass']],txt:L('İlk hattımız oyun dışı kaldı; rakip hızla ilerliyor.','Unsere erste Linie ist aus dem Spiel, der Gegner kommt schnell nach vorn.','Our first line is out of the game and they progress quickly.','Notre première ligne est éliminée ; ils progressent rapidement.')}]}
+
+];
+
+// ================= formations (def block / attacking shape) =================
+const FORM={
+'4-1-4-1':[['GK',34,100,34,96],['FB',12,72,6,40],['CB',27,75,22,70],['CB',41,75,46,70],['FB',56,72,62,40],['DM',34,64,34,58],['W',12,55,18,24],['CM',26,54,24,36],['CM',42,54,44,36],['W',56,55,50,24],['ST',34,42,34,16]],
+'4-2-3-1':[['GK',34,100,34,96],['FB',12,72,6,42],['CB',27,75,22,72],['CB',41,75,46,72],['FB',56,72,62,42],['DM',27,64,28,58],['DM',41,64,40,54],['W',12,52,16,24],['AM',34,50,34,30],['W',56,52,52,24],['ST',34,42,34,16]],
+'4-4-2':[['GK',34,100,34,96],['FB',12,72,8,46],['CB',27,75,22,72],['CB',41,75,46,72],['FB',56,72,60,46],['W',12,56,10,26],['CM',27,58,28,50],['CM',41,58,40,44],['W',56,56,58,26],['ST',28,44,28,18],['ST',40,44,40,20]],
+'4-3-3':[['GK',34,100,34,96],['FB',12,72,8,42],['CB',27,75,22,72],['CB',41,75,46,72],['FB',56,72,60,42],['DM',34,63,34,58],['CM',25,56,24,36],['CM',43,56,44,36],['W',12,46,6,20],['W',56,46,62,20],['ST',34,42,34,16]],
+'3-5-2':[['GK',34,100,34,96],['WB',8,72,6,32],['CB',20,75,16,66],['CB',34,77,34,72],['CB',48,75,52,66],['WB',60,72,62,32],['DM',34,63,34,54],['CM',24,58,24,40],['CM',44,58,44,40],['ST',28,44,28,18],['ST',40,44,40,20]]
+};
+
+// ================= app state =================
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+let lang=new URLSearchParams(location.search).get('lang')||store.get('ttsc_lang')||((navigator.language||'tr').slice(0,2));if(!UI[lang])lang='tr';
+const $=id=>document.getElementById(id);
+const t=k=>(UI[lang][k]||UI.tr[k]||k);
+const loc=o=>o?(o[lang]||o.tr):'';
+let filter='all',cur=null,variant='good',step=0,anim=1,playing=false,hold=0,formation=store.get('ttsc_taktik_form')||'4-1-4-1',phase=0,fk=1,sel=-1;
+if(!FORM[formation])formation='4-1-4-1';
+
+function applyLang(){document.documentElement.lang=lang;document.querySelectorAll('[data-i]').forEach(el=>el.textContent=t(el.dataset.i));$('lang').value=lang;renderList();renderFChips();if(cur)renderLessonText();renderRole();if(qList.length&&!$('vQuiz').hidden)renderQ()}
+
+// ---------- list ----------
+let fPhase='all',fLvl='all';
+const PHASES=['def','att','trans','set'];
+function filtered(){return LESSONS.filter(l=>(filter==='all'||l.tags.includes(filter))&&(fPhase==='all'||l.phase===fPhase)&&(fLvl==='all'||l.lvl===+fLvl))
+  .sort((a,b)=>a.lvl-b.lvl||PHASES.indexOf(a.phase)-PHASES.indexOf(b.phase))}
+function chipRow(box,items,curv,set){box.innerHTML='';items.forEach(([v,label])=>{const b=document.createElement('button');b.className='chip';b.textContent=label;b.setAttribute('aria-pressed',String(curv)===String(v));b.onclick=()=>{set(v);renderList()};box.appendChild(b)})}
+function renderList(){
+  const nq=Math.min(QN,filtered().filter(l=>diverge(l)>0).length);$('quizSub').textContent=t('quizSub').replace('{n}',nq);$('quizGo').disabled=nq===0;
+  chipRow($('chP'),[['all',t('all')],...PHASES.map(p=>[p,t(p)])],fPhase,v=>fPhase=v);
+  chipRow($('chV'),[['all',t('all')],[1,t('lv1')],[2,t('lv2')],[3,t('lv3')]],fLvl,v=>fLvl=v);
+  const used=[...new Set(LESSONS.flatMap(l=>l.tags))];
+  chipRow($('chips'),[['all',t('all')],...used.map(r=>[r,ROLE[lang][r][0]])],filter,v=>filter=v);
+  const list=filtered();
+  $('count').textContent=t('lessonsN').replace('{n}',list.length);
+  $('grid').innerHTML='';
+  list.forEach(l=>{const b=document.createElement('button');b.className='lcard';
+    b.innerHTML=`<span class="tags"><span class="tag">${t(l.phase)}</span><span class="tag">${t('lv'+l.lvl)}</span>${l.tags.map(g=>`<span class="tag">${ROLE[lang][g][1]}</span>`).join('')}</span><b></b><p></p>`;
+    b.querySelector('b').textContent=loc(l.title);b.querySelector('p').textContent=loc(l.sum);
+    b.onclick=()=>{location.hash='ders-'+l.id};$('grid').appendChild(b)});
+}
+// ---------- routing ----------
+function route(){
+  const h=location.hash.slice(1);
+  const lesson=h.startsWith('ders-')?LESSONS.find(l=>'ders-'+l.id===h):null;
+  const quiz=h==='karar';
+  $('vList').hidden=!!lesson||h==='dizilis'||quiz;$('vLesson').hidden=!lesson;$('vForm').hidden=h!=='dizilis';$('vQuiz').hidden=!quiz;
+  if(quiz&&!qList.length){location.hash='dersler';return}
+  if(quiz)sizeQ();
+  $('tabL').setAttribute('aria-selected',h!=='dizilis');$('tabF').setAttribute('aria-selected',h==='dizilis');
+  if(lesson)openLesson(lesson);else{cur=null;playing=false}
+  if(h==='dizilis'){fk=1;sizeAll()}
+}
+window.addEventListener('hashchange',route);
+$('tabL').onclick=()=>{location.hash='dersler'};$('tabF').onclick=()=>{location.hash='dizilis'};
+$('back').onclick=()=>{location.hash='dersler'};
+
+// ---------- lesson engine ----------
+function stepsOf(l,v){return[l.intro,...l[v]]}
+function stateOf(l,v,i){
+  const pos={};l.actors.forEach(a=>pos[a[0]]=[a[2],a[3]]);let ball=l.ball,line=null;
+  const s=stepsOf(l,v);for(let j=0;j<=Math.min(i,s.length-1);j++){const st=s[j];if(st.p)for(const k in st.p)pos[k]=st.p[k];if(st.ball!==undefined)ball=st.ball;line=st.line||null}
+  return{pos,ball,line};
+}
+function steps(){return stepsOf(cur,variant)}
+function stateAt(i){return stateOf(cur,variant,i)}
+// first step where the right and wrong versions really differ on the pitch
+function bxy(st){return typeof st.ball==='string'?st.pos[st.ball]:st.ball}
+function diverge(l){const n=Math.min(l.good.length,l.bad.length);for(let j=1;j<=n;j++){const a=stateOf(l,'good',j),b=stateOf(l,'bad',j);
+  const far=(p,q)=>Math.hypot(p[0]-q[0],p[1]-q[1])>2;
+  if(Object.keys(a.pos).some(id=>far(a.pos[id],b.pos[id]))||far(bxy(a),bxy(b)))return j}return 0}
+function openLesson(l){
+  const same=cur===l;cur=l;if(!same){variant='bad';step=0;anim=1;playing=autoPlay;hold=0}
+  autoPlay=false;sizeAll();renderLessonText();
+  if(!same&&slideDir){const bx=$('lbox');bx.classList.remove('slide-n','slide-p');void bx.offsetWidth;bx.classList.add(slideDir>0?'slide-n':'slide-p');slideDir=0}
+  if(!same)window.scrollTo(0,0);
+}
+function navList(){const f=filtered();return f.includes(cur)?f:LESSONS}
+let slideDir=0;
+function goLesson(d){const L2=navList(),i=L2.indexOf(cur),n=L2.length;slideDir=d;autoPlay=true;location.hash='ders-'+L2[(i+d+n)%n].id}
+let autoPlay=false;
+function renderLessonText(){
+  const L2=navList();$('lMeta').innerHTML=`<span class="badge">${t(cur.phase)}</span><span class="badge lv">${t('lv'+cur.lvl)}</span><span>${L2.indexOf(cur)+1}${t('of')}${L2.length}</span>`;
+  $('lTitle').textContent=loc(cur.title);
+  $('vBad').setAttribute('aria-pressed',variant==='bad');$('vGood').setAttribute('aria-pressed',variant==='good');
+  const s=steps();const n=$('narr');n.className='narr '+(step===0?'':variant);
+  n.innerHTML=`<span class="k">${t('step')} ${step+1}/${s.length} · ${variant==='bad'?t('wrong'):t('right')}</span><span></span>`;n.lastChild.textContent=loc(s[step].txt);
+  $('dots').innerHTML=s.map((_,i)=>`<span class="dot${i<=step?' on':''}"></span>`).join('');
+  $('prev').disabled=step===0;$('next').disabled=step>=s.length-1;
+  $('play').textContent=playing?t('pause'):(step>=s.length-1?t('again'):t('play'));
+}
+function go(i){const s=steps();i=Math.max(0,Math.min(s.length-1,i));if(i===step)return;step=i;anim=0;hold=0;renderLessonText()}
+$('pl').onclick=()=>goLesson(-1);$('nl').onclick=()=>goLesson(1);
+let sw=null;
+$('vLesson').addEventListener('pointerdown',e=>{if(e.target.closest('button,select'))return;sw={x:e.clientX,y:e.clientY}});
+$('vLesson').addEventListener('pointerup',e=>{if(!sw)return;const dx=e.clientX-sw.x,dy=e.clientY-sw.y;sw=null;if(Math.abs(dx)>60&&Math.abs(dy)<50)goLesson(dx<0?1:-1)});
+$('vLesson').addEventListener('pointercancel',()=>{sw=null});
+window.addEventListener('keydown',e=>{if($('vLesson').hidden)return;if(e.key==='ArrowRight')goLesson(1);if(e.key==='ArrowLeft')goLesson(-1)});
+$('prev').onclick=()=>{playing=false;go(step-1)};
+$('next').onclick=()=>{playing=false;go(step+1)};
+$('play').onclick=()=>{const s=steps();if(playing){playing=false}else{if(step>=s.length-1){step=0;anim=1}playing=true;hold=0}renderLessonText()};
+$('vBad').onclick=()=>{variant='bad';step=0;anim=1;playing=true;hold=0;renderLessonText()};
+$('vGood').onclick=()=>{variant='good';step=0;anim=1;playing=true;hold=0;renderLessonText()};
+
+// ---------- canvas ----------
+const VIEWS={def:[-2,48,70,107],att:[-2,-2,70,58],mid:[-2,18,70,82],full:[-3,-3,71,108]};
+const cvL=$('cvL'),cvF=$('cvF'),gL=cvL.getContext('2d'),gF=cvF.getContext('2d');
+function size(cv,view){const w=cv.parentElement.clientWidth||340;const v=VIEWS[view];let ar=(v[3]-v[1])/(v[2]-v[0]);let cw=w,ch=w*ar;const maxH=Math.max(320,window.innerHeight*.62);if(ch>maxH){ch=maxH;cw=ch/ar}
+  cv.style.width=cw+'px';cv.style.height=ch+'px';const d=Math.min(2,window.devicePixelRatio||1);cv.width=Math.round(cw*d);cv.height=Math.round(ch*d);cv._v=v;cv._s=cv.width/(v[2]-v[0]);cv._d=d}
+function sizeAll(){if(!$('vLesson').hidden)size(cvL,cur?cur.view:'def');if(!$('vForm').hidden)size(cvF,'full')}
+window.addEventListener('resize',()=>{sizeAll();if(!$('vQuiz').hidden)sizeQ()});
+const P=(cv,x,y)=>[(x-cv._v[0])*cv._s,(y-cv._v[1])*cv._s];
+function pitch(g,cv){
+  const v=cv._v;g.setTransform(1,0,0,1,0,0);g.fillStyle='#1d3a31';g.fillRect(0,0,cv.width,cv.height);
+  for(let i=0;i<14;i++){if(i%2)continue;const[a,b]=P(cv,0,i*7.5),[c,d]=P(cv,68,(i+1)*7.5);g.fillStyle='#21423a';g.fillRect(a,b,c-a,d-b)}
+  g.strokeStyle='rgba(235,245,240,.7)';g.lineWidth=1.6*cv._d;
+  const R=(x0,y0,x1,y1)=>{const[a,b]=P(cv,x0,y0),[c,d]=P(cv,x1,y1);g.strokeRect(a,b,c-a,d-b)};
+  R(0,0,68,105);R(13.84,0,54.16,16.5);R(24.84,0,43.16,5.5);R(13.84,88.5,54.16,105);R(24.84,99.5,43.16,105);
+  g.beginPath();let[a,b]=P(cv,0,52.5),[c]=P(cv,68,52.5);g.moveTo(a,b);g.lineTo(c,b);g.stroke();
+  const[cx,cy]=P(cv,34,52.5);g.beginPath();g.arc(cx,cy,9.15*cv._s,0,Math.PI*2);g.stroke();
+  for(const yy of[11,94]){const[sx,sy]=P(cv,34,yy);g.beginPath();g.arc(sx,sy,1.6*cv._d,0,Math.PI*2);g.fillStyle='rgba(235,245,240,.7)';g.fill()}
+  const[p1x,p1y]=P(cv,34,94);g.beginPath();g.arc(p1x,p1y,9.15*cv._s,Math.PI*1.21,Math.PI*1.79);g.stroke();
+  const[p2x,p2y]=P(cv,34,11);g.beginPath();g.arc(p2x,p2y,9.15*cv._s,Math.PI*.21,Math.PI*.79);g.stroke();
+  g.lineWidth=4*cv._d;for(const yy of[0,105]){const[a1,b1]=P(cv,30.34,yy),[a2]=P(cv,37.66,yy);g.beginPath();g.moveTo(a1,b1);g.lineTo(a2,b1);g.stroke()}
+}
+function disc(g,cv,x,y,team,label,hi){
+  const[px,py]=P(cv,x,y),r=11*cv._d;
+  g.fillStyle='rgba(0,0,0,.3)';g.beginPath();g.arc(px+1.5*cv._d,py+2*cv._d,r,0,Math.PI*2);g.fill();
+  g.fillStyle=team==='us'?'#ffffff':'#e4573d';g.beginPath();g.arc(px,py,r,0,Math.PI*2);g.fill();
+  if(hi){g.strokeStyle='#f5b83d';g.lineWidth=3*cv._d;g.beginPath();g.arc(px,py,r+4*cv._d,0,Math.PI*2);g.stroke()}
+  if(label){g.fillStyle=team==='us'?'#13302a':'#ffffff';g.font=`700 ${(label.length>2?9:11)*cv._d}px "Barlow",sans-serif`;g.textAlign='center';g.textBaseline='middle';g.fillText(label,px,py+.5*cv._d)}
+}
+function arrow(g,cv,x1,y1,x2,y2,kind,alpha){
+  const[a,b]=P(cv,x1,y1),[c,d]=P(cv,x2,y2);g.globalAlpha=alpha;
+  const col=kind==='guide'?'rgba(235,245,240,.85)':'#f5b83d';g.strokeStyle=col;g.fillStyle=col;g.lineWidth=(kind==='pass'?2.6:2.2)*cv._d;
+  g.setLineDash(kind==='run'?[6*cv._d,5*cv._d]:kind==='guide'?[2*cv._d,5*cv._d]:kind==='press'?[10*cv._d,3*cv._d]:[]);
+  const ang=Math.atan2(d-b,c-a),off=14*cv._d;const ex=c-Math.cos(ang)*off,ey=d-Math.sin(ang)*off;
+  g.beginPath();g.moveTo(a,b);g.lineTo(ex,ey);g.stroke();g.setLineDash([]);
+  if(kind!=='guide'){g.beginPath();g.moveTo(ex+Math.cos(ang)*8*cv._d,ey+Math.sin(ang)*8*cv._d);g.lineTo(ex+Math.cos(ang+2.5)*7*cv._d,ey+Math.sin(ang+2.5)*7*cv._d);g.lineTo(ex+Math.cos(ang-2.5)*7*cv._d,ey+Math.sin(ang-2.5)*7*cv._d);g.fill()}
+  g.globalAlpha=1;
+}
+const ease=k=>k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+function ballXY(st,pos){if(typeof st.ball==='string'){const p=pos[st.ball];return[p[0]+1.1,p[1]-1.4]}return st.ball}
+function drawLesson(){drawScene(gL,cvL,cur,variant,step,anim,false)}
+function drawScene(g,cv,l,v,i,an,neutral){
+  if(!cv._v)return;pitch(g,cv);
+  const a=stateOf(l,v,Math.max(0,i-1)),b=stateOf(l,v,i),k=ease(Math.min(1,an)),anim=an;
+  const pos={};for(const id in b.pos){const p0=a.pos[id],p1=b.pos[id];pos[id]=[p0[0]+(p1[0]-p0[0])*k,p0[1]+(p1[1]-p0[1])*k]}
+  const s=stepsOf(l,v)[i];
+  if(b.line){const[x0,y0]=P(cv,0,b.line[0]),[x1]=P(cv,68,b.line[0]);g.strokeStyle=neutral?'rgba(235,245,240,.75)':b.line[1]==='bad'?'#ff6b55':'#8af0c0';g.lineWidth=2*cv._d;g.setLineDash([8*cv._d,6*cv._d]);g.beginPath();g.moveTo(x0,y0);g.lineTo(x1,y0);g.stroke();g.setLineDash([])}
+  if(s.zone&&!neutral){const[zx,zy]=P(cv,s.zone[0],s.zone[1]);g.globalAlpha=Math.min(1,anim*1.5)*.45;g.fillStyle=s.zone[3]==='bad'?'#ff5d4a':'#5fe3a8';g.beginPath();g.arc(zx,zy,s.zone[2]*cv._s,0,Math.PI*2);g.fill();g.globalAlpha=1}
+  if(s.arrows)s.arrows.forEach(r=>arrow(g,cv,r[0],r[1],r[2],r[3],r[4],Math.min(1,.25+anim)));
+  l.actors.forEach(ac=>{const p=pos[ac[0]];disc(g,cv,p[0],p[1],ac[1],ac[1]==='us'?ac[0]:'')});
+  const b0=ballXY(a,pos),b1=ballXY(b,pos),bx=b0[0]+(b1[0]-b0[0])*k,by=b0[1]+(b1[1]-b0[1])*k;const[px,py]=P(cv,bx,by);
+  g.fillStyle='#ffffff';g.beginPath();g.arc(px,py,4.5*cv._d,0,Math.PI*2);g.fill();g.strokeStyle='#111';g.lineWidth=1.2*cv._d;g.stroke();
+}
+
+// ---------- formations ----------
+function renderFChips(){$('fchips').innerHTML='';Object.keys(FORM).forEach(f=>{const b=document.createElement('button');b.className='chip';b.textContent=f;b.setAttribute('aria-pressed',f===formation);b.onclick=()=>{formation=f;store.set('ttsc_taktik_form',f);sel=-1;fk=1;renderFChips();renderRole()};$('fchips').appendChild(b)});
+  $('pDef').setAttribute('aria-pressed',phase===0);$('pAtt').setAttribute('aria-pressed',phase===1)}
+function setPhase(p){if(p===phase)return;phase=p;fk=0;renderFChips();renderRole()}
+$('pDef').onclick=()=>setPhase(0);$('pAtt').onclick=()=>setPhase(1);
+function fpos(i){const r=FORM[formation][i],k=ease(Math.min(1,fk));const from=phase===1?[r[1],r[2]]:[r[3],r[4]],to=phase===1?[r[3],r[4]]:[r[1],r[2]];return[from[0]+(to[0]-from[0])*k,from[1]+(to[1]-from[1])*k]}
+function drawForm(){const g=gF,cv=cvF;if(!cv._v)return;pitch(g,cv);
+  FORM[formation].forEach((r,i)=>{const p=fpos(i);disc(g,cv,p[0],p[1],'us',ROLE[lang][r[0]][1],i===sel)})}
+function renderRole(){const box=$('role');if(sel<0){box.textContent=t('tapHint');return}const r=FORM[formation][sel][0];
+  box.innerHTML='<b></b><br><span></span>';box.firstChild.textContent=ROLE[lang][r][0]+' · '+(phase?t('attack'):t('defense'));box.lastChild.textContent=JOB[lang][r][phase]}
+cvF.addEventListener('pointerdown',e=>{const rc=cvF.getBoundingClientRect();const mx=(e.clientX-rc.left)*cvF._d,my=(e.clientY-rc.top)*cvF._d;let best=-1,bd=26*cvF._d;
+  FORM[formation].forEach((r,i)=>{const p=fpos(i),[px,py]=P(cvF,p[0],p[1]);const d=Math.hypot(px-mx,py-my);if(d<bd){bd=d;best=i}});sel=best;renderRole()});
+
+// ---------- quiz ----------
+const QN=8,cvQ=$('cvQ'),gQ=cvQ.getContext('2d');
+let qList=[],qi=0,qScore=0,qMap={},qPhase='ask',qPrev=null,qPS=0,qk=1,qD=0,qStep=0,qHold=0,qPicked=null;
+function sizeQ(){if(qList[qi])size(cvQ,qList[qi].view)}
+function startQuiz(){const pool=filtered().filter(l=>diverge(l)>0);for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}
+  qList=pool.slice(0,QN);qi=0;qScore=0;if(!qList.length)return;setupQ();location.hash='karar'}
+function setupQ(){const l=qList[qi];qMap=Math.random()<.5?{A:'good',B:'bad'}:{A:'bad',B:'good'};qPhase='ask';qPrev=null;qPS=0;qk=1;qD=diverge(l);qStep=0;qHold=0;qPicked=null;sizeQ();renderQ();window.scrollTo(0,0)}
+function renderQ(){const l=qList[qi];if(!l)return;
+  $('qMeta').innerHTML=`<span class="badge">${t(l.phase)}</span><span class="badge lv">${t('lv'+l.lvl)}</span><span>${t('q')} ${qi+1}${t('of')}${qList.length} · ${qScore} ✓</span>`;
+  $('qTitle').textContent=loc(l.title);
+  const n=$('qNarr');
+  if(qPhase==='end'){const pct=Math.round(qScore/qList.length*100);const prev=+(store.get('ttsc_taktik_quiz_best')||0);if(pct>prev)store.set('ttsc_taktik_quiz_best',pct);
+    $('qMeta').innerHTML='';$('qTitle').textContent=t('result');n.className='narr good';n.innerHTML=`<span class="score">${qScore}/${qList.length}</span><span class="k">${t('best')}: ${Math.max(prev,pct)}%</span>`;
+    try{window.parent.postMessage({source:'ttsc-games',game:'taktik-karar',score:qScore,questions:qList.length,accuracy:pct,lessons:qList.map(x=>x.id)},'*')}catch(e){}}
+  else if(qPhase==='ask'){n.className='narr';n.innerHTML='<span class="k"></span><span></span>';n.firstChild.textContent=qPrev?t('watching').replace('{x}',qPrev):'';n.lastChild.textContent=t('ask')}
+  else{const s=stepsOf(l,'good');const ok=qMap[qPicked]==='good';const right=qMap.A==='good'?'A':'B';n.className='narr '+(ok?'good':'bad');
+    n.innerHTML='<span class="k"></span><span></span>';n.firstChild.textContent=(ok?t('yes'):t('no').replace('{x}',right))+' · '+t('right')+' '+(qStep+1)+'/'+s.length;n.lastChild.textContent=loc(s[qStep].txt)}
+  $('qOpts').hidden=$('qPick').hidden=qPhase!=='ask';
+  $('qA').textContent=t('optA');$('qB').textContent=t('optB');$('qPA').textContent=t('pickA');$('qPB').textContent=t('pickB');
+  $('qA').setAttribute('aria-pressed',qPrev==='A');$('qB').setAttribute('aria-pressed',qPrev==='B');
+  $('qAfter').hidden=!(qPhase==='reveal'&&qStep>=stepsOf(l,'good').length-1&&qk>=1);
+  $('qNext').textContent=qi>=qList.length-1?t('finish'):t('nextQ');
+  $('qEndBtns').hidden=qPhase!=='end';$('qAgain').textContent=t('again');$('qHome').textContent=t('home');
+  $('cvQ').hidden=qPhase==='end';
+}
+function watch(x){if(qPhase!=='ask')return;qPrev=x;qPS=1;qk=0;renderQ()}
+function pick(x){if(qPhase!=='ask')return;qPicked=x;if(qMap[x]==='good')qScore++;qPhase='reveal';qStep=0;qk=1;qHold=0;renderQ()}
+$('quizGo').onclick=startQuiz;
+$('qA').onclick=()=>watch('A');$('qB').onclick=()=>watch('B');$('qPA').onclick=()=>pick('A');$('qPB').onclick=()=>pick('B');
+$('qNext').onclick=()=>{if(qi>=qList.length-1){qPhase='end';renderQ()}else{qi++;setupQ()}};
+$('qAgain').onclick=()=>{startQuiz()};$('qHome').onclick=()=>{qList=[];location.hash='dersler'};
+$('qBack').onclick=()=>{qList=[];location.hash='dersler'};
+function quizTick(dt){const l=qList[qi];if(!l||qPhase==='end')return;
+  if(qPhase==='ask'){if(!qPrev){drawScene(gQ,cvQ,l,'good',0,1,true);return}
+    const v=qMap[qPrev];if(qk<1)qk=Math.min(1,qk+dt/1.1);else if(qPS<qD){qPS++;qk=0}
+    drawScene(gQ,cvQ,l,v,qPS,qk,true)}
+  else{const s=stepsOf(l,'good');if(qk<1)qk=Math.min(1,qk+dt/1.2);else if(qStep<s.length-1){qHold+=dt;if(qHold>1.4+loc(s[qStep].txt).length*.03){qStep++;qk=0;qHold=0;renderQ()}}else if($('qAfter').hidden)renderQ();
+    drawScene(gQ,cvQ,l,'good',qStep,qk,false)}}
+
+// ---------- loop ----------
+let last=performance.now();
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;
+  if(cur&&!$('vLesson').hidden){if(anim<1)anim=Math.min(1,anim+dt/1.2);else if(playing){hold+=dt;const txt=loc(steps()[step].txt);if(hold>1.6+txt.length*.035){if(step<steps().length-1)go(step+1);else{playing=false;renderLessonText()}}}drawLesson()}
+  if(!$('vQuiz').hidden)quizTick(dt);
+  if(!$('vForm').hidden){if(fk<1)fk=Math.min(1,fk+dt/1.3);drawForm()}
+  requestAnimationFrame(loop)}
+$('lang').onchange=e=>{lang=e.target.value;store.set('ttsc_lang',lang);applyLang()};
+applyLang();route();requestAnimationFrame(loop);
+</script>
+
+</html>

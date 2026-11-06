@@ -15,7 +15,8 @@ Giriş → ana sayfa (sıradaki etkinlik + kare modüller). Herkes sadece rolün
 | Mesajlar: yönetim sohbeti | – | – | ✓ | ✓ |
 | Mesajlar: özel notlar (antrenör ↔ oyuncu) | kendi notları | hepsi | – | – |
 | İstatistik (takım, oyuncular, benim) | ✓ | ✓ | ✓ + CSV | ✓ + CSV |
-| Oyunlar | ✓ | ✓ | ✓ | ✓ |
+| Oyunlar (futbol zekası oyunları + diğer oyunlar) | ✓ | ✓ | ✓ | ✓ |
+| Futbol zekası sonuçları (Tarama, Öngörü, Topsuz oyun, Karar) | kendi sonuçları | hepsi | – | – |
 | Oyuncu takibi (durum, uyarılar, katılım) | – | ✓ | ✓ | ✓ |
 | Üye takibi (aidat) | – | – | ✓ | ✓ + rol atama |
 | Kulüp evi (etkinlikler, arızalar) | – | – | ✓ | ✓ |
@@ -36,6 +37,7 @@ Geri bildirim etiketleri ve mazeretler anahtar olarak saklanır, herkes kendi di
 | `js/store.js` | Veri katmanı: sunucu modu + demo verisi |
 | `js/remote.js`, `js/config.js` | Supabase bağlantısı (giriş kodu, tablolar) |
 | `js/i18n.js` | Dört dil (TR/DE/EN/FR), etiketler, mazeretler |
+| `games/omuz`, `games/son-kare`, `games/kor-nokta`, `games/taktik` | Futbol zekası oyunları. Uygulamanın içinde açılır; bitince sonucu pencere mesajıyla bildirir, `game_results` tablosuna yazılır. Kaynak depolar: Omuz, Son-Kare, K-r-Nokta, Taktik |
 | `afis.html` | Yazdırılabilir katılma afişi (A4, QR kod) |
 | `assets/join-qr.svg` | Uygulama adresinin QR kodu (nayuki QR-Code-generator ile üretildi, MIT) |
 | `datenschutz.html` | Datenschutzhinweise (DE, TR) – Entwurf, gelbe Stellen vom Vorstand ergänzen |
