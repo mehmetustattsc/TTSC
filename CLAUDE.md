@@ -15,3 +15,4 @@
 - Instagram graphics: `js/share.js` (canvas, club style: red/black, Barlow Condensed caps, torn edges, MATCHDAY / ENDSTAND, German texts). Photos stay on the device. Opponent logos are not used (cross-origin); a lettered badge stands in.
 - fussball.de: `tools/fussball_import.py` via `.github/workflows/fussball.yml` (daily). It decodes the obfuscation font by glyph names. Logs must show counts only, never player names.
 - Before pushing: `npm run test:smoke`, then look at the screenshots in `tests/shots/`.
+- Website ttscbuchen.de (WordPress, block theme FSE Soccer; front page = template `fse-soccer//home`, post id 293). `tools/wp_result.py` (run daily by `fussball.yml`) writes the latest result into the "AKTUELLE ERGEBNISSE" box (columns block with class `ttsc-last-result`); needs secrets WP_USER + WP_APP_PASSWORD. Helpers: `wp-upload.yml` (file to a media upload link), `site-check.yml` (counts words on a live page).
