@@ -22,7 +22,7 @@ jobs:
           case "$URL" in https://ttscbuchen.de/*) ;; *) echo "only ttscbuchen.de"; exit 1;; esac
           case "$NAME" in */*|.*) echo "plain file name only"; exit 1;; esac
           git init -q . && git checkout -q -b incoming
-          curl -fsSL --retry 3 -o "$NAME" "$URL"
+          curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 -A "Mozilla/5.0 (TTSC app)" -o "$NAME" "$URL"
           echo "bytes: $(stat -c %s "$NAME")"
           git add "$NAME" && git -c user.name=github-actions -c user.email=actions@github.com commit -qm "incoming: $NAME"
           git push -fq "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" incoming
