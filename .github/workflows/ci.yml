@@ -32,7 +32,7 @@ jobs:
         run: mkdir -p tests/shots && npm run test:smoke
       - name: Server test (real Postgres + schema + REST, several people at once)
         run: |
-          curl -sSL https://github.com/PostgREST/postgrest/releases/download/v12.2.3/postgrest-v12.2.3-linux-static-x64.tar.xz | tar xJ
+          curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 -o pgrst.tar.xz https://github.com/PostgREST/postgrest/releases/download/v12.2.3/postgrest-v12.2.3-linux-static-x64.tar.xz && tar xJf pgrst.tar.xz
           PG_BIN=$(ls -d /usr/lib/postgresql/*/bin | tail -1) POSTGREST=./postgrest npm run test:server
 
   deploy:
