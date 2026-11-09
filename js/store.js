@@ -236,6 +236,11 @@ export function setAttendance(eid, map) {
 }
 
 // ---------- match report ----------
+// score only (board/admin right after the match, so the full-time graphic can be made); player stats stay as they are
+export function saveScore(eid, result) {
+  const e = event(eid); e.result = result; persist();
+  W(() => R.update('events', 'id=eq.' + eid, { result_us: result.us, result_them: result.them }));
+}
 export const matchStats = eid => db.stats[eid] || {};
 export function saveMatch(eid, result, stats) {
   const e = event(eid); e.result = result; db.stats[eid] = stats;

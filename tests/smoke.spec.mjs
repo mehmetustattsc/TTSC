@@ -129,6 +129,14 @@ await as('b2');
 tl = await tiles();
 check(tl.includes('#/members') && tl.includes('#/building') && tl.includes('#/players'), 'board tiles: ' + tl);
 await shot('08-board-home');
+// board puts in the score right after a match (no full match report needed) and can then make the full-time graphic
+await go('cal'); await page.click('[data-act="cal-tab"][data-v="past"]'); await page.click('[data-act="cal-type"][data-v="match"]');
+await page.locator('.ev-match a.ev-main').first().click();
+check(await page.locator('[data-act="match-report"]').count() === 0, 'board does not get the full match report');
+await page.click('[data-act="score"]'); await page.waitForSelector('#sok');
+{ const before = +(await page.locator('#sc-us').innerText()); await page.click('[data-sc="us"][data-d="1"]'); await page.click('#sok'); await page.waitForTimeout(100);
+  check((await page.locator('.ev .res').first().innerText()).includes(String(before + 1)), 'board score entry saved and shown'); }
+check(await page.locator('[data-act="graphic"]').count() === 1, 'graphic button next to the score');
 await go('p/p11'); check(!(await page.locator('.view').innerText()).includes('Secret coach note'), 'board cannot read coach notes');
 await go('p/p1'); check(await page.locator('.iq-card').count() === 0, 'board does not see game results');
 await go('msg/notes'); check(!(await page.locator('.seg').innerText()).match(/Notlar|Notizen|Notes/), 'board has no notes tab');

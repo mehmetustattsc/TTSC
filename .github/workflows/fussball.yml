@@ -6,6 +6,7 @@ name: fussball.de import
 on:
   schedule:
     - cron: '17 4 * * *'      # every day 05:17 / 06:17 in Buchen
+    - cron: '7 14-21 * * 0,6' # match days (Sat, Sun): every hour in the afternoon and evening, so the score is in soon after the final whistle
   workflow_dispatch:
     inputs:
       mode:

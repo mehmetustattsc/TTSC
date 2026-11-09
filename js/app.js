@@ -288,6 +288,8 @@ function viewEvent(id, u) {
       ? `<button class="btn primary block" data-act="match-report" data-eid="${e.id}">${ic('ball')} ${t('match_report')}${e.result ? ' ✓' : ''}</button>`
       : `<button class="btn primary block" data-act="attendance" data-eid="${e.id}">${ic('check')} ${t('confirm_attendance')}${S.attendanceConfirmed(e.id) ? ' ✓' : ''}</button>`;
   }
+  // board and admin may put in the score themselves on match day or later (the coach does it in the full match report)
+  if (e.type === 'match' && S.isStaff(u) && !coach && e.date <= S.TODAY()) html += `<button class="btn ${e.result ? '' : 'primary'} block" data-act="score" data-eid="${e.id}">${ic('ball')} ${t('enter_score')}${e.result ? ' ✓' : ''}</button>`;
   if (e.type === 'match' && S.isStaff(u)) html += `<button class="btn block share-btn" data-act="graphic" data-eid="${e.id}">${ic('cam')} ${t('graphic')}</button>`;
   if (past && e.type === 'match' && e.result) {
     const st = S.matchStats(e.id);
@@ -639,6 +641,15 @@ function matchSheet(eid) {
     };
   });
 }
+function scoreSheet(eid) {
+  const e = S.event(eid), res = e.result || { us: 0, them: 0 };
+  sheet(`<h3>${t('enter_score')} · ${evTitle(e)}</h3><p class="small muted">${t('score_hint')}</p>
+    <div class="score"><div><small>TTSC</small>${scoreStep('us', res.us)}</div><b>:</b><div><small>${esc(e.opponent)}</small>${scoreStep('them', res.them)}</div></div>
+    <div class="sheet-btns"><button class="btn" data-act="close-sheet">${t('cancel')}</button><button class="btn primary" id="sok">${t('save')}</button></div>`, el => {
+    el.addEventListener('click', ev => { const b = ev.target.closest('button[data-sc]'); if (!b) return; const i = $('#sc-' + b.dataset.sc, el); i.textContent = Math.max(0, Math.min(30, +i.textContent + +b.dataset.d)); });
+    $('#sok', el).onclick = () => { S.saveScore(eid, { us: +$('#sc-us', el).textContent, them: +$('#sc-them', el).textContent }); closeSheet(); toast(t('score_saved')); render(); };
+  });
+}
 const scoreStep = (k, v) => `<span class="step big"><button data-sc="${k}" data-d="-1">−</button><i id="sc-${k}">${v}</i><button data-sc="${k}" data-d="1">+</button></span>`;
 const tagPicker = (id, keys, prefix, sel = []) => `<div class="chips" id="${id}">${keys.map(k => chip(prefix + k, sel.includes(k), `data-act="toggle" data-v="${k}"`)).join('')}</div>`;
 
@@ -867,6 +878,7 @@ document.addEventListener('click', ev => {
     case 'del-event': if (confirm(t('delete') + '?')) { S.deleteEvent(b.dataset.eid); location.hash = '#/cal'; } break;
     case 'attendance': attendanceSheet(b.dataset.eid); break;
     case 'match-report': matchSheet(b.dataset.eid); break;
+    case 'score': scoreSheet(b.dataset.eid); break;
     case 'coach-note': coachNoteSheet(b.dataset.pid, u); break;
     case 'pick-note': pickPlayerSheet(u); break;
     case 'fb-coach': feedbackSheet(u); break;
