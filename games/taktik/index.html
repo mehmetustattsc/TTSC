@@ -95,6 +95,18 @@ canvas{display:block;width:100%;border-radius:10px;touch-action:manipulation}
 @keyframes sn{from{transform:translateX(36px);opacity:.3}to{transform:none;opacity:1}}
 @keyframes sp{from{transform:translateX(-36px);opacity:.3}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* lesson and quiz: everything (pitch, text, play button) fits on one screen without scrolling */
+body.board header,body.board .tabs{display:none}
+body.board .wrap{padding-block:8px 10px;gap:8px}
+body.board .boardbox{gap:7px}
+body.board .ltitle{font-size:20px}
+body.board .back{padding:0}
+body.board canvas{margin:0 auto}
+body.board .narr{font-size:15px;line-height:1.4;padding:8px 12px;height:6.2em;min-height:0;overflow-y:auto;box-sizing:border-box}
+body.board .legend{font-size:12px;gap:10px}
+body.board .lnav{padding-top:6px}
+body.board .lnav .hint{display:none}
+body.board .cbtn{padding:9px 14px}
 </style>
 
 <div class="wrap">
@@ -697,6 +709,7 @@ function route(){
   const h=location.hash.slice(1);
   const lesson=h.startsWith('ders-')?LESSONS.find(l=>'ders-'+l.id===h):null;
   const quiz=h==='karar';
+  document.body.classList.toggle('board',!!lesson||quiz);
   $('vList').hidden=!!lesson||h==='dizilis'||quiz;$('vLesson').hidden=!lesson;$('vForm').hidden=h!=='dizilis';$('vQuiz').hidden=!quiz;
   if(quiz&&!qList.length){nav('dersler');return}
   if(quiz)sizeQ();
@@ -724,7 +737,7 @@ function diverge(l){const n=Math.min(l.good.length,l.bad.length);for(let j=1;j<=
   if(Object.keys(a.pos).some(id=>far(a.pos[id],b.pos[id]))||far(bxy(a),bxy(b)))return j}return 0}
 function openLesson(l){
   const same=cur===l;cur=l;if(!same){variant='bad';step=0;anim=1;playing=autoPlay;hold=0}
-  autoPlay=false;sizeAll();renderLessonText();
+  autoPlay=false;renderLessonText();sizeAll();
   if(!same&&slideDir){const bx=$('lbox');bx.classList.remove('slide-n','slide-p');void bx.offsetWidth;bx.classList.add(slideDir>0?'slide-n':'slide-p');slideDir=0}
   if(!same)window.scrollTo(0,0);
 }
@@ -759,7 +772,9 @@ $('vGood').onclick=()=>{variant='good';step=0;anim=1;playing=true;hold=0;renderL
 const VIEWS={def:[-2,48,70,107],att:[-2,-2,70,58],mid:[-2,18,70,82],full:[-3,-3,71,108]};
 const cvL=$('cvL'),cvF=$('cvF'),gL=cvL.getContext('2d'),gF=cvF.getContext('2d');
 function size(cv,view){const w=cv.parentElement.clientWidth||340;const v=VIEWS[view];let ar=(v[3]-v[1])/(v[2]-v[0]);let cw=w,ch=w*ar;const maxH=Math.max(320,window.innerHeight*.62);if(ch>maxH){ch=maxH;cw=ch/ar}
-  cv.style.width=cw+'px';cv.style.height=ch+'px';const d=Math.min(2,window.devicePixelRatio||1);cv.width=Math.round(cw*d);cv.height=Math.round(ch*d);cv._v=v;cv._s=cv.width/(v[2]-v[0]);cv._d=d}
+  cv.style.width=cw+'px';cv.style.height=ch+'px';
+  // shrink the pitch until the whole lesson (text and buttons) fits on the screen
+  if(document.body.classList.contains('board')){const over=document.documentElement.scrollHeight-window.innerHeight;if(over>0){ch=Math.max(170,ch-over);cw=ch/ar;cv.style.width=cw+'px';cv.style.height=ch+'px'}}const d=Math.min(2,window.devicePixelRatio||1);cv.width=Math.round(cw*d);cv.height=Math.round(ch*d);cv._v=v;cv._s=cv.width/(v[2]-v[0]);cv._d=d}
 function sizeAll(){if(!$('vLesson').hidden)size(cvL,cur?cur.view:'def');if(!$('vForm').hidden)size(cvF,'full')}
 window.addEventListener('resize',()=>{sizeAll();if(!$('vQuiz').hidden)sizeQ()});
 const P=(cv,x,y)=>[(x-cv._v[0])*cv._s,(y-cv._v[1])*cv._s];

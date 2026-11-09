@@ -103,7 +103,11 @@ await go('games'); await page.click('[data-act="play"][data-g="taktik-karar"]');
 await page.frameLocator('.play-o iframe').locator('#quizGo').waitFor(); await page.waitForTimeout(300); await shot('07f-game-taktik');
 // browsing lessons inside Taktik must not fill the back history: one back press / one ‹ tap closes the game
 const tk = page.frameLocator('.play-o iframe');
-await tk.locator('.lcard').first().click(); await tk.locator('#nl').click(); await tk.locator('#nl').click(); await tk.locator('#tabF').click(); await page.waitForTimeout(150);
+await tk.locator('.lcard').first().click(); await page.waitForTimeout(400); await shot('07g-taktik-lesson');
+{ const fb = await page.locator('.play-o iframe').boundingBox(), pb = await tk.locator('#play').boundingBox(), nb = await tk.locator('#nl').boundingBox();
+  check(pb && nb && pb.y + pb.height <= fb.y + fb.height && nb.y + nb.height <= fb.y + fb.height, 'Taktik lesson: play button and lesson buttons fit on the screen without scrolling'); }
+await tk.locator('#back').click(); await page.waitForTimeout(100);
+await tk.locator('.lcard').first().click(); await tk.locator('#nl').click(); await tk.locator('#nl').click(); await tk.locator('#back').click(); await tk.locator('#tabF').click(); await page.waitForTimeout(150);
 await page.goBack(); await page.waitForTimeout(200);
 check(await page.locator('.play-o').count() === 0 && page.url().endsWith('#/games'), 'phone back closes Taktik at once, even after browsing lessons');
 await page.click('[data-act="play"][data-g="taktik-karar"]'); await page.waitForSelector('.play-o iframe');

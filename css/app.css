@@ -325,3 +325,24 @@ body.playing .toast { z-index: 50; }
 .private-note .i, .card.empty .i { width: 16px; height: 16px; }
 .share-btn .i { color: var(--red); }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+
+/* ---------- compact home: everything important on the first screen ---------- */
+.grid.mods { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; margin: 14px 0 12px; }
+.grid.mods .tile-m { padding: 8px 7px; border-radius: 12px; gap: 3px; min-height: 0; overflow: hidden; }
+.grid.mods .ti { width: 31px; height: 31px; border-radius: 9px; }
+.grid.mods .ti svg { width: 19px; height: 19px; }
+.grid.mods .tl { font-size: 14.5px; line-height: 1.05; letter-spacing: -.005em; }
+.grid.mods .tb { top: 7px; right: 7px; min-width: 20px; height: 20px; line-height: 20px; font-size: 11px; padding: 0 5px; }
+.tile-m.staff .ti { background: var(--sunk); color: var(--ink); }
+@media (max-width: 340px) { .grid.mods { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.band { padding-bottom: 14px; }
+.hello { font-size: 32px; margin: 4px 0 10px; }
+.ev.hero .ev-main { padding: 13px 14px 10px; row-gap: 10px; }
+.ev.hero .ev-date b { font-size: 40px; }
+.counts.wide i { padding: 5px 4px; }
+.counts.wide b { font-size: 18px; }
+.ev.hero .rsvp { padding-bottom: 12px; }
+.ev.hero .rsvp button { min-height: 42px; }
+.card.avail { padding: 10px 12px; } .card.avail .card-h { margin-bottom: 6px; } .card.avail .seg { margin-bottom: 0; }
+.install { padding: 10px 12px; gap: 10px; } .install .inst-ic img { width: 34px; height: 34px; } .install b { font-size: 14.5px; } .install small { font-size: 12.5px; }
+.push .inst-ic { width: 34px; height: 34px; } .push .inst-ic .i { width: 20px; height: 20px; }

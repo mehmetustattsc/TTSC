@@ -214,19 +214,18 @@ function viewDemoLogin() {
 function viewHome(_, u) {
   const next = S.upcoming()[0], b = badges(u);
   let html = `<section class="band"><h1 class="hello">${t('hello')}, ${esc(u.name.split(' ')[0])}</h1>${next ? eventCard(next, u, true, true) : ''}</section>`;
+  // modules first, as one block of four per row; staff modules have a grey icon
+  const tile = m => `<a class="tile-m ${m.staff ? 'staff' : ''}" href="#/${m.k}"><span class="ti">${svg(ICONS[m.k])}</span><span class="tl">${t('mod_' + m.k)}</span>${b[m.k] ? `<i class="tb">${b[m.k]}</i>` : ''}</a>`;
+  html += `<div class="grid mods">${MODS.filter(m => S.can(u, m.k)).map(tile).join('')}</div>`;
+  if (S.isAdmin(u) && S.pendingUsers().length) html += `<a class="card notice" href="#/members"><span class="dot"></span><b>${t('pending_n', { n: S.pendingUsers().length })}</b><span class="chev">›</span></a>`;
   if (S.isPlaying(u)) {
     const a = S.availability(u.id).s;
-    html += `<section class="card"><div class="card-h">${t('avail_title')}</div>
+    html += `<section class="card avail"><div class="card-h">${t('avail_title')}</div>
       <div class="seg">${['fit', 'limited', 'injured'].map(s => `<button class="${a === s ? 'on s-' + s : ''}" data-act="avail" data-v="${s}">${t('avail_' + s)}</button>`).join('')}</div></section>`;
     S.pendingSelf(u.id).slice(0, 1).forEach(e => { html += `<button class="card notice ghost" data-act="self" data-eid="${e.id}"><span class="notice-ic">${ic('pen')}</span><span class="grow"><b>${t('to_assess')}</b><small>${evIcon(e)} ${evTitle(e)} · ${fmtDate(e.date)}</small></span><span class="chev">›</span></button>`; });
   }
   html += installCard();
   html += pushCard(true);
-  if (S.isAdmin(u) && S.pendingUsers().length) html += `<a class="card notice" href="#/members"><span class="dot"></span><b>${t('pending_n', { n: S.pendingUsers().length })}</b><span class="chev">›</span></a>`;
-  const tile = m => `<a class="tile-m" href="#/${m.k}" style="--c:${m.c}"><span class="ti">${svg(ICONS[m.k])}</span><span class="tl">${t('mod_' + m.k)}</span>${b[m.k] ? `<i class="tb">${b[m.k]}</i>` : ''}</a>`;
-  const general = MODS.filter(m => !m.staff && S.can(u, m.k)), staff = MODS.filter(m => m.staff && S.can(u, m.k));
-  html += `<div class="sec-t">${t('modules')}</div><div class="grid">${general.map(tile).join('')}</div>`;
-  if (staff.length) html += `<div class="sec-t">${t(u.role === 'coach' ? 'role_coach' : 'for_board')}</div><div class="grid staff">${staff.map(tile).join('')}</div>`;
   return html;
 }
 
