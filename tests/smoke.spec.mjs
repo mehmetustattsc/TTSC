@@ -26,7 +26,7 @@ const check = (cond, msg) => { if (!cond) errors.push('FAIL: ' + msg); };
 const go = async h => { await page.goto(url + '#/' + h); await page.waitForTimeout(80); };
 const tiles = async () => (await page.locator('.tile-m').evaluateAll(a => a.map(x => x.getAttribute('href')))).join(' ');
 const as = async id => { await go('me'); const b = page.locator('[data-act="switch"]'); if (await b.count()) await b.click(); await page.click(`[data-act="login"][data-id="${id}"]`); await page.waitForSelector('.hello'); };
-const locked = async h => { await go(h); return (await page.locator('.view').innerText()).includes('🔒'); };
+const locked = async h => { await go(h); return (await page.locator('.view > .card.empty .i').count()) === 1; }; // the lock icon of the no-access card
 
 const foreign = []; page.on('request', r => { const h = new URL(r.url()).hostname; if (h !== 'localhost' && !/supabase\.co$/.test(h)) foreign.push(h); });
 await page.goto(url); await page.waitForSelector('.login'); await shot('01-login');

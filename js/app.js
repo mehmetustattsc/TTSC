@@ -11,7 +11,7 @@ let installEvt = null; // the browser's install offer (Android/desktop Chrome), 
 
 // The club's own games (each is its own app on GitHub Pages).
 const GAMES = [
-  { name: 'FootWare', url: 'https://mehmetustattsc.github.io/FootWare/', emoji: '⚽', c: '#16834A',
+  { name: 'FootWare', url: 'https://mehmetustattsc.github.io/FootWare/', icon: 'ball', c: '#16834A',
     desc: { tr: 'Futbol bilgi oyunu: transfer yolu, kim bu, ortak kulüp', de: 'Fußball-Quiz: Transferweg, Wer ist das, gemeinsamer Verein', en: 'Football quiz: transfer path, who is it, shared club', fr: 'Quiz foot : parcours de transferts, qui est-ce, club commun' } },
   { name: 'Pusula', url: 'https://mehmetustattsc.github.io/Pusula/', img: 'assets/games/pusula.png',
     desc: { tr: 'Bil ve fethet: bilgi ve strateji', de: 'Wissen und erobern: Quiz und Strategie', en: 'Know and conquer: trivia and strategy', fr: 'Savoir et conquérir : quiz et stratégie' } },
@@ -52,6 +52,25 @@ const MODS = [
   { k: 'players', c: '#17181C', staff: true }, { k: 'members', c: '#6A3FB5', staff: true }, { k: 'building', c: '#8A5A2B', staff: true },
 ];
 const svg = d => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+// Small line icons used inside text and buttons (instead of emoji, so every phone shows the same thing).
+const IC = {
+  ball: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7.5l4 3-1.5 4.8h-5L8 10.5zM12 3v4.5M16 10.5l4.3-1.4M14.5 15.3l2.7 3.8M9.5 15.3l-2.7 3.8M8 10.5L3.7 9.1',
+  cone: 'M12 3l5.5 15h-11zM4 21h16M9.6 11h4.8M8.4 14.5h7.2',
+  flag: 'M5 21V4M5 4h12l-2.5 4L17 12H5',
+  lock: 'M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3',
+  pen: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4',
+  cam: 'M4 8h3.5l2-3h5l2 3H20v11H4zM12 10.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z',
+  check: 'M5 12.5l4.5 4.5L19 7.5',
+  x: 'M6 6l12 12M18 6L6 18',
+  bell: 'M6 16v-5a6 6 0 0 1 12 0v5l2 2H4zM10 20.5h4',
+  img: 'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15.5 8.5h.01',
+  print: 'M7 9V4h10v5M6 17H4v-8h16v8h-2M7 13h10v7H7z',
+  mail: 'M3 6h18v12H3zM3 6l9 7 9-7',
+  warn: 'M12 4L3 20h18zM12 10v4M12 17h.01',
+  share: 'M12 15V4M8 8l4-4 4 4M5 13v7h14v-7',
+  qr: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2',
+};
+const ic = k => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[k]}"/></svg>`;
 
 // ---------- helpers ----------
 const fmtDate = (iso, opts = { weekday: 'short', day: 'numeric', month: 'short' }) => new Date(iso + 'T12:00:00').toLocaleDateString(locale(), opts);
@@ -63,7 +82,7 @@ function relDay(iso) {
 const initials = n => n.split(' ').map(x => x[0]).slice(0, 2).join('').toUpperCase();
 const avatar = (u, cls = '') => u ? `<span class="av ${cls} av-${u.role}">${S.isPlaying(u) && u.num ? u.num : initials(u.name)}</span>` : '';
 const evTitle = e => e.type === 'match' ? `${e.home ? 'TTSC' : esc(e.opponent)} – ${e.home ? esc(e.opponent) : 'TTSC'}` : e.type === 'event' ? esc(e.title) : t('training');
-const evIcon = e => ({ match: '⚽', training: '🏃', event: '🎉' }[e.type]);
+const evIcon = e => ic({ match: 'ball', training: 'cone', event: 'flag' }[e.type]);
 const evType = e => e.type === 'match' ? t('match') + ' · ' + t(e.home ? 'home' : 'away') : e.type === 'event' ? t('club_event') : t('training');
 const chip = (k, on, attr) => `<button type="button" class="chip ${on ? 'on' : ''}" ${attr}>${esc(t(k))}</button>`;
 const availBadge = id => { const a = S.availability(id).s; return a === 'fit' ? '' : `<span class="badge b-${a}">${t('avail_' + a)}</span>`; };
@@ -138,7 +157,7 @@ export function render() {
   const sy = window.scrollY, chatList = $('.chat-list'), atBottom = !chatList || window.innerHeight + window.scrollY >= document.body.scrollHeight - 80;
   const mod = MOD_OF[r];
   const view = routes[r] || viewHome;
-  const body = mod && !S.can(u, mod) ? `<div class="card empty">🔒 ${t('no_access')}</div>` : view(id, u);
+  const body = mod && !S.can(u, mod) ? `<div class="card empty">${ic('lock')} ${t('no_access')}</div>` : view(id, u);
   const title = r === '' ? t('appName') : r === 'me' ? t('mod_me') : t('mod_' + mod);
   app.className = r === 'msg' && id !== 'notes' && S.can(u, 'msg') ? 'chat-mode' : '';
   app.innerHTML = `
@@ -158,7 +177,7 @@ export function render() {
 // ---------- login ----------
 let loginStep = 'email', loginEmail = '', loginBusy = false;
 const langRow = () => `<div class="lang-row">${Object.entries(LANGS).map(([k, v]) => `<button class="chip ${getLang() === k ? 'on' : ''}" data-act="login-lang" data-v="${k}">${v}</button>`).join('')}</div>`;
-const loginHead = () => `<img src="assets/logo.png" alt="TTSC Buchen" class="login-logo" width="92" height="96"><h1>${t('appName')}</h1><p class="muted">${t('tagline')}</p>${langRow()}`;
+const loginHead = () => `<header class="login-head"><img src="assets/logo.png" alt="TTSC Buchen" class="login-logo" width="104" height="108"><h1>${t('appName')}</h1><p>${t('tagline')}</p></header>${langRow()}`;
 function viewLogin() {
   const box = loginStep === 'email'
     ? `<form class="card login-box" data-form="login-email">
@@ -175,7 +194,7 @@ function viewWaiting(u) {
   const busy = S.status.loading || !S.data().loaded;
   return `<div class="login">${loginHead()}<section class="card login-box">${busy && !S.status.error
     ? `<p class="center">${t('loading')}</p>`
-    : S.status.error ? `<p>⚠️ ${esc(S.status.error)}</p><button class="btn block" data-act="retry">${t('retry')}</button>`
+    : S.status.error ? `<p>${ic('warn')} ${esc(S.status.error)}</p><button class="btn block" data-act="retry">${t('retry')}</button>`
     : !u ? `<p class="center">${t('loading')}</p>`
     : S.pref('intro-' + u.id) ? `<h3>${t('wait_title')}</h3><p class="small">${t('wait_text', { name: esc(u.name) })}</p><button class="btn block" data-act="retry">${t('retry')}</button><button class="link-btn" data-act="intro-edit">${t('wait_edit')}</button>`
     : `<h3>${t('intro_title')}</h3><p class="small">${t('intro_text')}</p>
@@ -194,37 +213,37 @@ function viewDemoLogin() {
 // ---------- home ----------
 function viewHome(_, u) {
   const next = S.upcoming()[0], b = badges(u);
-  let html = `<h1 class="hello">${t('hello')}, ${esc(u.name.split(' ')[0])} 👋</h1>`;
+  let html = `<section class="band"><h1 class="hello">${t('hello')}, ${esc(u.name.split(' ')[0])}</h1>${next ? eventCard(next, u, true, true) : ''}</section>`;
   if (S.isPlaying(u)) {
     const a = S.availability(u.id).s;
     html += `<section class="card"><div class="card-h">${t('avail_title')}</div>
       <div class="seg">${['fit', 'limited', 'injured'].map(s => `<button class="${a === s ? 'on s-' + s : ''}" data-act="avail" data-v="${s}">${t('avail_' + s)}</button>`).join('')}</div></section>`;
-    S.pendingSelf(u.id).slice(0, 1).forEach(e => { html += `<button class="card notice ghost" data-act="self" data-eid="${e.id}"><span>📝</span><span class="grow"><b>${t('to_assess')}</b><small>${evIcon(e)} ${evTitle(e)} · ${fmtDate(e.date)}</small></span><span class="chev">›</span></button>`; });
+    S.pendingSelf(u.id).slice(0, 1).forEach(e => { html += `<button class="card notice ghost" data-act="self" data-eid="${e.id}"><span class="notice-ic">${ic('pen')}</span><span class="grow"><b>${t('to_assess')}</b><small>${evIcon(e)} ${evTitle(e)} · ${fmtDate(e.date)}</small></span><span class="chev">›</span></button>`; });
   }
   html += installCard();
   html += pushCard(true);
   if (S.isAdmin(u) && S.pendingUsers().length) html += `<a class="card notice" href="#/members"><span class="dot"></span><b>${t('pending_n', { n: S.pendingUsers().length })}</b><span class="chev">›</span></a>`;
-  if (next) html += `<div class="sec-t">${t('next_event')}</div>${eventCard(next, u, true)}`;
   const tile = m => `<a class="tile-m" href="#/${m.k}" style="--c:${m.c}"><span class="ti">${svg(ICONS[m.k])}</span><span class="tl">${t('mod_' + m.k)}</span>${b[m.k] ? `<i class="tb">${b[m.k]}</i>` : ''}</a>`;
   const general = MODS.filter(m => !m.staff && S.can(u, m.k)), staff = MODS.filter(m => m.staff && S.can(u, m.k));
   html += `<div class="sec-t">${t('modules')}</div><div class="grid">${general.map(tile).join('')}</div>`;
-  if (staff.length) html += `<div class="sec-t">${t(u.role === 'coach' ? 'role_coach' : 'for_board')}</div><div class="grid">${staff.map(tile).join('')}</div>`;
+  if (staff.length) html += `<div class="sec-t">${t(u.role === 'coach' ? 'role_coach' : 'for_board')}</div><div class="grid staff">${staff.map(tile).join('')}</div>`;
   return html;
 }
 
-function eventCard(e, u, big = false) {
+function eventCard(e, u, big = false, hero = false) {
   const c = S.rsvpCounts(e.id), mine = S.isPlaying(u) ? S.rsvp(e.id, u.id) : null, rd = relDay(e.date);
   const past = S.isPast(e);
-  return `<article class="card ev ${big ? 'big' : ''} ev-${e.type}">
+  return `<article class="card ev ${big ? 'big' : ''} ${hero ? 'hero' : ''} ev-${e.type}">
     <a href="#/ev/${e.id}" class="ev-main">
       <span class="ev-date"><b>${new Date(e.date + 'T12:00:00').getDate()}</b><small>${fmtDate(e.date, { month: 'short' })}</small></span>
       <span class="grow"><span class="ev-type">${evIcon(e)} ${evType(e)}${rd ? ` · <em>${rd}</em>` : ''}</span>
         <b class="ev-title">${evTitle(e)}</b><small class="muted">${fmtDate(e.date, { weekday: 'long' })} ${e.time}${e.place ? ' · ' + esc(e.place) : ''}</small></span>
-      ${past ? resultBadge(e) : `<span class="counts"><i class="c-yes">${c.yes}</i><i class="c-no">${c.no}</i><i class="c-open">${c.open}</i></span>`}
+      ${past ? resultBadge(e) : hero ? `<span class="counts wide"><i class="c-yes"><b>${c.yes}</b>${t('coming')}</i><i class="c-no"><b>${c.no}</b>${t('not_coming')}</i><i class="c-open"><b>${c.open}</b>${t('open')}</i></span>`
+        : `<span class="counts"><i class="c-yes">${c.yes}</i><i class="c-no">${c.no}</i><i class="c-open">${c.open}</i></span>`}
     </a>
     ${!past && S.isPlaying(u) ? `<div class="rsvp">
-      <button class="yes ${mine?.s === 'yes' ? 'on' : ''}" data-act="rsvp-yes" data-eid="${e.id}">✓ ${t('rsvp_yes')}</button>
-      <button class="no ${mine?.s === 'no' ? 'on' : ''}" data-act="rsvp-no" data-eid="${e.id}">✕ ${t('rsvp_no')}</button></div>
+      <button class="yes ${mine?.s === 'yes' ? 'on' : ''}" data-act="rsvp-yes" data-eid="${e.id}">${ic('check')} ${t('rsvp_yes')}</button>
+      <button class="no ${mine?.s === 'no' ? 'on' : ''}" data-act="rsvp-no" data-eid="${e.id}">${ic('x')} ${t('rsvp_no')}</button></div>
       ${mine?.s === 'no' ? `<div class="reason small muted">${t('reason_' + mine.reason)}${mine.text ? ' · ' + esc(mine.text) : ''}</div>` : ''}` : ''}
   </article>`;
 }
@@ -263,18 +282,18 @@ function viewEvent(id, u) {
   if (e.note) html += `<div class="card small">${esc(e.note)}</div>`;
   if (past && e.type !== 'event' && S.isPlaying(u) && S.attended(e.id, u.id)) {
     const s = S.selfOf(u.id, e.id);
-    html += `<button class="btn block" data-act="self" data-eid="${e.id}">📝 ${t('to_assess')}${s ? ' · ' + '★'.repeat(s.rating) : ''}</button>`;
+    html += `<button class="btn block" data-act="self" data-eid="${e.id}">${ic('pen')} ${t('to_assess')}${s ? ' · ' + '★'.repeat(s.rating) : ''}</button>`;
   }
   if (past && coach && e.type !== 'event') {
     html += e.type === 'match'
-      ? `<button class="btn primary block" data-act="match-report" data-eid="${e.id}">⚽ ${t('match_report')}${e.result ? ' ✓' : ''}</button>`
-      : `<button class="btn primary block" data-act="attendance" data-eid="${e.id}">✓ ${t('confirm_attendance')}${S.attendanceConfirmed(e.id) ? ' ✓' : ''}</button>`;
+      ? `<button class="btn primary block" data-act="match-report" data-eid="${e.id}">${ic('ball')} ${t('match_report')}${e.result ? ' ✓' : ''}</button>`
+      : `<button class="btn primary block" data-act="attendance" data-eid="${e.id}">${ic('check')} ${t('confirm_attendance')}${S.attendanceConfirmed(e.id) ? ' ✓' : ''}</button>`;
   }
-  if (e.type === 'match' && S.isStaff(u)) html += `<button class="btn block share-btn" data-act="graphic" data-eid="${e.id}">📸 ${t('graphic')}</button>`;
+  if (e.type === 'match' && S.isStaff(u)) html += `<button class="btn block share-btn" data-act="graphic" data-eid="${e.id}">${ic('cam')} ${t('graphic')}</button>`;
   if (past && e.type === 'match' && e.result) {
     const st = S.matchStats(e.id);
     const rows = Object.entries(st).map(([pid, s]) => ({ p: S.user(pid), s })).filter(x => x.p).sort((a, b) => b.s.min - a.s.min || a.p.num - b.p.num);
-    html += `<div class="sec-t">${t('played')}</div><section class="card list">${rows.map(({ p, s }) => `<a class="row" href="#/p/${p.id}">${avatar(p, 'sm')}<span class="grow">${esc(p.name)}</span><span class="mini-stats">${s.min}'${s.g ? ` <b>⚽${s.g > 1 ? '×' + s.g : ''}</b>` : ''}${s.a ? ` 🅰${s.a > 1 ? '×' + s.a : ''}` : ''}${s.y ? ' 🟨' : ''}${s.r ? ' 🟥' : ''}</span></a>`).join('')}</section>`;
+    html += `<div class="sec-t">${t('played')}</div><section class="card list">${rows.map(({ p, s }) => `<a class="row" href="#/p/${p.id}">${avatar(p, 'sm')}<span class="grow">${esc(p.name)}</span><span class="mini-stats">${s.min}'${s.g ? ` <b>${ic('ball')}${s.g > 1 ? '×' + s.g : ''}</b>` : ''}${s.a ? ` <span class="as">A</span>${s.a > 1 ? '×' + s.a : ''}` : ''}${s.y ? ' <i class="yc"></i>' : ''}${s.r ? ' <i class="rc"></i>' : ''}</span></a>`).join('')}</section>`;
   }
   const groups = { yes: [], no: [], open: [] };
   S.players().forEach(p => { const r = S.rsvp(e.id, p.id); groups[r ? r.s : 'open'].push({ p, r }); });
@@ -315,10 +334,10 @@ function viewNotes(u) {
   const inbox = all.filter(n => coach ? n.kind === 'toCoach' : n.kind === 'coach' && n.to === u.id);
   const sent = all.filter(n => n.from === u.id);
   const list = (notesTab === 'in' ? inbox : sent).sort((a, b) => b.at.localeCompare(a.at));
-  const html = `<button class="btn primary block" data-act="${coach ? 'pick-note' : 'fb-coach'}">✍️ ${coach ? t('write_note') : t('write_to_coach')}</button>
+  const html = `<button class="btn primary block" data-act="${coach ? 'pick-note' : 'fb-coach'}">${ic('pen')} ${coach ? t('write_note') : t('write_to_coach')}</button>
     ${seg('notes-tab', notesTab, [['in', t('notes_in')], ['out', t('notes_out')]])}
     <section class="card list">${list.length ? list.map(n => noteRow(n, u, true)).join('') : `<div class="row muted">${t('no_notes')}</div>`}</section>
-    <p class="private-note">🔒 ${t('private_area')}</p>`;
+    <p class="private-note">${ic('lock')} ${t('private_area')}</p>`;
   S.markSeen(u);
   return html;
 }
@@ -389,11 +408,11 @@ function playerBody(id, u) {
     </div>
     ${(() => { const f = S.seasonOf(p.name); return f ? `<div class="small muted fb-line">fussball.de · ${t('season')}: ${f.apps} ${t('ss_apps')} · ${f.minutes}' · ${f.goals} ${t('goals')}</div>` : ''; })()}
     <div class="sec-t">${t('last_events')}</div>
-    <section class="card"><div class="strip">${recent.map(e => `<a href="#/ev/${e.id}" class="sq ${S.attended(e.id, id) ? 'in' : 'out'}" title="${fmtDate(e.date)} · ${evTitle(e)}">${e.type === 'match' ? '⚽' : ''}</a>`).join('')}</div>
-      <div class="legend small muted"><span class="sq in"></span>${t('attended')} <span class="sq out"></span>${t('missed')} · ⚽ ${t('match')}</div></section>`;
+    <section class="card"><div class="strip">${recent.map(e => `<a href="#/ev/${e.id}" class="sq ${S.attended(e.id, id) ? 'in' : 'out'}" title="${fmtDate(e.date)} · ${evTitle(e)}">${e.type === 'match' ? ic('ball') : ''}</a>`).join('')}</div>
+      <div class="legend small muted"><span class="sq in"></span>${t('attended')} <span class="sq out"></span>${t('missed')} · ${ic('ball')} ${t('match')}</div></section>`;
   if (!canPrivate) return html;
-  html += `<div class="private-note">🔒 ${t('private_area')}</div>`;
-  if (coach && !mine) html += `<button class="btn primary block" data-act="coach-note" data-pid="${id}">✍️ ${t('write_note')}</button>`;
+  html += `<div class="private-note">${ic('lock')} ${t('private_area')}</div>`;
+  if (coach && !mine) html += `<button class="btn primary block" data-act="coach-note" data-pid="${id}">${ic('pen')} ${t('write_note')}</button>`;
   const notes = S.notesFor(u, id);
   html += `<div class="sec-t">${t('notes_thread')}</div><section class="card list">${notes.length ? notes.map(n => noteRow(n, u)).join('') : `<div class="row muted">${t('no_notes')}</div>`}</section>`;
   html += `<div class="sec-t">${t('iq_title')}</div>${iqCard(id, mine)}`;
@@ -429,7 +448,7 @@ function viewGames(_, u) {
     <div class="sec-t">${t('iq_mine')}</div>${iqCard(u.id, true)}
     <div class="sec-t">${t('other_games')}</div>
     <div class="grid games">${GAMES.map(g => `<a class="tile-m game" href="${g.url}" target="_blank" rel="noopener" style="--c:${g.c || '#E08A00'}">
-      ${g.img ? `<img class="gi" src="${g.img}" alt="" width="64" height="64">` : `<span class="ti emoji">${g.emoji}</span>`}<span class="tl">${g.name}</span><small>${g.desc[getLang()] ?? g.desc.en}</small></a>`).join('')}</div>
+      ${g.img ? `<img class="gi" src="${g.img}" alt="" width="64" height="64">` : `<span class="ti">${svg(IC[g.icon])}</span>`}<span class="tl">${g.name}</span><small>${g.desc[getLang()] ?? g.desc.en}</small></a>`).join('')}</div>
     <p class="muted small center">${t('games_soon')}</p>`;
 }
 
@@ -437,8 +456,8 @@ function viewGames(_, u) {
 function viewClub() {
   return `<section class="card club-h"><img src="assets/logo.png" alt="TTSC Buchen" width="72" height="75"><div><h1>TTSC Buchen e.V.</h1><p class="muted">${t('club_since')}</p></div></section>
     <section class="card list">${CLUB.map(l => `<a class="row" href="${l.url}" target="_blank" rel="noopener"><span class="ti sm" style="--c:${l.c}">${svg(l.icon)}</span><span class="grow"><b>${t(l.k)}</b><small>${l.label}</small></span><span class="chev">›</span></a>`).join('')}</section>
-    <button class="btn primary block" data-act="share-app">↗ ${t('share_app')}</button>
-    ${S.isStaff(S.me()) ? `<button class="btn block" data-act="show-qr">▦ ${t('join_qr')}</button>` : ''}
+    <button class="btn primary block" data-act="share-app">${ic('share')} ${t('share_app')}</button>
+    ${S.isStaff(S.me()) ? `<button class="btn block" data-act="show-qr">${ic('qr')} ${t('join_qr')}</button>` : ''}
     <a class="link-btn" href="datenschutz.html">${t('privacy')}</a>`;
 }
 
@@ -474,8 +493,8 @@ function viewMembers(_, u) {
       <div class="row"><span class="grow"><b>${esc(m.name)}</b>${m.userId ? ' <span class="badge b-app">' + t('app_user') + '</span>' : ''}<small>${t('m_' + m.type)} · ${S.FEES[m.type]}€ · ${t('member_since', { y: m.since })}</small></span>
         <button class="pay ${m.fees[y] ? 'paid' : ''}" data-act="fee" data-id="${m.id}">${m.fees[y] ? '✓ ' + t('mark_paid') : t('mark_open')}</button></div>`).join('') || empty()}</section>`;
   if (S.isAdmin(u)) {
-    html += pendingList() + `<button class="btn block" data-act="show-qr">▦ ${t('join_qr')}</button>`;
-    html += `<div class="sec-t">${t('roles_title')}</div>${S.isDemo() ? '' : `<button class="btn primary block" data-act="invite">✉ ${t('invite_person')}</button>${invitedList()}`}<div class="sec-t">${t('in_app')}</div><section class="card list">${S.users().filter(x => !S.isPlaying(x) || x.role !== 'player').concat(S.players().filter(x => x.role === 'player')).map(x => `
+    html += pendingList() + `<button class="btn block" data-act="show-qr">${ic('qr')} ${t('join_qr')}</button>`;
+    html += `<div class="sec-t">${t('roles_title')}</div>${S.isDemo() ? '' : `<button class="btn primary block" data-act="invite">${ic('mail')} ${t('invite_person')}</button>${invitedList()}`}<div class="sec-t">${t('in_app')}</div><section class="card list">${S.users().filter(x => !S.isPlaying(x) || x.role !== 'player').concat(S.players().filter(x => x.role === 'player')).map(x => `
       <div class="row">${avatar(x, 'sm')}<span class="grow">${esc(x.name)}</span><select data-act-change="role" data-id="${x.id}" ${x.id === u.id ? 'disabled' : ''}>${S.ROLES.map(r => `<option value="${r}" ${x.role === r ? 'selected' : ''}>${t('role_' + r)}</option>`).join('')}</select>
         ${x.role !== 'player' ? `<label class="plays"><input type="checkbox" data-act-change="plays" data-id="${x.id}" ${x.plays ? 'checked' : ''}> ${t('also_plays')}</label>` : ''}</div>`).join('')}</section>`;
   }
@@ -539,14 +558,14 @@ function pushCard(home = false) {
     : sup === 'no' ? `<small>${t('push_no')}</small>`
     : pushOn ? `<small>✓ ${t('push_on')}</small><button class="btn sm" data-act="push-off">${t('push_turn_off')}</button>`
     : `<small>${t('push_why')}</small><button class="btn primary sm" data-act="push-on">${t('push_turn_on')}</button>`;
-  return `<section class="card install push"><span class="inst-ic">🔔</span><div class="grow"><b>${t('push_title')}</b>${body}</div>${home ? `<button class="x" data-act="push-hide" aria-label="${t('close')}">✕</button>` : ''}</section>`;
+  return `<section class="card install push"><span class="inst-ic">${ic('bell')}</span><div class="grow"><b>${t('push_title')}</b>${body}</div>${home ? `<button class="x" data-act="push-hide" aria-label="${t('close')}">✕</button>` : ''}</section>`;
 }
 function viewMe(_, u) {
   return `<section class="card profile-h sm">${avatar(u, 'lg')}<div><b>${esc(u.name)}</b><div class="muted small">${t('role_' + u.role)}${u.plays ? ' · ' + t('also_plays') : ''}${u.title ? ' · ' + esc(u.title) : ''}</div></div>${S.isPlaying(u) ? `<a class="btn sm" href="#/stats/me">${t('my_stats')}</a>` : ''}</section>
     ${pushCard()}
     <div class="sec-t">${t('language')}</div><section class="card"><div class="seg">${Object.entries(LANGS).map(([k, v]) => `<button class="${u.lang === k ? 'on' : ''}" data-act="lang" data-v="${k}">${v}</button>`).join('')}</div><small class="muted">${t('multi_hint')}</small></section>
     ${S.isDemo() ? `<div class="demo-banner">${t('demo_banner')}</div>` : ''}
-    <a class="btn block" href="datenschutz.html">🔒 ${t('privacy')}</a>
+    <a class="btn block" href="datenschutz.html">${ic('lock')} ${t('privacy')}</a>
     <button class="btn block" data-act="switch">${t('logout')}</button>
     ${S.isDemo() ? `<button class="btn danger-ghost block" data-act="reset">${t('reset_demo')}</button><button class="btn danger-ghost block" data-act="demo-off">${t('login_back_real')}</button>` : ''}`;
 }
@@ -604,7 +623,7 @@ function matchSheet(eid) {
     <div class="rep">${pl.map(p => `<div class="rep-row ${st[p.id].on ? 'on' : ''}" id="r-${p.id}">
       <label class="rep-name"><input type="checkbox" data-on="${p.id}" ${st[p.id].on ? 'checked' : ''}>${avatar(p, 'sm')}<span>${esc(p.name.split(' ')[0])}</span></label>
       <div class="rep-vals"><label class="mins"><input type="number" inputmode="numeric" min="0" max="120" data-min="${p.id}" value="${st[p.id].min}">'</label>
-        <span class="lab">⚽</span>${step(p.id, 'g')}<span class="lab">🅰</span>${step(p.id, 'a')}
+        <span class="lab">${ic('ball')}</span>${step(p.id, 'g')}<span class="lab as">A</span>${step(p.id, 'a')}
         <span class="cards"><button class="card-btn y ${st[p.id].y ? 'on' : ''}" data-card="${p.id}" data-k="y" aria-label="${t('yellow')}"></button><button class="card-btn r ${st[p.id].r ? 'on' : ''}" data-card="${p.id}" data-k="r" aria-label="${t('red')}"></button></span></div></div>`).join('')}</div>
     <div class="sheet-btns sticky"><button class="btn" data-act="close-sheet">${t('cancel')}</button><button class="btn primary" id="mok">${t('save')}</button></div>`, el => {
     const setOn = (pid, on) => { st[pid].on = on; $('#r-' + pid, el).classList.toggle('on', on); $(`[data-on="${pid}"]`, el).checked = on; };
@@ -631,9 +650,9 @@ function pickPlayerSheet(coach) {
 }
 function coachNoteSheet(pid, coach) {
   const p = S.user(pid), last = S.pastEvents().find(e => S.attended(e.id, pid));
-  sheet(`<h3>${t('note_to', { name: esc(p.name) })}</h3><p class="small muted">🔒 ${t('private_hint')} ${t('multi_hint')}</p>
-    <div class="lbl good">👍 ${t('went_well')}</div>${tagPicker('cg', TAGS, 'tag_')}
-    <div class="lbl imp">🎯 ${t('to_improve')}</div>${tagPicker('ci', TAGS, 'tag_')}
+  sheet(`<h3>${t('note_to', { name: esc(p.name) })}</h3><p class="small muted">${ic('lock')} ${t('private_hint')} ${t('multi_hint')}</p>
+    <div class="lbl good">${t('went_well')}</div>${tagPicker('cg', TAGS, 'tag_')}
+    <div class="lbl imp">${t('to_improve')}</div>${tagPicker('ci', TAGS, 'tag_')}
     <label class="fld"><span>${t('note_optional')}</span><textarea id="ct" rows="3" maxlength="500"></textarea></label>${btns('cok')}`, el => {
     $('#cok', el).textContent = t('send');
     $('#cok', el).onclick = () => {
@@ -644,7 +663,7 @@ function coachNoteSheet(pid, coach) {
   });
 }
 function feedbackSheet(u) {
-  sheet(`<h3>${t('feedback_coach')}</h3><p class="small muted">🔒 ${t('feedback_hint')}</p>${tagPicker('ft', FB_TAGS, 'fb_')}
+  sheet(`<h3>${t('feedback_coach')}</h3><p class="small muted">${ic('lock')} ${t('feedback_hint')}</p>${tagPicker('ft', FB_TAGS, 'fb_')}
     <label class="fld"><span>${t('note')}</span><textarea id="fx" rows="4" maxlength="500"></textarea></label>${btns('fok')}`, el => {
     $('#fok', el).textContent = t('send');
     $('#fok', el).onclick = () => {
@@ -656,10 +675,10 @@ function feedbackSheet(u) {
 function selfSheet(eid, u) {
   const e = S.event(eid), cur = S.selfOf(u.id, eid) || { rating: 0, good: [], improve: [], text: '' };
   let rating = cur.rating;
-  sheet(`<h3>${t('assess_prompt', { event: evTitle(e) })}</h3><p class="small muted">${fmtDate(e.date)} · 🔒 ${t('private_area')}</p>
+  sheet(`<h3>${t('assess_prompt', { event: evTitle(e) })}</h3><p class="small muted">${fmtDate(e.date)} · ${ic('lock')} ${t('private_area')}</p>
     <div class="lbl">${t('rating')}</div><div class="stars" id="ss">${[1, 2, 3, 4, 5].map(i => `<button data-v="${i}" class="${i <= rating ? 'on' : ''}">★</button>`).join('')}</div>
-    <div class="lbl good">👍 ${t('went_well')}</div>${tagPicker('sg', TAGS, 'tag_', cur.good)}
-    <div class="lbl imp">🎯 ${t('to_improve')}</div>${tagPicker('si', TAGS, 'tag_', cur.improve)}
+    <div class="lbl good">${t('went_well')}</div>${tagPicker('sg', TAGS, 'tag_', cur.good)}
+    <div class="lbl imp">${t('to_improve')}</div>${tagPicker('si', TAGS, 'tag_', cur.improve)}
     <label class="fld"><span>${t('note_optional')}</span><textarea id="sx" rows="2" maxlength="300">${esc(cur.text)}</textarea></label>${btns('sok')}`, el => {
     $('#ss', el).onclick = ev => { const b = ev.target.closest('button'); if (!b) return; rating = +b.dataset.v; el.querySelectorAll('#ss button').forEach(x => x.classList.toggle('on', +x.dataset.v <= rating)); };
     $('#sok', el).onclick = () => {
@@ -698,11 +717,11 @@ async function graphicSheet(eid) {
   const G = await import('./share.js'); await G.ready();
   gfx.kind = e.result ? 'end' : 'pre';
   const logoUrl = await S.clubLogo(e.opponent); gfx.opp = logoUrl ? await new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = logoUrl; }) : null;
-  sheet(`<h3>📸 ${t('graphic')}</h3>
+  sheet(`<h3>${ic('cam')} ${t('graphic')}</h3>
     <div class="seg" id="gk"><button data-v="pre">${t('gfx_pre')}</button><button data-v="end" ${e.result ? '' : 'disabled'}>${t('gfx_end')}</button></div>
     <div class="seg" id="gf"><button data-v="story">Story 9:16</button><button data-v="post">Post 4:5</button></div>
     <div class="gfx-wrap"><canvas id="gc"></canvas></div>
-    <label class="btn block"><input type="file" accept="image/*" id="gp" hidden>🖼 ${t('gfx_photo')}</label>
+    <label class="btn block"><input type="file" accept="image/*" id="gp" hidden>${ic('img')} ${t('gfx_photo')}</label>
     <p class="small muted">${t('gfx_hint')}</p>
     <div class="sheet-btns"><button class="btn" id="gd">⬇ ${t('gfx_save')}</button><button class="btn primary" id="gs">↗ ${t('gfx_share')}</button></div>
     <button class="btn danger-ghost block" data-act="close-sheet">${t('cancel')}</button>`, el => {
@@ -728,7 +747,7 @@ function qrSheet() {
   sheet(`<h3>${t('join_qr')}</h3><p class="small muted">${t('join_qr_hint')}</p>
     <img class="qr" src="assets/join-qr.svg" alt="QR" width="280" height="280">
     <p class="center small"><b>mehmetustattsc.github.io/TTSC</b></p>
-    <a class="btn block" href="afis.html" target="_blank" rel="noopener">🖨 ${t('join_poster')}</a>
+    <a class="btn block" href="afis.html" target="_blank" rel="noopener">${ic('print')} ${t('join_poster')}</a>
     <div class="sheet-btns"><button class="btn" data-act="close-sheet">${t('close')}</button></div>`);
 }
 function approveSheet(id) {
