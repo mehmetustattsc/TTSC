@@ -1,0 +1,28 @@
+name: Fetch a file from the website
+
+# Helper: downloads one file from ttscbuchen.de (which the assistant's own network cannot reach)
+# and puts it on the branch "incoming", from where it is checked and copied into the app.
+on:
+  workflow_dispatch:
+    inputs:
+      url: { description: 'File on ttscbuchen.de', required: true }
+      name: { description: 'File name to save as', required: true }
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download and commit
+        env: { URL: "${{ github.event.inputs.url }}", NAME: "${{ github.event.inputs.name }}" }
+        run: |
+          case "$URL" in https://ttscbuchen.de/*) ;; *) echo "only ttscbuchen.de"; exit 1;; esac
+          case "$NAME" in */*|.*) echo "plain file name only"; exit 1;; esac
+          git init -q . && git checkout -q -b incoming
+          curl -fsSL --retry 3 -o "$NAME" "$URL"
+          echo "bytes: $(stat -c %s "$NAME")"
+          git add "$NAME" && git -c user.name=github-actions -c user.email=actions@github.com commit -qm "incoming: $NAME"
+          git push -fq "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" incoming
