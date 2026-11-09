@@ -221,7 +221,7 @@ try {
   {
     const payload = Buffer.from(JSON.stringify({ kind: 'season_stats', season: '2026/27', source: 'https://www.fussball.de', rows: [['Link Spieler', 3, 210, 1], ['Zweiter Spieler', 1, 45, 0]] })).toString('base64url');
     await player.goto(url + '#/import/' + payload); await player.waitForTimeout(300);
-    check((await player.text()).includes('🔒'), 'player cannot open the import link');
+    check((await player.locator('.locked').count()) === 1, 'player cannot open the import link');
     await admin.goto(url + '#/import/' + payload); await admin.waitForSelector('[data-act="import-go"]');
     check(!admin.url().includes(payload), 'import data removed from the address bar');
     await admin.click('[data-act="import-go"]'); await admin.waitForTimeout(800);
@@ -234,7 +234,7 @@ try {
   check(psql(`select count(*) from fees where paid_on is not null`) === '1', 'fee stored as paid');
   await admin.go('building/repairs'); await admin.click('[data-act="add-repair"]'); await admin.fill('#rti', 'Licht kaputt'); await admin.click('#rpk'); await settle();
   check(psql(`select status from repairs`) === 'open', 'repair stored');
-  await coach.fresh('building'); check((await coach.text()).includes('🔒'), 'coach locked out of clubhouse');
+  await coach.fresh('building'); check((await coach.locator('.locked').count()) === 1, 'coach locked out of clubhouse');
 
   // the player cannot write things he may not write, even bypassing the app
   const tok = await player.evaluate(() => JSON.parse(localStorage.getItem('ttsc-session')).access_token);

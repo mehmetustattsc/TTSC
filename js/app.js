@@ -157,7 +157,7 @@ export function render() {
   const sy = window.scrollY, chatList = $('.chat-list'), atBottom = !chatList || window.innerHeight + window.scrollY >= document.body.scrollHeight - 80;
   const mod = MOD_OF[r];
   const view = routes[r] || viewHome;
-  const body = mod && !S.can(u, mod) ? `<div class="card empty">${ic('lock')} ${t('no_access')}</div>` : view(id, u);
+  const body = mod && !S.can(u, mod) ? `<div class="card empty locked">${ic('lock')} ${t('no_access')}</div>` : view(id, u);
   const title = r === '' ? t('appName') : r === 'me' ? t('mod_me') : t('mod_' + mod);
   app.className = r === 'msg' && id !== 'notes' && S.can(u, 'msg') ? 'chat-mode' : '';
   app.innerHTML = `
