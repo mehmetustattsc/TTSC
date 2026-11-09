@@ -68,6 +68,7 @@ const IC = {
   mail: 'M3 6h18v12H3zM3 6l9 7 9-7',
   warn: 'M12 4L3 20h18zM12 10v4M12 17h.01',
   share: 'M12 15V4M8 8l4-4 4 4M5 13v7h14v-7',
+  down: 'M12 4v11M8 11l4 4 4-4M5 19h14',
   qr: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2',
 };
 const ic = k => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[k]}"/></svg>`;
@@ -354,7 +355,7 @@ function viewStats(tab, u) {
     const rows = S.players().map(p => ({ p, s: S.playerStats(p.id) })).sort((a, b) => b.s[sortKey] - a.s[sortKey] || a.p.num - b.p.num);
     const cols = [['rate', t('attendance_rate')], ['m', t('matches')], ['min', t('minutes')], ['g', t('goals')], ['a', t('assists')], ['y', t('yellow')]];
     if (!rows.length) return `${nav}<div class="card empty">${t('no_app_players')}</div>${seasonTable()}`;
-    return `${nav}${S.isStaff(u) ? `<button class="btn block" data-act="csv">⬇ ${t('export_csv')}</button>` : ''}
+    return `${nav}${S.isStaff(u) ? `<button class="btn block" data-act="csv">${ic('down')} ${t('export_csv')}</button>` : ''}
       <section class="card tbl-wrap"><table class="tbl"><thead><tr><th></th>${cols.map(([k, l]) => `<th><button data-act="sort" data-v="${k}" class="${sortKey === k ? 'on' : ''}">${l}</button></th>`).join('')}</tr></thead>
       <tbody>${rows.map(({ p, s }) => `<tr><td><a href="#/p/${p.id}">${esc(p.name.split(' ')[0])} ${esc((p.name.split(' ')[1] || '')[0] || '')}.</a></td><td>${s.rate}%</td><td>${s.m}</td><td>${s.min}</td><td>${s.g}</td><td>${s.a}</td><td>${s.y}</td></tr>`).join('')}</tbody></table></section>
       ${seasonTable()}`;
@@ -733,7 +734,7 @@ async function graphicSheet(eid) {
     <div class="gfx-wrap"><canvas id="gc"></canvas></div>
     <label class="btn block"><input type="file" accept="image/*" id="gp" hidden>${ic('img')} ${t('gfx_photo')}</label>
     <p class="small muted">${t('gfx_hint')}</p>
-    <div class="sheet-btns"><button class="btn" id="gd">⬇ ${t('gfx_save')}</button><button class="btn primary" id="gs">↗ ${t('gfx_share')}</button></div>
+    <div class="sheet-btns"><button class="btn" id="gd">${ic('down')} ${t('gfx_save')}</button><button class="btn primary" id="gs">${ic('share')} ${t('gfx_share')}</button></div>
     <button class="btn danger-ghost block" data-act="close-sheet">${t('cancel')}</button>`, el => {
     const cv = $('#gc', el);
     const scorers = () => Object.entries(S.matchStats(e.id)).filter(([, s]) => s.g).map(([pid, s]) => ({ name: S.user(pid)?.name || '', g: s.g })).sort((a, b) => b.g - a.g);

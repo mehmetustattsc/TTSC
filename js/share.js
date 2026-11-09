@@ -39,7 +39,7 @@ function badge(ctx, x, y, r, name, us, img = null) {
   ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
   ctx.lineWidth = 6; ctx.strokeStyle = us ? RED : '#2a2a2e'; ctx.stroke();
   if (!us && img) { const s = r * 1.45, k = Math.min(s / img.width, s / img.height), w = img.width * k, h = img.height * k; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(img, x - w / 2, y - h / 2, w, h); }
-  else if (us && logo) { const h = r * 1.55, w = h * logo.width / logo.height; ctx.drawImage(logo, x - w / 2, y - h / 2, w, h); }
+  else if (us && logo) { const h = r * 1.32, w = h * logo.width / logo.height; ctx.drawImage(logo, x - w / 2, y - h / 2, w, h); }
   else { ctx.fillStyle = '#2a2a2e'; ctx.font = `700 ${r * 0.8}px ${COND}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(initials(name), x, y + r * 0.05); }
   ctx.restore();
 }
@@ -68,7 +68,7 @@ const homeAway = (e, us = 'TTSC BUCHEN') => (e.home ? [us, e.opponent.toUpperCas
 
 // ---------- MATCHDAY ----------
 export function matchday(canvas, e, { format = 'story', photo = null, opp = null } = {}) {
-  const W = 1080, H = format === 'story' ? 1920 : 1350, ctx = canvas.getContext('2d'), R = rng(e.id);
+  const W = 1080, H = format === 'story' ? 1920 : 1350, ctx = canvas.getContext('2d'), R = rng(e.id); ctx.imageSmoothingQuality = 'high';
   canvas.width = W; canvas.height = H;
   background(ctx, W, H, photo, R);
   // darken photo for legibility
@@ -108,7 +108,7 @@ export function matchday(canvas, e, { format = 'story', photo = null, opp = null
 
 // ---------- ENDSTAND ----------
 export function endstand(canvas, e, { format = 'story', photo = null, scorers = [], opp = null } = {}) {
-  const W = 1080, H = format === 'story' ? 1920 : 1350, ctx = canvas.getContext('2d'), R = rng(e.id + 'x');
+  const W = 1080, H = format === 'story' ? 1920 : 1350, ctx = canvas.getContext('2d'), R = rng(e.id + 'x'); ctx.imageSmoothingQuality = 'high';
   canvas.width = W; canvas.height = H;
   // frame: red and black brush strokes with the shield as watermark
   const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#5E0512'); g.addColorStop(0.5, INK); g.addColorStop(1, '#8E0A1E');
@@ -117,7 +117,7 @@ export function endstand(canvas, e, { format = 'story', photo = null, scorers = 
     ctx.save(); ctx.globalAlpha = 0.1 + R() * 0.22; ctx.fillStyle = R() > 0.5 ? RED : '#000';
     ctx.translate(R() * W, R() * H); ctx.rotate(-0.55 + R() * 0.2); ctx.fillRect(-W, -6 - R() * 26, W * 2, 12 + R() * 50); ctx.restore();
   }
-  if (logo) { ctx.save(); ctx.globalAlpha = 0.2; const h = H * 0.5, w = h * logo.width / logo.height; ctx.drawImage(logo, -w * 0.55, H * 0.22, w, h); ctx.drawImage(logo, W - w * 0.45, H * 0.22, w, h); ctx.restore(); }
+  if (logo) { ctx.save(); ctx.globalAlpha = 0.12; const h = H * 0.5, w = h * logo.width / logo.height; ctx.drawImage(logo, -w * 0.55, H * 0.22, w, h); ctx.drawImage(logo, W - w * 0.45, H * 0.22, w, h); ctx.restore(); }
 
   // photo card
   const m = 80, top = format === 'story' ? 150 : 90, cw = W - 2 * m, ch = H - top - (format === 'story' ? 210 : 110), r = 70;
